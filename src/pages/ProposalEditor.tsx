@@ -1647,9 +1647,19 @@ export default function ProposalEditor() {
                           />
                         )}
 
+                        {/* Tour / Ticket — unified intuitive panel */}
+                        {(item.item_type === "tour" || item.item_type === "ticket") && (
+                          <TourQuickFields
+                            item={item}
+                            kind={item.item_type as "tour" | "ticket"}
+                            onItemChange={(key, value) => updateItem(idx, key, value)}
+                            onDataChange={(key, value) => updateItemData(idx, key, value)}
+                          />
+                        )}
+
                         {/* Standard form fields */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {item.item_type !== "flight" && (
+                          {item.item_type !== "flight" && item.item_type !== "tour" && item.item_type !== "ticket" && (
                             <>
                               <div className="space-y-1">
                                 <Label className="text-xs">{itemTypeLabels[item.item_type]} — Título</Label>
@@ -1669,10 +1679,12 @@ export default function ProposalEditor() {
                               airlineName={item.data?.flight_segments?.[0]?.airline_name}
                             />
                           )}
-                          <div className="md:col-span-2 space-y-1">
-                            <Label className="text-xs">Descrição</Label>
-                            <Textarea rows={2} value={item.description || ""} onChange={(e) => updateItem(idx, "description", e.target.value)} />
-                          </div>
+                          {item.item_type !== "tour" && item.item_type !== "ticket" && (
+                            <div className="md:col-span-2 space-y-1">
+                              <Label className="text-xs">Descrição</Label>
+                              <Textarea rows={2} value={item.description || ""} onChange={(e) => updateItem(idx, "description", e.target.value)} />
+                            </div>
+                          )}
 
                           {/* Type-specific fields */}
                           {item.item_type === "flight" && (
