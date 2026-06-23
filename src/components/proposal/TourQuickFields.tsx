@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,10 @@ import {
   ShieldAlert,
   FileText,
   Image as ImageIcon,
+  ChevronDown,
 } from "lucide-react";
 import HotelPhotoGallery from "@/components/proposal/HotelPhotoGallery";
+import { cn } from "@/lib/utils";
 
 interface ItemShape {
   title?: string;
@@ -35,147 +38,153 @@ interface ItemShape {
 
 interface Props {
   item: ItemShape;
-  /** kind = "tour" or "ticket" — only affects placeholders and labels. */
   kind: "tour" | "ticket";
   onItemChange: (key: "title" | "description" | "image_url", value: string) => void;
   onDataChange: (key: string, value: any) => void;
 }
 
 const TOUR_CATEGORIES = [
-  "Passeio de barco",
-  "City tour",
-  "Trilha / Caminhada",
-  "Mergulho / Snorkel",
-  "Gastronômico",
-  "Cultural / Museu",
-  "Aventura",
-  "Bike tour",
-  "Helicóptero",
-  "4x4 / Off-road",
-  "Pôr do sol",
-  "Show / Espetáculo",
-  "Parque temático",
-  "Outro",
+  "Passeio de barco", "City tour", "Trilha / Caminhada", "Mergulho / Snorkel",
+  "Gastronômico", "Cultural / Museu", "Aventura", "Bike tour",
+  "Helicóptero", "4x4 / Off-road", "Pôr do sol", "Show / Espetáculo",
+  "Parque temático", "Outro",
 ];
-
 const TICKET_CATEGORIES = [
-  "Parque temático",
-  "Museu",
-  "Atração turística",
-  "Show / Espetáculo",
-  "Esporte / Evento",
-  "Mirante / Observação",
-  "Aquário",
-  "Outro",
+  "Parque temático", "Museu", "Atração turística", "Show / Espetáculo",
+  "Esporte / Evento", "Mirante / Observação", "Aquário", "Outro",
 ];
-
 const SUGGESTED_INCLUDES_TOUR = [
-  "Transporte ida e volta do hotel",
-  "Guia bilíngue credenciado",
-  "Equipamentos de segurança",
-  "Seguro de responsabilidade civil",
-  "Água mineral durante o passeio",
-  "Lanche / refeição",
+  "Transporte ida e volta do hotel", "Guia bilíngue credenciado",
+  "Equipamentos de segurança", "Seguro de responsabilidade civil",
+  "Água mineral durante o passeio", "Lanche / refeição",
   "Entradas e ingressos das atrações",
 ];
-
 const SUGGESTED_EXCLUDES_TOUR = [
-  "Gorjetas",
-  "Refeições não mencionadas",
-  "Bebidas alcoólicas",
-  "Despesas pessoais",
-  "Itens de uso pessoal",
+  "Gorjetas", "Refeições não mencionadas", "Bebidas alcoólicas",
+  "Despesas pessoais", "Itens de uso pessoal",
 ];
-
 const SUGGESTED_WHAT_TO_BRING = [
-  "Roupa de banho",
-  "Toalha",
-  "Protetor solar",
-  "Repelente",
-  "Tênis fechado",
-  "Roupa leve e confortável",
-  "Documento com foto",
-  "Câmera fotográfica",
-  "Dinheiro para extras",
+  "Roupa de banho", "Toalha", "Protetor solar", "Repelente",
+  "Tênis fechado", "Roupa leve e confortável", "Documento com foto",
+  "Câmera fotográfica", "Dinheiro para extras",
 ];
 
-function StringListEditor({
-  label,
+/* ───────────── Collapsible Section ───────────── */
+function Section({
+  title,
+  subtitle,
   icon,
-  items,
-  onChange,
-  placeholder,
-  suggestions,
-  emptyHint,
-  tone = "muted",
+  defaultOpen = false,
+  badge,
+  children,
 }: {
-  label: string;
+  title: string;
+  subtitle?: string;
   icon: React.ReactNode;
+  defaultOpen?: boolean;
+  badge?: string | number;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-xl border border-border/60 bg-background overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+      >
+        <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">{title}</span>
+            {badge !== undefined && badge !== 0 && badge !== "" && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/15 text-accent font-semibold">
+                {badge}
+              </span>
+            )}
+          </div>
+          {subtitle && <p className="text-[11px] text-muted-foreground line-clamp-1">{subtitle}</p>}
+        </div>
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform shrink-0", open && "rotate-180")} />
+      </button>
+      {open && <div className="px-4 pb-4 pt-1 space-y-3 border-t border-border/40">{children}</div>}
+    </div>
+  );
+}
+
+/* ───────────── Chip list with suggestions ───────────── */
+function ChipList({
+  items, onChange, placeholder, suggestions,
+}: {
   items: string[];
   onChange: (next: string[]) => void;
   placeholder: string;
   suggestions?: string[];
-  emptyHint?: string;
-  tone?: "accent" | "muted" | "danger";
 }) {
-  const update = (i: number, value: string) => onChange(items.map((it, idx) => (idx === i ? value : it)));
+  const [input, setInput] = useState("");
+  const add = (v: string) => {
+    const t = v.trim();
+    if (!t || items.includes(t)) return;
+    onChange([...items, t]);
+    setInput("");
+  };
   const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
-  const add = (value = "") => onChange([...items, value]);
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          {icon} {label} {items.length > 0 && <span className="text-muted-foreground/60">· {items.length}</span>}
-        </Label>
-        <div className="flex items-center gap-1.5">
-          {suggestions && suggestions.length > 0 && (
-            <select
-              className="h-7 rounded-md border border-input bg-background px-2 text-[11px]"
-              defaultValue=""
-              onChange={(e) => {
-                const v = e.target.value;
-                if (!v) return;
-                add(v);
-                e.currentTarget.value = "";
-              }}
-            >
-              <option value="">+ Sugestão</option>
-              {suggestions.filter((s) => !items.includes(s)).map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          )}
-          <Button size="sm" variant="outline" onClick={() => add()} className="h-7 gap-1 text-xs">
-            <Plus className="w-3 h-3" /> Adicionar
-          </Button>
-        </div>
+      <div className="flex gap-1.5">
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); add(input); }
+          }}
+          placeholder={placeholder}
+          className="h-9 text-sm"
+        />
+        <Button size="sm" type="button" variant="outline" onClick={() => add(input)} className="h-9 gap-1 shrink-0">
+          <Plus className="w-3.5 h-3.5" /> Adicionar
+        </Button>
       </div>
 
-      {items.length === 0 ? (
-        <p className="text-[11px] text-muted-foreground text-center py-3 bg-background rounded-lg border border-dashed border-border/50">
-          {emptyHint || "Nenhum item adicionado"}
-        </p>
-      ) : (
-        <div className="space-y-1.5">
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
           {items.map((it, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <Input
-                value={it}
-                onChange={(e) => update(i, e.target.value)}
-                placeholder={placeholder}
-                className="h-8 text-sm"
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+            <span
+              key={i}
+              className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full bg-accent/10 text-accent text-xs border border-accent/20"
+            >
+              {it}
+              <button
+                type="button"
                 onClick={() => remove(i)}
+                className="w-4 h-4 rounded-full hover:bg-accent/20 inline-flex items-center justify-center"
+                aria-label="Remover"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+                <X className="w-3 h-3" />
+              </button>
+            </span>
           ))}
+        </div>
+      )}
+
+      {suggestions && suggestions.filter((s) => !items.includes(s)).length > 0 && (
+        <div className="pt-1">
+          <p className="text-[10.5px] text-muted-foreground/80 mb-1.5">Sugestões rápidas · toque para adicionar</p>
+          <div className="flex flex-wrap gap-1.5">
+            {suggestions.filter((s) => !items.includes(s)).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => add(s)}
+                className="text-[11px] px-2 py-1 rounded-full border border-dashed border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                + {s}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -185,6 +194,7 @@ function StringListEditor({
 export default function TourQuickFields({ item, kind, onItemChange, onDataChange }: Props) {
   const d = item.data || {};
   const isTicket = kind === "ticket";
+  const labelMain = isTicket ? "Ingresso" : "Passeio";
 
   const highlights: string[] = Array.isArray(d.highlights) ? d.highlights : [];
   const includes: string[] = Array.isArray(d.includes) ? d.includes : (d.includes ? [String(d.includes)] : []);
@@ -193,33 +203,37 @@ export default function TourQuickFields({ item, kind, onItemChange, onDataChange
   const gallery: any[] = Array.isArray(d.gallery) ? d.gallery : [];
 
   const categoriesList = isTicket ? TICKET_CATEGORIES : TOUR_CATEGORIES;
-  const labelMain = isTicket ? "Ingresso" : "Passeio";
+
+  const dateBadge = d.start_date || d.date ? "ok" : "";
+  const providerBadge = d.provider ? "ok" : "";
 
   return (
-    <div className="space-y-5 rounded-xl border border-border/50 bg-muted/10 p-3.5">
-      {/* ── Identidade ── */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-1 md:col-span-2">
-            <Label className="text-xs flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-accent" />
-              Título do {labelMain.toLowerCase()} <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={item.title || ""}
-              onChange={(e) => onItemChange("title", e.target.value)}
-              placeholder={isTicket ? "Ex.: Ingresso Cristo Redentor + Trem do Corcovado" : "Ex.: Passeio de Barco em Arraial do Cabo"}
-              className="font-medium"
-            />
-            <p className="text-[10.5px] text-muted-foreground/80">
-              Este é o título que aparece em destaque no card da proposta.
-            </p>
-          </div>
+    <div className="space-y-3">
+      {/* ═══ ESSENCIAL · sempre visível ═══ */}
+      <div className="rounded-xl border-2 border-accent/30 bg-gradient-to-br from-accent/[0.04] to-transparent p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-accent" />
+          <span className="text-xs font-bold uppercase tracking-wider text-accent">Essencial</span>
+          <span className="text-[10.5px] text-muted-foreground ml-auto">Já dá pra mostrar uma proposta linda</span>
+        </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs flex items-center gap-1.5"><Tag className="w-3 h-3" /> Categoria</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold">
+            Nome do {labelMain.toLowerCase()} <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            value={item.title || ""}
+            onChange={(e) => onItemChange("title", e.target.value)}
+            placeholder={isTicket ? "Ex.: Ingresso Cristo Redentor + Trem do Corcovado" : "Ex.: Passeio de Barco em Arraial do Cabo"}
+            className="h-11 font-medium text-base"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[11px] flex items-center gap-1"><Tag className="w-3 h-3" /> Categoria</Label>
             <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={d.category || ""}
               onChange={(e) => onDataChange("category", e.target.value)}
             >
@@ -227,230 +241,230 @@ export default function TourQuickFields({ item, kind, onItemChange, onDataChange
               {categoriesList.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs flex items-center gap-1.5"><Clock className="w-3 h-3" /> Duração</Label>
+          <div className="space-y-1.5">
+            <Label className="text-[11px] flex items-center gap-1"><Clock className="w-3 h-3" /> Duração</Label>
             <Input
               value={d.duration || ""}
               onChange={(e) => onDataChange("duration", e.target.value)}
-              placeholder="Ex.: 4 horas, dia inteiro"
+              placeholder="Ex.: 4 horas"
+              className="h-10"
             />
           </div>
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-xs">Descrição</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold">Descrição da experiência</Label>
           <Textarea
-            rows={3}
+            rows={5}
             value={item.description || ""}
             onChange={(e) => onItemChange("description", e.target.value)}
             placeholder={
               isTicket
-                ? "Conte rapidamente o que o cliente vai vivenciar com este ingresso..."
-                : "Conte como é a experiência, o que torna esse passeio especial..."
+                ? "Descreva o que o cliente vai vivenciar com esse ingresso · pode ser longo, vai aparecer inteiro na proposta."
+                : "Conte como é a experiência · ritmo, paisagens, o que faz esse passeio ser inesquecível. Pode escrever à vontade, vai aparecer completo na proposta."
             }
+            className="resize-y leading-relaxed"
           />
           <p className="text-[10.5px] text-muted-foreground/80">
-            Aparece como subtítulo do card. Mantenha entre 1 e 3 linhas para melhor leitura.
+            Sem limite de tamanho · use parágrafos para uma leitura agradável.
           </p>
+        </div>
+
+        {/* Foto de capa rápida */}
+        <div className="space-y-1.5">
+          <Label className="text-[11px] flex items-center gap-1.5">
+            <ImageIcon className="w-3 h-3" /> Foto de capa (URL ou use a galeria abaixo)
+          </Label>
+          <Input
+            value={item.image_url || ""}
+            onChange={(e) => onItemChange("image_url", e.target.value)}
+            placeholder="https://..."
+            className="h-10 text-sm"
+          />
         </div>
       </div>
 
-      {/* ── Quando & Onde ── */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="w-3 h-3" /> Quando & Onde
-        </Label>
+      {/* ═══ Seções opcionais · recolhíveis ═══ */}
+      <Section
+        title="Destaques da experiência"
+        subtitle="3 a 5 pontos altos · viram chips no card"
+        icon={<Star className="w-4 h-4" />}
+        badge={highlights.length || undefined}
+        defaultOpen={highlights.length > 0}
+      >
+        <ChipList
+          items={highlights}
+          onChange={(next) => onDataChange("highlights", next)}
+          placeholder="Ex.: Parada para banho na Praia do Farol"
+        />
+      </Section>
+
+      <Section
+        title="Quando & onde"
+        subtitle={d.start_date || d.location ? `${d.start_date || ""} ${d.location ? "· " + d.location : ""}` : "Data, horário, local e ponto de encontro"}
+        icon={<Calendar className="w-4 h-4" />}
+        badge={dateBadge ? "✓" : undefined}
+        defaultOpen={!!(d.start_date || d.location || d.meeting_point)}
+      >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="space-y-1">
             <Label className="text-[11px]">Data</Label>
-            <Input type="date" value={d.start_date || d.date || ""} onChange={(e) => onDataChange("start_date", e.target.value)} />
+            <Input type="date" value={d.start_date || d.date || ""} onChange={(e) => onDataChange("start_date", e.target.value)} className="h-9" />
           </div>
           <div className="space-y-1">
-            <Label className="text-[11px]">Horário início</Label>
-            <Input type="time" value={d.start_time || ""} onChange={(e) => onDataChange("start_time", e.target.value)} />
+            <Label className="text-[11px]">Início</Label>
+            <Input type="time" value={d.start_time || ""} onChange={(e) => onDataChange("start_time", e.target.value)} className="h-9" />
           </div>
           <div className="space-y-1">
-            <Label className="text-[11px]">Horário fim</Label>
-            <Input type="time" value={d.end_time || ""} onChange={(e) => onDataChange("end_time", e.target.value)} />
+            <Label className="text-[11px]">Fim</Label>
+            <Input type="time" value={d.end_time || ""} onChange={(e) => onDataChange("end_time", e.target.value)} className="h-9" />
           </div>
           <div className="space-y-1">
             <Label className="text-[11px] flex items-center gap-1"><Users className="w-3 h-3" /> Pessoas</Label>
-            <Input
-              type="number"
-              min={1}
-              value={d.guests || ""}
-              onChange={(e) => onDataChange("guests", Number(e.target.value) || undefined)}
-              placeholder="Ex.: 2"
-            />
+            <Input type="number" min={1} value={d.guests || ""} onChange={(e) => onDataChange("guests", Number(e.target.value) || undefined)} placeholder="2" className="h-9" />
           </div>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-[11px] flex items-center gap-1"><MapPin className="w-3 h-3" /> Local / cidade</Label>
-            <Input
-              value={d.location || ""}
-              onChange={(e) => onDataChange("location", e.target.value)}
-              placeholder="Ex.: Arraial do Cabo, RJ"
-            />
+            <Input value={d.location || ""} onChange={(e) => onDataChange("location", e.target.value)} placeholder="Ex.: Arraial do Cabo, RJ" className="h-9" />
           </div>
           <div className="space-y-1">
             <Label className="text-[11px] flex items-center gap-1"><MapPin className="w-3 h-3" /> Ponto de encontro</Label>
-            <Input
-              value={d.meeting_point || ""}
-              onChange={(e) => onDataChange("meeting_point", e.target.value)}
-              placeholder="Ex.: Marina dos Pescadores, Rua X, 123"
-            />
+            <Input value={d.meeting_point || ""} onChange={(e) => onDataChange("meeting_point", e.target.value)} placeholder="Ex.: Marina dos Pescadores" className="h-9" />
           </div>
         </div>
-      </div>
+      </Section>
 
-      {/* ── Fornecedor & Detalhes ── */}
-      <div className="space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Briefcase className="w-3 h-3" /> Fornecedor & Detalhes
-        </Label>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-1">
-            <Label className="text-[11px]">Operadora / Fornecedor</Label>
-            <Input
-              value={d.provider || ""}
-              onChange={(e) => onDataChange("provider", e.target.value)}
-              placeholder="Ex.: Marlin Tour"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] flex items-center gap-1"><Phone className="w-3 h-3" /> Telefone</Label>
-            <Input
-              value={d.provider_phone || ""}
-              onChange={(e) => onDataChange("provider_phone", e.target.value)}
-              placeholder="(22) 99999-9999"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] flex items-center gap-1"><Globe className="w-3 h-3" /> Idioma do guia</Label>
-            <Input
-              value={d.guide_language || ""}
-              onChange={(e) => onDataChange("guide_language", e.target.value)}
-              placeholder="Português, Inglês..."
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] flex items-center gap-1"><Ticket className="w-3 h-3" /> Código de reserva</Label>
-            <Input
-              value={d.locator || d.reservation_code || ""}
-              onChange={(e) => onDataChange("locator", e.target.value)}
-              placeholder="Ex.: AB123XYZ"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px]">Tipo / Categoria interna</Label>
-            <Input
-              value={d.ticket_type || ""}
-              onChange={(e) => onDataChange("ticket_type", e.target.value)}
-              placeholder={isTicket ? "Ex.: Inteira, Fast Pass" : "Ex.: Compartilhado, Privativo"}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[11px] flex items-center gap-1"><Link2 className="w-3 h-3" /> Link / Voucher</Label>
-            <Input
-              value={d.booking_url || ""}
-              onChange={(e) => onDataChange("booking_url", e.target.value)}
-              placeholder="https://..."
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Destaques ── */}
-      <StringListEditor
-        label="Destaques da experiência"
-        icon={<Star className="w-3 h-3 text-accent" />}
-        items={highlights}
-        onChange={(next) => onDataChange("highlights", next)}
-        placeholder="Ex.: Parada para banho na Praia do Farol"
-        emptyHint="Adicione 3 a 5 destaques · aparecem em chips no card da proposta"
-      />
-
-      {/* ── Inclui / Não inclui ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <StringListEditor
-          label="O que está incluso"
-          icon={<CheckCircle className="w-3 h-3 text-accent" />}
+      <Section
+        title="O que está incluso"
+        subtitle="Liste o que está no preço"
+        icon={<CheckCircle className="w-4 h-4" />}
+        badge={includes.length || undefined}
+        defaultOpen={includes.length > 0}
+      >
+        <ChipList
           items={includes}
           onChange={(next) => onDataChange("includes", next)}
           placeholder="Ex.: Guia bilíngue"
           suggestions={SUGGESTED_INCLUDES_TOUR}
-          emptyHint="Liste tudo que está no preço"
         />
-        <StringListEditor
-          label="Não está incluso"
-          icon={<X className="w-3 h-3 text-muted-foreground" />}
+      </Section>
+
+      <Section
+        title="Não está incluso"
+        subtitle="Evita surpresas para o cliente"
+        icon={<X className="w-4 h-4" />}
+        badge={excludes.length || undefined}
+        defaultOpen={excludes.length > 0}
+      >
+        <ChipList
           items={excludes}
           onChange={(next) => onDataChange("excludes", next)}
           placeholder="Ex.: Gorjetas"
           suggestions={SUGGESTED_EXCLUDES_TOUR}
-          emptyHint="Evita surpresas para o cliente"
         />
-      </div>
+      </Section>
 
-      {/* ── O que levar ── */}
-      <StringListEditor
-        label="O que levar"
-        icon={<Backpack className="w-3 h-3 text-accent" />}
-        items={whatToBring}
-        onChange={(next) => onDataChange("what_to_bring", next)}
-        placeholder="Ex.: Protetor solar"
-        suggestions={SUGGESTED_WHAT_TO_BRING}
-        emptyHint="Dica prática que faz toda a diferença"
-      />
+      <Section
+        title="O que levar"
+        subtitle="Dicas práticas que fazem diferença"
+        icon={<Backpack className="w-4 h-4" />}
+        badge={whatToBring.length || undefined}
+        defaultOpen={whatToBring.length > 0}
+      >
+        <ChipList
+          items={whatToBring}
+          onChange={(next) => onDataChange("what_to_bring", next)}
+          placeholder="Ex.: Protetor solar"
+          suggestions={SUGGESTED_WHAT_TO_BRING}
+        />
+      </Section>
 
-      {/* ── Política & Observações ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-[11px] flex items-center gap-1.5">
-            <ShieldAlert className="w-3 h-3 text-accent" /> Política de cancelamento
-          </Label>
-          <Textarea
-            rows={3}
-            value={d.cancellation_policy || ""}
-            onChange={(e) => onDataChange("cancellation_policy", e.target.value)}
-            placeholder="Ex.: Cancelamento gratuito até 48h antes do passeio."
-            className="text-xs"
-          />
+      <Section
+        title="Política & observações"
+        subtitle="Cancelamento, restrições, avisos"
+        icon={<ShieldAlert className="w-4 h-4" />}
+        badge={d.cancellation_policy || d.notes ? "✓" : undefined}
+        defaultOpen={!!(d.cancellation_policy || d.notes)}
+      >
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-[11px]">Política de cancelamento</Label>
+            <Textarea
+              rows={2}
+              value={d.cancellation_policy || ""}
+              onChange={(e) => onDataChange("cancellation_policy", e.target.value)}
+              placeholder="Ex.: Cancelamento gratuito até 48h antes do passeio."
+              className="text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px]">Observações importantes</Label>
+            <Textarea
+              rows={2}
+              value={d.notes || ""}
+              onChange={(e) => onDataChange("notes", e.target.value)}
+              placeholder="Ex.: Não recomendado para gestantes ou pessoas com mobilidade reduzida."
+              className="text-sm"
+            />
+          </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-[11px] flex items-center gap-1.5">
-            <FileText className="w-3 h-3 text-accent" /> Observações importantes
-          </Label>
-          <Textarea
-            rows={3}
-            value={d.notes || ""}
-            onChange={(e) => onDataChange("notes", e.target.value)}
-            placeholder="Ex.: Não recomendado para gestantes ou pessoas com mobilidade reduzida."
-            className="text-xs"
-          />
-        </div>
-      </div>
+      </Section>
 
-      {/* ── Galeria ── */}
-      <div className="space-y-2 rounded-xl border border-border/50 bg-background p-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <ImageIcon className="w-3 h-3" /> Galeria de fotos
-          </Label>
-          <span className="text-[10.5px] text-muted-foreground/80">
-            A primeira foto marcada como capa aparece no topo do card.
-          </span>
+      <Section
+        title="Fornecedor & reserva"
+        subtitle="Operadora, contato, código · 🔒 uso interno"
+        icon={<Briefcase className="w-4 h-4" />}
+        badge={providerBadge ? "✓" : undefined}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-[11px]">Operadora / Fornecedor</Label>
+            <Input value={d.provider || ""} onChange={(e) => onDataChange("provider", e.target.value)} placeholder="Ex.: Marlin Tour" className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] flex items-center gap-1"><Phone className="w-3 h-3" /> Telefone</Label>
+            <Input value={d.provider_phone || ""} onChange={(e) => onDataChange("provider_phone", e.target.value)} placeholder="(22) 99999-9999" className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] flex items-center gap-1"><Globe className="w-3 h-3" /> Idioma do guia</Label>
+            <Input value={d.guide_language || ""} onChange={(e) => onDataChange("guide_language", e.target.value)} placeholder="Português, Inglês..." className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] flex items-center gap-1"><Ticket className="w-3 h-3" /> Código de reserva</Label>
+            <Input value={d.locator || d.reservation_code || ""} onChange={(e) => onDataChange("locator", e.target.value)} placeholder="Ex.: AB123XYZ" className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px]">Tipo</Label>
+            <Input
+              value={d.ticket_type || ""}
+              onChange={(e) => onDataChange("ticket_type", e.target.value)}
+              placeholder={isTicket ? "Ex.: Inteira, Fast Pass" : "Ex.: Compartilhado, Privativo"}
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] flex items-center gap-1"><Link2 className="w-3 h-3" /> Link / Voucher</Label>
+            <Input value={d.booking_url || ""} onChange={(e) => onDataChange("booking_url", e.target.value)} placeholder="https://..." className="h-9" />
+          </div>
         </div>
+      </Section>
+
+      <Section
+        title="Galeria de fotos"
+        subtitle="A capa aparece em destaque no topo do card"
+        icon={<ImageIcon className="w-4 h-4" />}
+        badge={gallery.length || undefined}
+        defaultOpen={gallery.length > 0}
+      >
         <HotelPhotoGallery
           photos={gallery}
           coverUrl={item.image_url || ""}
           onPhotosChange={(next) => onDataChange("gallery", next)}
           onCoverChange={(url) => onItemChange("image_url", url)}
         />
-      </div>
+      </Section>
     </div>
   );
 }

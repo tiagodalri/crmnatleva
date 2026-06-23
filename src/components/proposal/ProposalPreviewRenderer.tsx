@@ -1868,23 +1868,33 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
               <span className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold">{meta.label}</span>
             </div>
           )}
-          <h3 className="font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] text-base sm:text-lg">
+          <h3 className={cn(
+            "font-semibold text-foreground leading-snug break-words",
+            isExperience ? "text-xl sm:text-2xl" : "text-base sm:text-lg line-clamp-2 min-h-[2.75rem]"
+          )}>
             {item.title || `${meta.label} sem título`}
           </h3>
-          {route && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 break-words">{route}</p>}
-          {item.description && <p className="text-sm text-muted-foreground/90 line-clamp-3 mt-2 leading-relaxed">{item.description}</p>}
+          {d.category && isExperience && (
+            <p className="text-[11px] uppercase tracking-[0.2em] text-accent/80 font-semibold mt-1">{d.category}</p>
+          )}
+          {route && <p className="text-sm text-muted-foreground mt-1 break-words">{route}</p>}
+          {item.description && (
+            <p className={cn(
+              "text-sm mt-3 leading-relaxed whitespace-pre-wrap break-words",
+              isExperience ? "text-foreground/85" : "text-muted-foreground/90 line-clamp-3"
+            )}>
+              {item.description}
+            </p>
+          )}
 
           {/* Highlight chips on the front (tour/ticket) */}
           {isExperience && highlights.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {highlights.slice(0, 3).map((h, i) => (
-                <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-accent/8 text-accent border border-accent/15 line-clamp-1">
+            <div className="flex flex-wrap gap-1.5 mt-4">
+              {highlights.map((h, i) => (
+                <span key={i} className="text-[11px] px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/20 font-medium">
                   {h}
                 </span>
               ))}
-              {highlights.length > 3 && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full text-muted-foreground">+{highlights.length - 3}</span>
-              )}
             </div>
           )}
 
