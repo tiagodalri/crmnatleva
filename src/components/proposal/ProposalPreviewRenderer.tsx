@@ -1671,6 +1671,7 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
   const d = item.data || {};
   const meta = MISC_META[kind] || MISC_META.other;
   const Icon = meta.Icon;
+  const isExperience = kind === "tour" || kind === "ticket";
 
   const route =
     (d.origin || d.pickup_location) && (d.destination || d.dropoff_location)
@@ -1689,6 +1690,11 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
   const includes: string[] = Array.isArray(d.includes) ? d.includes : d.includes ? [String(d.includes)] : [];
   const excludes: string[] = Array.isArray(d.excludes) ? d.excludes : [];
   const amenities: string[] = Array.isArray(d.amenities) ? d.amenities : [];
+  const highlights: string[] = Array.isArray(d.highlights) ? d.highlights.filter(Boolean) : [];
+  const whatToBring: string[] = Array.isArray(d.what_to_bring) ? d.what_to_bring.filter(Boolean) : [];
+  const galleryPhotos: string[] = Array.isArray(d.gallery)
+    ? d.gallery.filter((p: any) => p?.url && !p?.excluded).map((p: any) => p.url)
+    : [];
 
   const pills: { icon: React.ReactNode; label: string; value: string }[] = [];
   if (dateStr) pills.push({ icon: <Calendar className="w-3.5 h-3.5" />, label: "Data", value: dateStr });
@@ -1706,18 +1712,58 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
   if (guests) pills.push({ icon: <Users className="w-3.5 h-3.5" />, label: "Pessoas", value: String(guests) });
   if (d.guide_language) pills.push({ icon: <Globe className="w-3.5 h-3.5" />, label: "Idioma", value: String(d.guide_language) });
   if (d.meeting_point) pills.push({ icon: <MapPin className="w-3.5 h-3.5" />, label: "Encontro", value: String(d.meeting_point) });
+  if (d.location && isExperience) pills.push({ icon: <MapPin className="w-3.5 h-3.5" />, label: "Local", value: String(d.location) });
   if (d.attraction && kind === "ticket") pills.push({ icon: <Ticket className="w-3.5 h-3.5" />, label: "Atração", value: String(d.attraction) });
   if (d.ticket_type) pills.push({ icon: <Tag className="w-3.5 h-3.5" />, label: "Tipo", value: String(d.ticket_type) });
   if (d.luggage_capacity) pills.push({ icon: <Luggage className="w-3.5 h-3.5" />, label: "Bagagem", value: String(d.luggage_capacity) });
   if (d.provider) pills.push({ icon: <Briefcase className="w-3.5 h-3.5" />, label: "Fornecedor", value: String(d.provider) });
   if (d.locator) pills.push({ icon: <Tag className="w-3.5 h-3.5" />, label: "Localizador", value: String(d.locator) });
 
+  const heroPhoto = item.image_url || galleryPhotos[0];
+  const hasRichContent =
+    pills.length > 0 ||
+    includes.length > 0 ||
+    excludes.length > 0 ||
+    highlights.length > 0 ||
+    whatToBring.length > 0 ||
+    !!d.cancellation_policy ||
+    !!d.notes;
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.08 }} className="h-full">
       <ExpandableCard
+        defaultExpanded={isExperience && hasRichContent}
         expandedContent={
-          <div className="px-5 pb-4 space-y-3">
+          <div className="px-5 pb-5 space-y-4">
             <div className="h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
+
+            {/* Gallery thumbnails (tour/ticket) */}
+            {isExperience && galleryPhotos.length > 1 && (
+              <div className="grid grid-cols-4 gap-1.5">
+                {galleryPhotos.slice(0, 4).map((url, i) => (
+                  <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                    <SmartImage src={url} alt={`${item.title || meta.label} ${i + 1}`} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Highlights */}
+            {highlights.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-accent uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3" /> Destaques da experiência
+                </p>
+                <ul className="space-y-1.5">
+                  {highlights.map((h, i) => (
+                    <li key={i} className="text-sm text-foreground/85 flex items-start gap-2">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-accent shrink-0" /> {h}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {pills.length > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 {pills.map((p, i) => (
@@ -1725,9 +1771,12 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
                 ))}
               </div>
             )}
+
             {includes.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">Inclui</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                  <CheckCircle className="w-3 h-3 text-accent" /> O que está incluso
+                </p>
                 <ul className="space-y-1">
                   {includes.map((it, i) => (
                     <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
@@ -1739,7 +1788,9 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
             )}
             {excludes.length > 0 && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">Não inclui</p>
+                <p className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                  <X className="w-3 h-3 text-muted-foreground" /> Não está incluso
+                </p>
                 <ul className="space-y-1">
                   {excludes.map((it, i) => (
                     <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
@@ -1749,6 +1800,18 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
                 </ul>
               </div>
             )}
+
+            {whatToBring.length > 0 && (
+              <div className="rounded-lg bg-accent/[0.04] border border-accent/15 p-3">
+                <p className="text-xs font-semibold text-foreground mb-1.5">O que levar</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {whatToBring.map((w, i) => (
+                    <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-background text-foreground/80 border border-border/50">{w}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {amenities.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {amenities.map((a, i) => (
@@ -1757,31 +1820,82 @@ function MiscItemCard({ item, idx, kind }: { item: any; idx: number; kind: strin
               </div>
             )}
             {d.cancellation_policy && (
-              <p className="text-[11px] text-muted-foreground/70 border-l-2 border-accent/30 pl-3">
-                <span className="font-medium">Cancelamento:</span> {d.cancellation_policy}
+              <p className="text-[11px] text-muted-foreground/80 border-l-2 border-accent/30 pl-3 leading-relaxed">
+                <span className="font-semibold text-foreground/80">Cancelamento:</span> {d.cancellation_policy}
               </p>
             )}
-            {d.notes && <p className="text-xs text-muted-foreground/70 italic border-l-2 border-accent/30 pl-3">{d.notes}</p>}
+            {d.notes && <p className="text-xs text-muted-foreground/80 italic border-l-2 border-accent/30 pl-3 leading-relaxed">{d.notes}</p>}
+
+            {d.booking_url && (
+              <a
+                href={d.booking_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent/80"
+              >
+                Abrir voucher / link <ChevronRight className="w-3 h-3" />
+              </a>
+            )}
           </div>
         }
       >
-        {item.image_url && (
-          <div className="h-40 overflow-hidden">
-            <SmartImage src={item.image_url} alt={item.title || meta.label} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
+        {heroPhoto ? (
+          <div className={`${isExperience ? "h-52 sm:h-56" : "h-40"} overflow-hidden relative`}>
+            <SmartImage src={heroPhoto} alt={item.title || meta.label} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
+            {isExperience && (
+              <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/90 backdrop-blur-sm border border-border/40">
+                <Icon className="w-3 h-3 text-accent" />
+                <span className="text-[10px] uppercase tracking-[0.2em] text-foreground font-semibold">{meta.label}</span>
+              </div>
+            )}
           </div>
-        )}
+        ) : isExperience ? (
+          <div className="h-32 bg-gradient-to-br from-accent/10 via-accent/[0.04] to-transparent flex items-center justify-center">
+            <Icon className="w-10 h-10 text-accent/40" />
+          </div>
+        ) : null}
         <div className="p-5 flex-1 flex flex-col">
-          <div className="flex items-center gap-2 mb-1">
-            <Icon className="w-4 h-4 text-accent" />
-            <span className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold">{meta.label}</span>
-          </div>
-          <h3 className="font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.75rem]">{item.title || `${meta.label} sem título`}</h3>
-          {route && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 break-words min-h-[2.5rem]">{route}</p>}
-          {item.description && <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{item.description}</p>}
+          {!heroPhoto && (
+            <div className="flex items-center gap-2 mb-1">
+              <Icon className="w-4 h-4 text-accent" />
+              <span className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold">{meta.label}</span>
+            </div>
+          )}
+          {heroPhoto && !isExperience && (
+            <div className="flex items-center gap-2 mb-1">
+              <Icon className="w-4 h-4 text-accent" />
+              <span className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold">{meta.label}</span>
+            </div>
+          )}
+          <h3 className="font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] text-base sm:text-lg">
+            {item.title || `${meta.label} sem título`}
+          </h3>
+          {route && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 break-words">{route}</p>}
+          {item.description && <p className="text-sm text-muted-foreground/90 line-clamp-3 mt-2 leading-relaxed">{item.description}</p>}
+
+          {/* Highlight chips on the front (tour/ticket) */}
+          {isExperience && highlights.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {highlights.slice(0, 3).map((h, i) => (
+                <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-accent/8 text-accent border border-accent/15 line-clamp-1">
+                  {h}
+                </span>
+              ))}
+              {highlights.length > 3 && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full text-muted-foreground">+{highlights.length - 3}</span>
+              )}
+            </div>
+          )}
+
           <div className="mt-auto pt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground min-h-[1.25rem]">
             {dateStr && <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> {dateStr}</span>}
             {timeStr && <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {timeStr}</span>}
+            {d.duration && <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {d.duration}</span>}
             {guests && <span className="inline-flex items-center gap-1"><Users className="w-3 h-3" /> {guests}</span>}
+            {d.meeting_point && !dateStr && (
+              <span className="inline-flex items-center gap-1 line-clamp-1"><MapPin className="w-3 h-3" /> {d.meeting_point}</span>
+            )}
           </div>
           {kind !== "transfer" && (
             <p className="text-xs text-accent flex items-center gap-1 mt-3 font-medium">Ver detalhes <ChevronRight className="w-3 h-3" /></p>
