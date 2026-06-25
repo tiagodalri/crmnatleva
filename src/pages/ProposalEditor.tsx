@@ -1187,7 +1187,7 @@ export default function ProposalEditor() {
 
       <SplitLayout
         left={
-          <Tabs defaultValue="info" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
               <TabsTrigger value="info">Informações</TabsTrigger>
               <TabsTrigger value="items">Itens da Viagem</TabsTrigger>
