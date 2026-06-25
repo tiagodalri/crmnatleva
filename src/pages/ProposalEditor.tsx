@@ -218,23 +218,46 @@ export default function ProposalEditor() {
   const [flightWizardOpen, setFlightWizardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("info");
   const [costMissingHighlight, setCostMissingHighlight] = useState(false);
+  const [totalMissingHighlight, setTotalMissingHighlight] = useState(false);
   const costInputRef = useRef<HTMLInputElement | null>(null);
+  const totalValueInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleManualSave = () => {
+    const totalRaw = (formRef.current.total_value ?? "").toString().trim();
+    const totalNum = parseFloat(totalRaw);
+    const totalMissing = !totalRaw || !Number.isFinite(totalNum) || totalNum <= 0;
+
     const costRaw = (formRef.current.internal_cost ?? "").toString().trim();
     const costNum = parseFloat(costRaw);
-    if (!costRaw || !Number.isFinite(costNum) || costNum <= 0) {
+    const costMissing = !costRaw || !Number.isFinite(costNum) || costNum <= 0;
+
+    if (totalMissing || costMissing) {
       setActiveTab("finance");
-      setCostMissingHighlight(true);
-      toast.error("Preencha o custo do pacote", {
-        description: "O custo da viagem é obrigatório para calcularmos o lucro real. Vá em Valores & Pagamento e preencha o campo Custo do pacote.",
-        duration: 6000,
-      });
+      setTotalMissingHighlight(totalMissing);
+      setCostMissingHighlight(costMissing);
+
+      const title = totalMissing && costMissing
+        ? "Preencha o valor total e o custo da proposta"
+        : totalMissing
+          ? "Preencha o valor total da proposta"
+          : "Preencha o custo do pacote";
+      const description = totalMissing && costMissing
+        ? "Valor total e custo do pacote são obrigatórios. Vá em Valores & Pagamento e preencha os dois campos."
+        : totalMissing
+          ? "O valor total é obrigatório para enviar a proposta ao cliente. Vá em Valores & Pagamento e preencha o campo Valor total."
+          : "O custo da viagem é obrigatório para calcularmos o lucro real. Vá em Valores & Pagamento e preencha o campo Custo do pacote.";
+
+      toast.error(title, { description, duration: 6000 });
+
       setTimeout(() => {
-        costInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        costInputRef.current?.focus();
+        const target = totalMissing ? totalValueInputRef.current : costInputRef.current;
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        target?.focus();
       }, 200);
-      setTimeout(() => setCostMissingHighlight(false), 4000);
+      setTimeout(() => {
+        setTotalMissingHighlight(false);
+        setCostMissingHighlight(false);
+      }, 4000);
       return;
     }
     saveMutation.mutate();
