@@ -218,23 +218,46 @@ export default function ProposalEditor() {
   const [flightWizardOpen, setFlightWizardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("info");
   const [costMissingHighlight, setCostMissingHighlight] = useState(false);
+  const [totalMissingHighlight, setTotalMissingHighlight] = useState(false);
   const costInputRef = useRef<HTMLInputElement | null>(null);
+  const totalValueInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleManualSave = () => {
+    const totalRaw = (formRef.current.total_value ?? "").toString().trim();
+    const totalNum = parseFloat(totalRaw);
+    const totalMissing = !totalRaw || !Number.isFinite(totalNum) || totalNum <= 0;
+
     const costRaw = (formRef.current.internal_cost ?? "").toString().trim();
     const costNum = parseFloat(costRaw);
-    if (!costRaw || !Number.isFinite(costNum) || costNum <= 0) {
+    const costMissing = !costRaw || !Number.isFinite(costNum) || costNum <= 0;
+
+    if (totalMissing || costMissing) {
       setActiveTab("finance");
-      setCostMissingHighlight(true);
-      toast.error("Preencha o custo do pacote", {
-        description: "O custo da viagem é obrigatório para calcularmos o lucro real. Vá em Valores & Pagamento e preencha o campo Custo do pacote.",
-        duration: 6000,
-      });
+      setTotalMissingHighlight(totalMissing);
+      setCostMissingHighlight(costMissing);
+
+      const title = totalMissing && costMissing
+        ? "Preencha o valor total e o custo da proposta"
+        : totalMissing
+          ? "Preencha o valor total da proposta"
+          : "Preencha o custo do pacote";
+      const description = totalMissing && costMissing
+        ? "Valor total e custo do pacote são obrigatórios. Vá em Valores & Pagamento e preencha os dois campos."
+        : totalMissing
+          ? "O valor total é obrigatório para enviar a proposta ao cliente. Vá em Valores & Pagamento e preencha o campo Valor total."
+          : "O custo da viagem é obrigatório para calcularmos o lucro real. Vá em Valores & Pagamento e preencha o campo Custo do pacote.";
+
+      toast.error(title, { description, duration: 6000 });
+
       setTimeout(() => {
-        costInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        costInputRef.current?.focus();
+        const target = totalMissing ? totalValueInputRef.current : costInputRef.current;
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        target?.focus();
       }, 200);
-      setTimeout(() => setCostMissingHighlight(false), 4000);
+      setTimeout(() => {
+        setTotalMissingHighlight(false);
+        setCostMissingHighlight(false);
+      }, 4000);
       return;
     }
     saveMutation.mutate();
@@ -1923,17 +1946,34 @@ export default function ProposalEditor() {
             </CardHeader>
             <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor total da viagem</Label>
+                <Label className="text-xs font-medium uppercase tracking-wide flex items-center gap-1.5 text-muted-foreground">
+                  Valor total da viagem <span className="text-rose-600 dark:text-rose-400">*</span>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium pointer-events-none">R$</span>
                   <Input
+                    ref={totalValueInputRef}
                     type="number"
                     value={form.total_value}
-                    onChange={(e) => setForm((f) => ({ ...f, total_value: e.target.value }))}
+                    onChange={(e) => {
+                      if (totalMissingHighlight) setTotalMissingHighlight(false);
+                      setForm((f) => ({ ...f, total_value: e.target.value }));
+                    }}
                     placeholder="15.000,00"
-                    className="pl-10 tabular-nums font-medium"
+                    className={cn(
+                      "pl-10 tabular-nums font-medium transition-all",
+                      totalMissingHighlight && "border-rose-500 ring-2 ring-rose-500/40 animate-pulse"
+                    )}
                   />
                 </div>
+                <p className={cn(
+                  "text-[11px] leading-snug",
+                  totalMissingHighlight ? "text-rose-600 dark:text-rose-400 font-medium" : "text-muted-foreground/80"
+                )}>
+                  {totalMissingHighlight
+                    ? "Obrigatório · preencha para conseguir salvar a proposta."
+                    : "Obrigatório · valor final apresentado ao cliente."}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor por pessoa</Label>
