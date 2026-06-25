@@ -2007,14 +2007,18 @@ export default function ProposalEditor() {
             </CardHeader>
             <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Custo do pacote</Label>
+                <Label className="text-xs font-medium uppercase tracking-wide flex items-center gap-1.5 text-muted-foreground">
+                  Custo do pacote <span className="text-rose-600 dark:text-rose-400">*</span>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium pointer-events-none">R$</span>
                   <Input
+                    ref={costInputRef}
                     type="number"
                     value={form.internal_cost}
                     onChange={(e) => {
                       const cost = e.target.value;
+                      if (costMissingHighlight) setCostMissingHighlight(false);
                       setForm((f) => {
                         const totalNum = parseFloat(f.total_value);
                         const costNum = parseFloat(cost);
@@ -2025,10 +2029,20 @@ export default function ProposalEditor() {
                       });
                     }}
                     placeholder="10.000,00"
-                    className="pl-10 tabular-nums font-medium"
+                    className={cn(
+                      "pl-10 tabular-nums font-medium transition-all",
+                      costMissingHighlight && "border-rose-500 ring-2 ring-rose-500/40 animate-pulse"
+                    )}
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground/80 leading-snug">O quanto a agência paga aos fornecedores.</p>
+                <p className={cn(
+                  "text-[11px] leading-snug",
+                  costMissingHighlight ? "text-rose-600 dark:text-rose-400 font-medium" : "text-muted-foreground/80"
+                )}>
+                  {costMissingHighlight
+                    ? "Obrigatório · preencha para conseguir salvar a proposta."
+                    : "Obrigatório · o quanto a agência paga aos fornecedores. Usado para calcular o lucro real."}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
