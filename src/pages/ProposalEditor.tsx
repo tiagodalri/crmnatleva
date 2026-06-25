@@ -16,6 +16,7 @@ import { LinkConversationsDialog } from "@/components/proposal/LinkConversations
 import { ConvertToSaleDialog } from "@/components/proposal/ConvertToSaleDialog";
 import { exportProposalPdf, shareProposalLink } from "@/lib/proposalPdfExport";
 import { getPublicProposalUrl } from "@/lib/publicUrl";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
@@ -215,6 +216,29 @@ export default function ProposalEditor() {
   const LOCAL_DRAFT_KEY = isNew ? NEW_DRAFT_KEY : `proposal-draft-${id}`;
   const [activeItemCategory, setActiveItemCategory] = useState<string>("flight");
   const [flightWizardOpen, setFlightWizardOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("info");
+  const [costMissingHighlight, setCostMissingHighlight] = useState(false);
+  const costInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleManualSave = () => {
+    const costRaw = (formRef.current.internal_cost ?? "").toString().trim();
+    const costNum = parseFloat(costRaw);
+    if (!costRaw || !Number.isFinite(costNum) || costNum <= 0) {
+      setActiveTab("finance");
+      setCostMissingHighlight(true);
+      toast.error("Preencha o custo do pacote", {
+        description: "O custo da viagem é obrigatório para calcularmos o lucro real. Vá em Valores & Pagamento e preencha o campo Custo do pacote.",
+        duration: 6000,
+      });
+      setTimeout(() => {
+        costInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        costInputRef.current?.focus();
+      }, 200);
+      setTimeout(() => setCostMissingHighlight(false), 4000);
+      return;
+    }
+    saveMutation.mutate();
+  };
 
   const formRef = useRef(form);
   const itemsRef = useRef(items);
@@ -1156,7 +1180,7 @@ export default function ProposalEditor() {
               {activeExistingSaleId ? "Venda vinculada" : "Converter em Venda"}
             </Button>
           )}
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.title} className="gap-1.5">
+          <Button onClick={handleManualSave} disabled={saveMutation.isPending || !form.title} className="gap-1.5">
             <Save className="w-4 h-4" /> Salvar
           </Button>
         </div>
@@ -1164,7 +1188,7 @@ export default function ProposalEditor() {
 
       <SplitLayout
         left={
-          <Tabs defaultValue="info" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
               <TabsTrigger value="info">Informações</TabsTrigger>
               <TabsTrigger value="items">Itens da Viagem</TabsTrigger>
@@ -1984,14 +2008,18 @@ export default function ProposalEditor() {
             </CardHeader>
             <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Custo do pacote</Label>
+                <Label className="text-xs font-medium uppercase tracking-wide flex items-center gap-1.5 text-muted-foreground">
+                  Custo do pacote <span className="text-rose-600 dark:text-rose-400">*</span>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium pointer-events-none">R$</span>
                   <Input
+                    ref={costInputRef}
                     type="number"
                     value={form.internal_cost}
                     onChange={(e) => {
                       const cost = e.target.value;
+                      if (costMissingHighlight) setCostMissingHighlight(false);
                       setForm((f) => {
                         const totalNum = parseFloat(f.total_value);
                         const costNum = parseFloat(cost);
@@ -2002,10 +2030,20 @@ export default function ProposalEditor() {
                       });
                     }}
                     placeholder="10.000,00"
-                    className="pl-10 tabular-nums font-medium"
+                    className={cn(
+                      "pl-10 tabular-nums font-medium transition-all",
+                      costMissingHighlight && "border-rose-500 ring-2 ring-rose-500/40 animate-pulse"
+                    )}
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground/80 leading-snug">O quanto a agência paga aos fornecedores.</p>
+                <p className={cn(
+                  "text-[11px] leading-snug",
+                  costMissingHighlight ? "text-rose-600 dark:text-rose-400 font-medium" : "text-muted-foreground/80"
+                )}>
+                  {costMissingHighlight
+                    ? "Obrigatório · preencha para conseguir salvar a proposta."
+                    : "Obrigatório · o quanto a agência paga aos fornecedores. Usado para calcular o lucro real."}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
