@@ -16,6 +16,7 @@ import { LinkConversationsDialog } from "@/components/proposal/LinkConversations
 import { ConvertToSaleDialog } from "@/components/proposal/ConvertToSaleDialog";
 import { exportProposalPdf, shareProposalLink } from "@/lib/proposalPdfExport";
 import { getPublicProposalUrl } from "@/lib/publicUrl";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
