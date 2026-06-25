@@ -1179,7 +1179,7 @@ export default function ProposalEditor() {
               {activeExistingSaleId ? "Venda vinculada" : "Converter em Venda"}
             </Button>
           )}
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.title} className="gap-1.5">
+          <Button onClick={handleManualSave} disabled={saveMutation.isPending || !form.title} className="gap-1.5">
             <Save className="w-4 h-4" /> Salvar
           </Button>
         </div>
