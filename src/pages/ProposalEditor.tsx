@@ -1946,17 +1946,34 @@ export default function ProposalEditor() {
             </CardHeader>
             <CardContent className="pt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor total da viagem</Label>
+                <Label className="text-xs font-medium uppercase tracking-wide flex items-center gap-1.5 text-muted-foreground">
+                  Valor total da viagem <span className="text-rose-600 dark:text-rose-400">*</span>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium pointer-events-none">R$</span>
                   <Input
+                    ref={totalValueInputRef}
                     type="number"
                     value={form.total_value}
-                    onChange={(e) => setForm((f) => ({ ...f, total_value: e.target.value }))}
+                    onChange={(e) => {
+                      if (totalMissingHighlight) setTotalMissingHighlight(false);
+                      setForm((f) => ({ ...f, total_value: e.target.value }));
+                    }}
                     placeholder="15.000,00"
-                    className="pl-10 tabular-nums font-medium"
+                    className={cn(
+                      "pl-10 tabular-nums font-medium transition-all",
+                      totalMissingHighlight && "border-rose-500 ring-2 ring-rose-500/40 animate-pulse"
+                    )}
                   />
                 </div>
+                <p className={cn(
+                  "text-[11px] leading-snug",
+                  totalMissingHighlight ? "text-rose-600 dark:text-rose-400 font-medium" : "text-muted-foreground/80"
+                )}>
+                  {totalMissingHighlight
+                    ? "Obrigatório · preencha para conseguir salvar a proposta."
+                    : "Obrigatório · valor final apresentado ao cliente."}
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor por pessoa</Label>
