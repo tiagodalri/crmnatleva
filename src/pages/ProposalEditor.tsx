@@ -215,6 +215,29 @@ export default function ProposalEditor() {
   const LOCAL_DRAFT_KEY = isNew ? NEW_DRAFT_KEY : `proposal-draft-${id}`;
   const [activeItemCategory, setActiveItemCategory] = useState<string>("flight");
   const [flightWizardOpen, setFlightWizardOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("info");
+  const [costMissingHighlight, setCostMissingHighlight] = useState(false);
+  const costInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleManualSave = () => {
+    const costRaw = (formRef.current.internal_cost ?? "").toString().trim();
+    const costNum = parseFloat(costRaw);
+    if (!costRaw || !Number.isFinite(costNum) || costNum <= 0) {
+      setActiveTab("finance");
+      setCostMissingHighlight(true);
+      toast.error("Preencha o custo do pacote", {
+        description: "O custo da viagem é obrigatório para calcularmos o lucro real. Vá em Valores & Pagamento e preencha o campo Custo do pacote.",
+        duration: 6000,
+      });
+      setTimeout(() => {
+        costInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        costInputRef.current?.focus();
+      }, 200);
+      setTimeout(() => setCostMissingHighlight(false), 4000);
+      return;
+    }
+    saveMutation.mutate();
+  };
 
   const formRef = useRef(form);
   const itemsRef = useRef(items);
