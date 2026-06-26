@@ -99,6 +99,7 @@ import { CallEntry } from "@/components/livechat/CallEntry";
 import { Linkify } from "./inbox/Linkify";
 import { getStatusIcon } from "./inbox/getStatusIcon";
 import { invokeZapiProxy, callZapiProxy, sendViaZapi } from "./inbox/zapiClient";
+import { getZapiPhoneCandidates as phoneCandidates } from "./inbox/phoneCandidates";
 import { FAILURE_REASONS, humanizeFailureReason } from "@/lib/zapiFailureClassifier";
 
 // Local alias kept for legacy call sites — uses centralized hardened helper.
@@ -337,18 +338,10 @@ function OperacaoInboxInner() {
     };
   }, []);
 
-  const getZapiPhoneCandidates = useCallback((conversationId: string) => {
-    const phone = conversationId.replace("wa_", "").replace(/\D/g, "").trim();
-    if (!phone) return [] as string[];
-    return Array.from(new Set([
-      phone,
-      `+${phone}`,
-      `${phone}@c.us`,
-      `${phone}@s.whatsapp.net`,
-      `${phone}-group`,
-      `${phone}@g.us`,
-    ]));
-  }, []);
+  const getZapiPhoneCandidates = useCallback(
+    (conversationId: string) => phoneCandidates(conversationId),
+    []
+  );
 
   const resolveDbConversationId = useCallback(async (conversationId: string): Promise<string | null> => {
     if (!conversationId) return null;
