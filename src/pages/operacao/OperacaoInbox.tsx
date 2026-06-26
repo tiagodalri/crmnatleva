@@ -627,6 +627,38 @@ function OperacaoInboxInner() {
       } catch {}
     }, 2000);
   }, []);
+
+  const refreshProfilePicture = useCallback(async (phone: string): Promise<string | null> => {
+    const cleanPhone = String(phone || "").replace(/\D/g, "");
+    if (!cleanPhone || cleanPhone.length < 8) return null;
+
+    const data = await callZapiProxy("get-profile-picture", { phone: cleanPhone });
+    const freshUrl = data?.link || data?.profilePicture || data?.profilePictureUrl || data?.imageUrl || null;
+    if (!freshUrl || typeof freshUrl !== "string" || !freshUrl.startsWith("http")) return null;
+
+    const currentId = selectedIdRef.current || `wa_${cleanPhone}`;
+    const conversation = conversationsRef.current.find(
+      (c) => c.id === currentId || String(c.phone || "").replace(/\D/g, "") === cleanPhone,
+    );
+    const conversationId = conversation?.id || currentId;
+
+    profilePicsRef.current.set(conversationId, freshUrl);
+    setProfilePicsVersion((v) => v + 1);
+    saveProfilePicsCache();
+
+    if (conversation?.db_id) {
+      void supabase
+        .from("conversations")
+        .update({
+          profile_picture_url: freshUrl,
+          profile_picture_fetched_at: new Date().toISOString(),
+        })
+        .eq("id", conversation.db_id);
+    }
+
+    return freshUrl;
+  }, [saveProfilePicsCache]);
+
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showMediaMenu, setShowMediaMenu] = useState(false);
@@ -3891,7 +3923,13 @@ function OperacaoInboxInner() {
                 name={selected.contact_name || formatPhoneDisplay(selected.phone || "") || "Sem nome"}
                 phone={selected.phone}
                 phoneDisplay={formatPhoneDisplay(selected.phone || "", { groupName: selected.contact_name })}
-                pictureUrl={profilePicsRef.current.get(selected.id)}
+                pictureUrl={profilePicsRef.current.get(selected.id) || (selected as { profile_picture_url?: string | null }).profile_picture_url || selected.group_photo_url || ""}
+                onRefreshPicture={selected.is_group ? undefined : refreshProfilePicture}
+                onPictureUrlChange={(url) => {
+                  profilePicsRef.current.set(selected.id, url);
+                  setProfilePicsVersion((v) => v + 1);
+                  saveProfilePicsCache();
+                }}
                 initials={(selected.contact_name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
                 isVip={selected.is_vip}
                 source={selected.source}
