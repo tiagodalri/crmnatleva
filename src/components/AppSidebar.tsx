@@ -218,7 +218,7 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
           "flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-colors duration-200 relative",
           indent && "pl-8",
           isActive
-            ? "bg-sidebar-accent/60 text-champagne"
+            ? "bg-sidebar-accent/60 text-champagne-logo"
             : "text-sidebar-foreground hover:bg-sidebar-accent/30 hover:text-foreground"
         )
       }
@@ -226,9 +226,9 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
       {({ isActive }) => (
         <>
           {isActive && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r bg-champagne" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r bg-champagne-logo" />
           )}
-          <item.icon className={cn("w-4 h-4 shrink-0 transition-colors", isActive ? "text-champagne" : "text-sidebar-foreground")} />
+          <item.icon className={cn("w-4 h-4 shrink-0 transition-colors", isActive ? "text-champagne-logo" : "text-sidebar-foreground")} />
           {!isCollapsed && <span className={cn("tracking-tight", indent ? "text-xs" : "")}>{item.label}</span>}
           {!isCollapsed && (item as any).showBeta && (
             <span className="ml-auto shrink-0 rounded bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white shadow-sm">

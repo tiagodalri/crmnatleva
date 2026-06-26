@@ -110,6 +110,7 @@ export default {
         champagne: {
           DEFAULT: "hsl(var(--champagne))",
           foreground: "hsl(var(--champagne-foreground))",
+          logo: "hsl(var(--champagne-logo))",
         },
         sand: {
           DEFAULT: "hsl(var(--sand))",
