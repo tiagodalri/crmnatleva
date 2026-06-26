@@ -11,7 +11,7 @@ import {
   UserCheck, Clock, Receipt, Target, Star, MessageSquare, ShieldAlert, FileArchive, Shield, PieChart, Smile,
   GitBranch, Plug, Zap, BookOpen, FileDown, Presentation, RotateCcw,
   Inbox, Bot, Tag, TestTube, ScrollText, PackageOpen, Upload, Database, Globe,
-  PlaneTakeoff, Image as ImageIcon, Lightbulb, Home, Camera, Megaphone, RefreshCw, Store,
+  PlaneTakeoff, Image as ImageIcon, Lightbulb, Home, Camera, Megaphone, RefreshCw, Store, Link2,
 } from "lucide-react";
 import { forceAppRefresh } from "@/lib/forceRefresh";
 import { toast } from "sonner";
@@ -373,6 +373,7 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
             { to: "/operacao/simulador", icon: TestTube, label: "Simulador" },
             { to: "/operacao/atalhos", icon: BookOpen, label: "Atalhos" },
             { to: "/operacao/agendadas", icon: Clock, label: "Agendadas" },
+            { to: "/operacao/gerador-link", icon: Link2, label: "Gerador de Link" },
             // Item "Logs & Auditoria" temporariamente oculto.
             // Motivo: tela sem dados (nenhuma automação grava em ai_execution_logs hoje).
             // Para reativar: descomentar a linha abaixo + rota em src/App.tsx.
