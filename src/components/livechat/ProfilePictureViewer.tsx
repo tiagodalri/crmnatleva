@@ -143,16 +143,16 @@ export function ProfilePictureViewer({
             >
               <div className="text-center">
                 <h2 className="text-xl font-bold truncate">{name}</h2>
-                {(source || isVip) && (
+                {(showSource || isVip) && (
                   <div className="flex items-center justify-center gap-1.5 mt-1.5 flex-wrap">
                     {isVip && (
                       <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] gap-0.5 px-2 py-0.5">
                         <Star className="h-2.5 w-2.5 fill-current" /> VIP
                       </Badge>
                     )}
-                    {source && (
+                    {showSource && (
                       <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize">
-                        {source.replace(/_/g, " ")}
+                        {source!.replace(/_/g, " ")}
                       </Badge>
                     )}
                   </div>
