@@ -26,3 +26,14 @@ requestAnimationFrame(() => {
   setTimeout(() => el.remove(), 400);
 });
 
+// Aquece rotas mais usadas em idle profundo · acelera 1º clique pós-login
+// sem competir com o boot. Importa dinamicamente pra não inflar o entry.
+if (typeof window !== "undefined") {
+  const warm = () =>
+    import("./lib/routePrefetch")
+      .then((m) => m.prefetchSecondaryRoutes?.())
+      .catch(() => {});
+  if (document.readyState === "complete") setTimeout(warm, 2500);
+  else window.addEventListener("load", () => setTimeout(warm, 2500), { once: true });
+}
+

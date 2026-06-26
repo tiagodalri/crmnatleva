@@ -95,17 +95,28 @@ export function prefetchAllRoutes(): void {
 }
 
 /**
- * Segunda onda · prefetch das rotas restantes (fora do top-priority).
- * Concorrência 2, idle profundo. Resultado: qualquer clique vira instantâneo.
+ * Aquecimento mínimo das rotas mais usadas · executa só depois que a UI
+ * estabilizou (idle profundo) e uma de cada vez, sem competir com nada
+ * crítico. Pula em conexões lentas/saveData.
  */
+const TOP_ROUTES = ["/dashboard", "/cotacoes", "/viagens", "/operacao/inbox"];
+
 export function prefetchSecondaryRoutes(): void {
-  return;
+  if (typeof window === "undefined") return;
+  if (shouldSkipPrefetch()) return;
+  const ric: (cb: () => void, opts?: { timeout?: number }) => void =
+    (window as any).requestIdleCallback || ((cb) => setTimeout(cb, 1500));
+
+  let i = 0;
+  const next = () => {
+    if (i >= TOP_ROUTES.length) return;
+    prefetchRoute(TOP_ROUTES[i++]);
+    ric(next, { timeout: 4000 });
+  };
+  // Espera bem além do first paint pra não atrapalhar boot/LCP.
+  setTimeout(() => ric(next, { timeout: 5000 }), 4000);
 }
 
-/**
- * Prefetch dos "irmãos" de uma seção. Quando o usuário entra em /financeiro,
- * aquecemos /financeiro/receber, /financeiro/pagar, etc.
- */
-export function prefetchSection(currentPath: string): void {
+export function prefetchSection(_currentPath: string): void {
   return;
 }
