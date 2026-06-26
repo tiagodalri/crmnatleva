@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import logoNatlevaGold from "@/assets/logo-natleva-gold.png";
+import logoNatlevaGold from "@/assets/logo-natleva-champagne.webp";
 import logoNatleva from "@/assets/logo-natleva.webp";
 import { Eye, EyeOff } from "lucide-react";
 
