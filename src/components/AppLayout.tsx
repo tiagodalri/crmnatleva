@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Menu, Maximize, Minimize, WifiOff, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import logoNatleva from "@/assets/logo-natleva.webp";
+import logoNatleva from "@/assets/logo-natleva-champagne.webp";
 import { useWhatsAppConnection, formatTimeSince } from "@/hooks/useWhatsAppConnection";
 import { useFailedMessagesWatcher } from "@/hooks/useFailedMessagesWatcher";
 import { FailedMessagesBadge } from "@/components/header/FailedMessagesBadge";
