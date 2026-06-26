@@ -182,11 +182,11 @@ export function ProfilePictureViewer({
                 )}
               </div>
 
-              {tags && tags.length > 0 && (
+              {visibleTags.length > 0 && (
                 <>
                   <div className="h-px bg-border" />
                   <div className="flex flex-wrap gap-1.5">
-                    {tags.slice(0, 6).map((tag) => (
+                    {visibleTags.slice(0, 6).map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-[10px] px-2 py-0.5">
                         {tag}
                       </Badge>
