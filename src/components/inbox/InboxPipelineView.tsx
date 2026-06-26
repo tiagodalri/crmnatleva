@@ -617,7 +617,7 @@ function PipelineCard({ lead, autoTags, onClick }: {
                 <MessageSquare className="w-2.5 h-2.5" /> {interactions}
               </span>
             )}
-            {lead.source && (
+            {lead.source && !/^chat[-_ ]?guru$/i.test(lead.source.trim()) && (
               <span className="text-[8px] px-1 rounded bg-muted/50">{lead.source}</span>
             )}
           </div>

@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Phone, MessageSquare, Star, User, Mail, MapPin } from "lucide-react";
-import { useEffect } from "react";
+import { X, Phone, MessageSquare, Star, User, Mail, MapPin, ImageOff } from "lucide-react";
+import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -58,9 +59,22 @@ export function ProfilePictureViewer({
     };
   }, [open, onClose]);
 
+  // Reset image error state whenever a different picture is opened.
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [pictureUrl, open]);
+
   const cleanPhone = (phone || "").replace(/\D/g, "");
   const phoneText = phoneDisplay || phone || "";
   const location = [city, state].filter(Boolean).join(", ");
+  // Hide deprecated/internal source badges (e.g. legacy "chatguru" import tag).
+  const HIDDEN_SOURCES = new Set(["chatguru", "chat_guru", "chat-guru"]);
+  const showSource = source && !HIDDEN_SOURCES.has(source.toLowerCase().trim());
+  const visibleTags = (tags || []).filter(
+    (t) => !HIDDEN_SOURCES.has((t || "").toLowerCase().trim()),
+  );
+  const showPicture = !!pictureUrl && !imgError;
 
   return (
     <AnimatePresence>
@@ -94,15 +108,25 @@ export function ProfilePictureViewer({
           >
             {/* Big circular photo · WhatsApp style */}
             <div className="relative">
-              {pictureUrl ? (
+              {showPicture ? (
                 <img
                   src={pictureUrl}
                   alt={name}
-                  className="h-64 w-64 sm:h-72 sm:w-72 rounded-full object-cover ring-4 ring-white/10 shadow-2xl"
+                  loading="eager"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
+                  className="h-64 w-64 sm:h-72 sm:w-72 rounded-full object-cover ring-4 ring-white/10 shadow-2xl bg-muted"
                 />
               ) : (
-                <div className="h-64 w-64 sm:h-72 sm:w-72 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center text-6xl font-bold text-white ring-4 ring-white/10 shadow-2xl">
-                  {initials || name?.[0]?.toUpperCase() || "?"}
+                <div className="h-64 w-64 sm:h-72 sm:w-72 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 flex flex-col items-center justify-center gap-2 text-6xl font-bold text-white ring-4 ring-white/10 shadow-2xl">
+                  <span>{initials || name?.[0]?.toUpperCase() || "?"}</span>
+                  {pictureUrl && imgError && (
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/70">
+                      <ImageOff className="h-3 w-3" />
+                      Foto indisponível
+                    </span>
+                  )}
                 </div>
               )}
               {isVip && (
@@ -119,16 +143,16 @@ export function ProfilePictureViewer({
             >
               <div className="text-center">
                 <h2 className="text-xl font-bold truncate">{name}</h2>
-                {(source || isVip) && (
+                {(showSource || isVip) && (
                   <div className="flex items-center justify-center gap-1.5 mt-1.5 flex-wrap">
                     {isVip && (
                       <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] gap-0.5 px-2 py-0.5">
                         <Star className="h-2.5 w-2.5 fill-current" /> VIP
                       </Badge>
                     )}
-                    {source && (
+                    {showSource && (
                       <Badge variant="outline" className="text-[10px] px-2 py-0.5 capitalize">
-                        {source.replace(/_/g, " ")}
+                        {source!.replace(/_/g, " ")}
                       </Badge>
                     )}
                   </div>
@@ -158,11 +182,11 @@ export function ProfilePictureViewer({
                 )}
               </div>
 
-              {tags && tags.length > 0 && (
+              {visibleTags.length > 0 && (
                 <>
                   <div className="h-px bg-border" />
                   <div className="flex flex-wrap gap-1.5">
-                    {tags.slice(0, 6).map((tag) => (
+                    {visibleTags.slice(0, 6).map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-[10px] px-2 py-0.5">
                         {tag}
                       </Badge>
