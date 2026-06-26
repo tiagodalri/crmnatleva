@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import logoNatlevaGold from "@/assets/logo-natleva-gold.png";
 import logoNatleva from "@/assets/logo-natleva.webp";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plane, Eye, EyeOff, Mail, Lock, User as UserIcon, Sparkles } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -38,202 +36,175 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[hsl(40,33%,91%)] dark:bg-background">
-      {/* Left · Branding (dark green w/ sand accents) */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center bg-[hsl(150,40%,5%)]">
-        {/* Soft radial glow */}
-        <div
-          className="absolute inset-0 opacity-60"
-          style={{
-            background:
-              "radial-gradient(circle at 30% 20%, hsl(41 51% 57% / 0.18), transparent 55%), radial-gradient(circle at 70% 80%, hsl(154 56% 27% / 0.35), transparent 60%)",
-          }}
-        />
-        {/* Decorative grid of planes */}
-        <div className="absolute inset-0 opacity-[0.07]">
-          {[...Array(5)].map((_, i) => (
-            <Plane
-              key={i}
-              className="absolute text-[hsl(41,51%,80%)]"
-              style={{
-                width: `${40 + i * 22}px`,
-                height: `${40 + i * 22}px`,
-                top: `${12 + i * 17}%`,
-                left: `${8 + i * 16}%`,
-                transform: `rotate(${-30 + i * 15}deg)`,
-              }}
-            />
-          ))}
-        </div>
-        {/* Gold thin lines */}
-        <div className="absolute top-10 left-10 h-px w-24 bg-[hsl(41,51%,57%)]/60" />
-        <div className="absolute bottom-10 right-10 h-px w-24 bg-[hsl(41,51%,57%)]/60" />
-
-        <div className="relative z-10 text-center px-12 max-w-md">
-          <img
-            src={logoNatleva}
-            alt="NatLeva Viagens"
-            className="h-16 mx-auto mb-10 brightness-0 invert opacity-95"
+    <div className="min-h-screen flex items-center justify-center bg-[#e8e4dd] p-4 sm:p-6">
+      <div className="flex w-full max-w-[1000px] min-h-[640px] bg-[#faf8f5] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden border border-[#1a3c2a]/5 animate-fade-in">
+        {/* Left Panel · Immersive Forest */}
+        <div className="hidden md:flex w-1/2 bg-[#1a3c2a] relative flex-col items-center justify-center p-12 overflow-hidden">
+          {/* Soft radial glow */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 30% 25%, rgba(201,168,76,0.18), transparent 55%), radial-gradient(circle at 75% 80%, rgba(201,168,76,0.10), transparent 60%)",
+            }}
           />
-          <div className="mx-auto mb-6 h-px w-16 bg-[hsl(41,51%,57%)]" />
-          <h1 className="font-serif text-4xl text-[hsl(38,28%,92%)] mb-4 leading-tight">
-            Inteligência de viagens, com alma de boutique.
-          </h1>
-          <p className="text-[hsl(38,28%,82%)]/70 text-base leading-relaxed">
-            CRM · Vendas · Operação · Concierge
-          </p>
+          {/* Vignette */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at center, transparent 55%, rgba(13,31,22,0.55) 100%)",
+            }}
+          />
+          {/* Thin gold corner lines */}
+          <div className="absolute top-10 left-10 h-px w-16 bg-[#c9a84c]/40" />
+          <div className="absolute top-10 left-10 w-px h-16 bg-[#c9a84c]/40" />
+          <div className="absolute bottom-10 right-10 h-px w-16 bg-[#c9a84c]/40" />
+          <div className="absolute bottom-10 right-10 w-px h-16 bg-[#c9a84c]/40" />
 
-          <div className="mt-12 inline-flex items-center gap-2 rounded-full border border-[hsl(41,51%,57%)]/30 bg-[hsl(41,51%,57%)]/5 px-4 py-1.5 text-xs text-[hsl(41,51%,75%)]">
-            <Sparkles className="h-3.5 w-3.5" />
-            Sistema interno NatLeva
+          {/* Logo area */}
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <img
+              src={logoNatlevaGold}
+              alt="NatLeva"
+              className="h-20 lg:h-24 w-auto select-none drop-shadow-[0_10px_30px_rgba(201,168,76,0.25)]"
+              draggable={false}
+            />
+            <div className="mt-6 h-px w-12 bg-[#c9a84c]/50" />
+            <p className="mt-5 text-[#c9a84c]/75 text-[10px] uppercase tracking-[0.4em] font-medium leading-relaxed">
+              Boutique Travel Management
+            </p>
+          </div>
+
+          {/* Bottom accent */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[#c9a84c]/35 text-[9px] uppercase tracking-[0.3em]">
+            Acesso Restrito
           </div>
         </div>
-      </div>
 
-      {/* Right · Form on bege */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 relative bg-[hsl(40,33%,91%)] dark:bg-background">
-        {/* subtle texture */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            background:
-              "radial-gradient(circle at 80% 0%, hsl(35 30% 75% / 0.5), transparent 50%), radial-gradient(circle at 0% 100%, hsl(41 51% 57% / 0.12), transparent 55%)",
-          }}
-        />
+        {/* Right Panel · Form */}
+        <div className="w-full md:w-1/2 flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-12 bg-[#faf8f5] relative">
+          {/* Mobile logo */}
+          <div className="md:hidden flex justify-center mb-10">
+            <img src={logoNatleva} alt="NatLeva" className="h-10 w-auto" />
+          </div>
 
-        <div className="relative w-full max-w-md animate-fade-in">
-          {/* Card */}
-          <div className="rounded-2xl border border-[hsl(35,30%,75%)]/60 bg-[hsl(39,30%,95%)] dark:bg-card shadow-[0_30px_80px_-30px_hsl(150_40%_15%/0.25)] backdrop-blur-sm">
-            {/* gold top accent line */}
-            <div className="h-1 w-full rounded-t-2xl bg-gradient-to-r from-transparent via-[hsl(41,51%,57%)] to-transparent" />
+          <div className="mb-10 text-center md:text-left">
+            <span className="block text-[10px] uppercase tracking-[0.3em] text-[#c9a84c] font-semibold mb-3">
+              {isSignUp ? "Novo acesso" : "Acesso ao sistema"}
+            </span>
+            <h2 className="text-[#1a3c2a] text-3xl font-light tracking-tight mb-2">
+              {isSignUp ? "Criar conta" : "Bem-vindo"}
+            </h2>
+            <p className="text-[#1a3c2a]/60 text-sm font-light">
+              {isSignUp
+                ? "Cadastre-se para acessar o ecossistema NatLeva."
+                : "Identifique-se para acessar o ecossistema NatLeva."}
+            </p>
+          </div>
 
-            <div className="p-8 sm:p-10">
-              <div className="lg:hidden mb-8 text-center">
-                <img src={logoNatleva} alt="NatLeva" className="h-12 mx-auto" />
-              </div>
-
-              <div className="mb-8">
-                <span className="inline-block text-[10px] tracking-[0.2em] uppercase text-[hsl(154,56%,27%)] font-medium mb-3">
-                  {isSignUp ? "Novo acesso" : "Acesso restrito"}
-                </span>
-                <h2 className="text-3xl font-serif text-[hsl(153,55%,17%)] dark:text-foreground mb-2 leading-tight">
-                  {isSignUp ? "Criar conta" : "Bem-vindo de volta"}
-                </h2>
-                <p className="text-sm text-[hsl(153,30%,30%)]/70 dark:text-muted-foreground">
-                  {isSignUp
-                    ? "Cadastre-se para acessar o sistema NatLeva."
-                    : "Acesse sua conta NatLeva e siga sua jornada."}
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {isSignUp && (
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-[hsl(153,55%,17%)] dark:text-foreground text-xs font-medium tracking-wide uppercase">
-                      Nome completo
-                    </Label>
-                    <div className="relative">
-                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(154,56%,27%)]/60" />
-                      <Input
-                        id="fullName"
-                        placeholder="Seu nome"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        required={isSignUp}
-                        className="pl-10 h-12 bg-[hsl(40,33%,93%)] dark:bg-background border-[hsl(35,30%,75%)] focus-visible:ring-[hsl(41,51%,57%)] focus-visible:border-[hsl(41,51%,57%)]"
-                      />
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[hsl(153,55%,17%)] dark:text-foreground text-xs font-medium tracking-wide uppercase">
-                    E-mail
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(154,56%,27%)]/60" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@natleva.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="pl-10 h-12 bg-[hsl(40,33%,93%)] dark:bg-background border-[hsl(35,30%,75%)] focus-visible:ring-[hsl(41,51%,57%)] focus-visible:border-[hsl(41,51%,57%)]"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-[hsl(153,55%,17%)] dark:text-foreground text-xs font-medium tracking-wide uppercase">
-                    Senha
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(154,56%,27%)]/60" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="pl-10 pr-10 h-12 bg-[hsl(40,33%,93%)] dark:bg-background border-[hsl(35,30%,75%)] focus-visible:ring-[hsl(41,51%,57%)] focus-visible:border-[hsl(41,51%,57%)]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((s) => !s)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(154,56%,27%)]/60 hover:text-[hsl(154,56%,27%)] transition-colors"
-                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {error}
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-[hsl(154,56%,27%)] hover:bg-[hsl(154,56%,22%)] text-[hsl(40,33%,93%)] text-base font-medium shadow-[0_10px_30px_-10px_hsl(154_56%_27%/0.5)] transition-all"
-                  disabled={loading}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {isSignUp && (
+              <div className="space-y-2">
+                <label
+                  htmlFor="fullName"
+                  className="block text-[10px] uppercase tracking-widest text-[#1a3c2a]/50 font-bold ml-1"
                 >
-                  {loading ? "Carregando..." : isSignUp ? "Criar conta" : "Entrar"}
-                </Button>
-              </form>
-
-              <div className="relative my-7">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-[hsl(35,30%,75%)]/60" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em]">
-                  <span className="bg-[hsl(39,30%,95%)] dark:bg-card px-3 text-[hsl(153,30%,30%)]/60">
-                    ou
-                  </span>
-                </div>
+                  Nome completo
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  placeholder="Seu nome"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-white border border-[#1a3c2a]/10 rounded-lg text-[#1a3c2a] text-sm focus:outline-none focus:ring-1 focus:ring-[#c9a84c] focus:border-[#c9a84c] transition-all placeholder:text-[#1a3c2a]/30 shadow-sm"
+                />
               </div>
+            )}
 
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="block text-[10px] uppercase tracking-widest text-[#1a3c2a]/50 font-bold ml-1"
+              >
+                E-mail
+              </label>
+              <input
+                id="email"
+                type="email"
+                inputMode="email"
+                placeholder="seu@natleva.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-white border border-[#1a3c2a]/10 rounded-lg text-[#1a3c2a] text-sm focus:outline-none focus:ring-1 focus:ring-[#c9a84c] focus:border-[#c9a84c] transition-all placeholder:text-[#1a3c2a]/30 shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="password"
+                className="block text-[10px] uppercase tracking-widest text-[#1a3c2a]/50 font-bold ml-1"
+              >
+                Senha
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-4 py-3 pr-12 bg-white border border-[#1a3c2a]/10 rounded-lg text-[#1a3c2a] text-sm focus:outline-none focus:ring-1 focus:ring-[#c9a84c] focus:border-[#c9a84c] transition-all placeholder:text-[#1a3c2a]/30 shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[#1a3c2a]/40 hover:text-[#1a3c2a] transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-[#1a3c2a] text-[#faf8f5] font-medium rounded-lg hover:bg-[#132c1f] active:scale-[0.99] transition-all shadow-[0_10px_30px_-10px_rgba(26,60,42,0.5)] tracking-wide text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? "Carregando..." : isSignUp ? "Criar conta" : "Entrar"}
+            </button>
+          </form>
+
+          <div className="mt-10 pt-8 border-t border-[#1a3c2a]/10 text-center">
+            <p className="text-xs text-[#1a3c2a]/60">
+              {isSignUp ? "Já tem uma conta?" : "Não possui uma conta?"}
               <button
+                type="button"
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError("");
                 }}
-                className="block w-full text-center text-sm text-[hsl(153,55%,17%)]/80 dark:text-muted-foreground hover:text-[hsl(154,56%,27%)] transition-colors"
+                className="text-[#c9a84c] font-semibold hover:underline underline-offset-4 ml-1"
               >
-                {isSignUp ? (
-                  <>Já tem conta? <span className="font-medium underline underline-offset-4 decoration-[hsl(41,51%,57%)]">Entrar</span></>
-                ) : (
-                  <>Não tem conta? <span className="font-medium underline underline-offset-4 decoration-[hsl(41,51%,57%)]">Criar agora</span></>
-                )}
+                {isSignUp ? "Entrar" : "Cadastre-se"}
               </button>
-            </div>
+            </p>
+            <p className="mt-4 text-[10px] uppercase tracking-[0.3em] text-[#1a3c2a]/30">
+              © {new Date().getFullYear()} NatLeva
+            </p>
           </div>
-
-          <p className="mt-6 text-center text-xs text-[hsl(153,30%,30%)]/60 dark:text-muted-foreground/60">
-            © {new Date().getFullYear()} NatLeva Viagens · Todos os direitos reservados
-          </p>
         </div>
       </div>
     </div>
