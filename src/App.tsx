@@ -424,9 +424,9 @@ function AppRoutes() {
           {/* Booking RapidAPI (BETA) — módulo experimental isolado */}
           <Route path="/buscador" element={<Buscador />} />
           {/* Legados · mantidos para links existentes; redirecionam ao hub */}
-          <Route path="/booking-search" element={<Navigate to="/buscador?tab=hotel" replace />} />
-          <Route path="/flights-search" element={<Navigate to="/buscador?tab=aereo&provider=rapid" replace />} />
-          <Route path="/google-flights-search" element={<Navigate to="/buscador?tab=aereo&provider=google" replace />} />
+          <Route path="/booking-search" element={<Navigate to="/buscador?secao=hotel" replace />} />
+          <Route path="/flights-search" element={<Navigate to="/buscador?secao=aereo&fonte=rapid" replace />} />
+          <Route path="/google-flights-search" element={<Navigate to="/buscador?secao=aereo&fonte=google" replace />} />
 
           {/* Apresentação */}
           <Route path="/apresentacao" element={<ApresentacaoGeral />} />
