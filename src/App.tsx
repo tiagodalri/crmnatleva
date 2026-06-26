@@ -72,6 +72,8 @@ const BookingSearchPage = lazy(() => import("@/pages/booking-rapidapi/BookingSea
 const FlightsSearchPage = lazy(() => import("@/pages/booking-rapidapi/FlightsSearchPage"));
 // Google Flights BETA (DataCrawler) — módulo experimental isolado
 const GoogleFlightsSearchPage = lazy(() => import("@/pages/google-flights/GoogleFlightsSearchPage"));
+// Hub unificado dos buscadores (Aéreo · Hotel · Pacotes · etc)
+const Buscador = lazy(() => import("@/pages/buscador/Buscador"));
 
 // RH
 const RHIndex = lazy(() => import("@/pages/rh/RHIndex"));
@@ -420,9 +422,11 @@ function AppRoutes() {
 
 
           {/* Booking RapidAPI (BETA) — módulo experimental isolado */}
-          <Route path="/booking-search" element={<BookingSearchPage />} />
-          <Route path="/flights-search" element={<FlightsSearchPage />} />
-          <Route path="/google-flights-search" element={<GoogleFlightsSearchPage />} />
+          <Route path="/buscador" element={<Buscador />} />
+          {/* Legados · mantidos para links existentes; redirecionam ao hub */}
+          <Route path="/booking-search" element={<Navigate to="/buscador?tab=hotel" replace />} />
+          <Route path="/flights-search" element={<Navigate to="/buscador?tab=aereo&provider=rapid" replace />} />
+          <Route path="/google-flights-search" element={<Navigate to="/buscador?tab=aereo&provider=google" replace />} />
 
           {/* Apresentação */}
           <Route path="/apresentacao" element={<ApresentacaoGeral />} />

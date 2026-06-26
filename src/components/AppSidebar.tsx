@@ -46,9 +46,7 @@ const viagensItems = [
   { to: "/hospedagem", icon: Hotel, label: "Confirmar Hospedagens" },
   { to: "/alteracoes", icon: RotateCcw, label: "Alterações de Viagem" },
   { to: "/prateleira", icon: PackageOpen, label: "Prateleira NatLeva", alwaysVisible: true },
-  { to: "/booking-search", icon: Hotel, label: "Busca Booking", showBeta: true },
-  { to: "/flights-search", icon: PlaneTakeoff, label: "Busca de Voos", showBeta: true },
-  { to: "/google-flights-search", icon: PlaneTakeoff, label: "Google Flights", showBeta: true },
+  { to: "/buscador", icon: Search, label: "Buscador", showBeta: true },
 ];
 
 const financeItems = [
