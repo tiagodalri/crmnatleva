@@ -307,12 +307,7 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
               src={logoNatleva}
               alt="NatLeva"
               className="h-full w-auto object-contain"
-              style={{ filter: 'brightness(0) invert(1)' }}
               draggable={false}
-            />
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ backgroundColor: 'hsl(var(--champagne))', mixBlendMode: 'multiply' }}
             />
           </div>
         ) : (
