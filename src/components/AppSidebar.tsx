@@ -218,7 +218,7 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
           "flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-colors duration-200 relative",
           indent && "pl-8",
           isActive
-            ? "bg-sidebar-accent/60 text-champagne"
+            ? "bg-sidebar-accent/60 text-champagne-logo"
             : "text-sidebar-foreground hover:bg-sidebar-accent/30 hover:text-foreground"
         )
       }
