@@ -59,9 +59,22 @@ export function ProfilePictureViewer({
     };
   }, [open, onClose]);
 
+  // Reset image error state whenever a different picture is opened.
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [pictureUrl, open]);
+
   const cleanPhone = (phone || "").replace(/\D/g, "");
   const phoneText = phoneDisplay || phone || "";
   const location = [city, state].filter(Boolean).join(", ");
+  // Hide deprecated/internal source badges (e.g. legacy "chatguru" import tag).
+  const HIDDEN_SOURCES = new Set(["chatguru", "chat_guru", "chat-guru"]);
+  const showSource = source && !HIDDEN_SOURCES.has(source.toLowerCase().trim());
+  const visibleTags = (tags || []).filter(
+    (t) => !HIDDEN_SOURCES.has((t || "").toLowerCase().trim()),
+  );
+  const showPicture = !!pictureUrl && !imgError;
 
   return (
     <AnimatePresence>
