@@ -95,78 +95,17 @@ import { ReactionPickerButton, MessageReactionsChip } from "@/components/inbox/M
 import { useConversationCalls } from "@/hooks/useConversationCalls";
 import { CallEntry } from "@/components/livechat/CallEntry";
 
-// (All helpers, types, constants now imported from @/components/inbox/*)
+// (All helpers, types, constants now imported from @/components/inbox/* and ./inbox/*)
+import { Linkify } from "./inbox/Linkify";
+import { getStatusIcon } from "./inbox/getStatusIcon";
+import { invokeZapiProxy, callZapiProxy, sendViaZapi } from "./inbox/zapiClient";
+import { FAILURE_REASONS, humanizeFailureReason } from "@/lib/zapiFailureClassifier";
 
-const URL_REGEX = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
 // Local alias kept for legacy call sites — uses centralized hardened helper.
 const toUnreadCount = safeUnreadCount;
-function Linkify({ text }: { text: string }) {
-  if (!text) return null;
-  const parts = text.split(URL_REGEX);
-  return (
-    <>
-      {parts.map((part, i) =>
-        URL_REGEX.test(part) ? (
-          <a key={i} href={part.startsWith("http") ? part : `https://${part}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline hover:text-blue-600 break-all">{part}</a>
-        ) : (
-          <Fragment key={i}>{part}</Fragment>
-        )
-      )}
-    </>
-  );
-}
 
-
-function getStatusIcon(status: MsgStatus) {
-  if (status === "queued") return <Clock className="h-3 w-3 text-muted-foreground animate-pulse" />;
-  if (status === "sending") return <Clock className="h-3 w-3 text-muted-foreground" />;
-  if (status === "failed") return <AlertTriangle className="h-3 w-3 text-destructive" />;
-  if (status === "read") return <CheckCheck className="h-3.5 w-3.5 text-[#53bdeb]" style={{ filter: 'drop-shadow(0 0 1px rgba(83,189,235,0.5))' }} />;
-  if (status === "delivered") return <CheckCheck className="h-3 w-3 text-white" />;
-  return <Check className="h-3 w-3 text-white" />;
-}
-
-// Z-API helper · força refresh + Authorization explícito para evitar 401 em sessões expirando
-async function getFreshAccessToken(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
-  const expiresAt = (session.expires_at ?? 0) * 1000;
-  if (expiresAt - Date.now() < 60_000) {
-    const { data: refreshed } = await supabase.auth.refreshSession();
-    return refreshed?.session?.access_token ?? session.access_token;
-  }
-  return session.access_token;
-}
-
-async function invokeZapiProxy(action: string, payload?: any) {
-  const token = await getFreshAccessToken();
-  if (!token) throw new Error("Sessão expirada · faça login novamente");
-  return supabase.functions.invoke("zapi-proxy", {
-    body: { action, payload },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-}
-
-async function callZapiProxy(action: string, payload?: any) {
-  const { data, error } = await invokeZapiProxy(action, payload);
-  if (error) throw new Error(error.message || "Erro na chamada Z-API");
-  return data;
-}
-
-// Failure taxonomy + classifier (compartilhado com LiveChat e whatsappAutoDispatch)
-import { FAILURE_REASONS, classifySendOutcome, humanizeFailureReason } from "@/lib/zapiFailureClassifier";
+// Re-export para compatibilidade com call sites externos.
 export { FAILURE_REASONS };
-
-// Wrapper local (mantém assinatura usada nos sites de envio).
-async function sendViaZapi(action: string, payload: any): Promise<{ ok: boolean; reason: string | null; detail?: string; data: any }> {
-  try {
-    const { data, error } = await invokeZapiProxy(action, payload);
-    const outcome = classifySendOutcome(error, data);
-    return { ...outcome, data };
-  } catch (err: any) {
-    return { ok: false, reason: FAILURE_REASONS.TEMPORARY, detail: err?.message || "exception", data: null };
-  }
-}
 
 // ════════════════════════════════════════
 // MAIN COMPONENT
