@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Phone, MessageSquare, Star, User, Mail, MapPin } from "lucide-react";
-import { useEffect } from "react";
+import { X, Phone, MessageSquare, Star, User, Mail, MapPin, ImageOff } from "lucide-react";
+import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
