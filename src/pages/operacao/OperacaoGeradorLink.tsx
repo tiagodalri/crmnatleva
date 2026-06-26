@@ -38,13 +38,45 @@ export default function OperacaoGeradorLink() {
   };
 
   const handleCopy = async () => {
+    let ok = false;
     try {
-      await navigator.clipboard.writeText(link);
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(link);
+        ok = true;
+      }
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      // Fallback · funciona em iframes sem permissão de Clipboard API
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = link;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.top = "0";
+        ta.style.left = "0";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, link.length);
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        ok = false;
+      }
+    }
+    if (ok) {
       setCopied(true);
       toast({ title: "Link copiado", description: "Já pode colar onde quiser." });
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      toast({ title: "Não foi possível copiar", variant: "destructive" });
+    } else {
+      toast({
+        title: "Não foi possível copiar",
+        description: "Selecione o link manualmente e copie com Ctrl+C / Cmd+C.",
+        variant: "destructive",
+      });
     }
   };
 
