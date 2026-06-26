@@ -1331,18 +1331,18 @@ export default function Inbox() {
           return (
             <ResizablePanelGroup
               direction="horizontal"
-              autoSaveId="inbox-layout-v2"
+              autoSaveId="inbox-layout-v3"
               className="flex flex-1 min-h-0 overflow-hidden"
             >
-              <ResizablePanel defaultSize={12} minSize={9} maxSize={22} collapsible collapsedSize={4}>
+              <ResizablePanel defaultSize={18} minSize={15} maxSize={26} collapsible collapsedSize={4}>
                 {foldersNode}
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={22} minSize={16} maxSize={40}>
+              <ResizablePanel defaultSize={28} minSize={22} maxSize={42}>
                 {threadsListNode}
               </ResizablePanel>
               <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={66} minSize={40}>
+              <ResizablePanel defaultSize={54} minSize={36}>
                 {readingPaneNode}
               </ResizablePanel>
             </ResizablePanelGroup>
