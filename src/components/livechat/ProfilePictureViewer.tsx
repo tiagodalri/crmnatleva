@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Phone, MessageSquare, Star, User, Mail, MapPin, ImageOff } from "lucide-react";
-import { useEffect, useState } from "react";
+import { X, Phone, MessageSquare, Star, Mail, MapPin, ImageOff, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,8 @@ interface ProfilePictureViewerProps {
   /** Pre-formatted phone string for display. If absent we fall back to `phone`. */
   phoneDisplay?: string;
   pictureUrl?: string;
+  onRefreshPicture?: (phone: string) => Promise<string | null>;
+  onPictureUrlChange?: (url: string) => void;
   /** Initials shown on the fallback avatar. */
   initials?: string;
   isVip?: boolean;
@@ -39,11 +41,19 @@ export function ProfilePictureViewer({
   state,
   phoneDisplay,
   pictureUrl,
+  onRefreshPicture,
+  onPictureUrlChange,
   initials,
   isVip,
   source,
   tags,
 }: ProfilePictureViewerProps) {
+  const cleanPhone = (phone || "").replace(/\D/g, "");
+  const [activeUrl, setActiveUrl] = useState(pictureUrl || "");
+  const [imgError, setImgError] = useState(false);
+  const [refreshingPicture, setRefreshingPicture] = useState(false);
+  const triedRefresh = useRef(false);
+
   // Close on ESC, lock body scroll while open.
   useEffect(() => {
     if (!open) return;
@@ -59,13 +69,38 @@ export function ProfilePictureViewer({
     };
   }, [open, onClose]);
 
-  // Reset image error state whenever a different picture is opened.
-  const [imgError, setImgError] = useState(false);
+  // Reset image state whenever a different picture is opened.
   useEffect(() => {
+    setActiveUrl(pictureUrl || "");
     setImgError(false);
+    setRefreshingPicture(false);
+    triedRefresh.current = false;
   }, [pictureUrl, open]);
 
-  const cleanPhone = (phone || "").replace(/\D/g, "");
+  const refreshPicture = useCallback(async () => {
+    if (!cleanPhone || !onRefreshPicture || triedRefresh.current) {
+      setImgError(true);
+      return;
+    }
+
+    triedRefresh.current = true;
+    setRefreshingPicture(true);
+    try {
+      const freshUrl = await onRefreshPicture(cleanPhone);
+      if (freshUrl && freshUrl.startsWith("http")) {
+        setActiveUrl(freshUrl);
+        setImgError(false);
+        onPictureUrlChange?.(freshUrl);
+        return;
+      }
+      setImgError(true);
+    } catch {
+      setImgError(true);
+    } finally {
+      setRefreshingPicture(false);
+    }
+  }, [cleanPhone, onPictureUrlChange, onRefreshPicture]);
+
   const phoneText = phoneDisplay || phone || "";
   const location = [city, state].filter(Boolean).join(", ");
   // Hide deprecated/internal source badges (e.g. legacy "chatguru" import tag).
@@ -74,7 +109,7 @@ export function ProfilePictureViewer({
   const visibleTags = (tags || []).filter(
     (t) => !HIDDEN_SOURCES.has((t || "").toLowerCase().trim()),
   );
-  const showPicture = !!pictureUrl && !imgError;
+  const showPicture = !!activeUrl && !imgError && !refreshingPicture;
 
   return (
     <AnimatePresence>
@@ -110,18 +145,22 @@ export function ProfilePictureViewer({
             <div className="relative">
               {showPicture ? (
                 <img
-                  src={pictureUrl}
+                  src={activeUrl}
                   alt={name}
                   loading="eager"
                   decoding="async"
                   referrerPolicy="no-referrer"
-                  onError={() => setImgError(true)}
+                  onError={() => void refreshPicture()}
                   className="h-64 w-64 sm:h-72 sm:w-72 rounded-full object-cover ring-4 ring-white/10 shadow-2xl bg-muted"
                 />
               ) : (
                 <div className="h-64 w-64 sm:h-72 sm:w-72 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 flex flex-col items-center justify-center gap-2 text-6xl font-bold text-white ring-4 ring-white/10 shadow-2xl">
-                  <span>{initials || name?.[0]?.toUpperCase() || "?"}</span>
-                  {pictureUrl && imgError && (
+                  {refreshingPicture ? (
+                    <Loader2 className="h-10 w-10 animate-spin text-white/80" />
+                  ) : (
+                    <span>{initials || name?.[0]?.toUpperCase() || "?"}</span>
+                  )}
+                  {activeUrl && imgError && !refreshingPicture && (
                     <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/70">
                       <ImageOff className="h-3 w-3" />
                       Foto indisponível
