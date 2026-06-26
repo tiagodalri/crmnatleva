@@ -108,15 +108,25 @@ export function ProfilePictureViewer({
           >
             {/* Big circular photo · WhatsApp style */}
             <div className="relative">
-              {pictureUrl ? (
+              {showPicture ? (
                 <img
                   src={pictureUrl}
                   alt={name}
-                  className="h-64 w-64 sm:h-72 sm:w-72 rounded-full object-cover ring-4 ring-white/10 shadow-2xl"
+                  loading="eager"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
+                  className="h-64 w-64 sm:h-72 sm:w-72 rounded-full object-cover ring-4 ring-white/10 shadow-2xl bg-muted"
                 />
               ) : (
-                <div className="h-64 w-64 sm:h-72 sm:w-72 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center text-6xl font-bold text-white ring-4 ring-white/10 shadow-2xl">
-                  {initials || name?.[0]?.toUpperCase() || "?"}
+                <div className="h-64 w-64 sm:h-72 sm:w-72 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 flex flex-col items-center justify-center gap-2 text-6xl font-bold text-white ring-4 ring-white/10 shadow-2xl">
+                  <span>{initials || name?.[0]?.toUpperCase() || "?"}</span>
+                  {pictureUrl && imgError && (
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/70">
+                      <ImageOff className="h-3 w-3" />
+                      Foto indisponível
+                    </span>
+                  )}
                 </div>
               )}
               {isVip && (
