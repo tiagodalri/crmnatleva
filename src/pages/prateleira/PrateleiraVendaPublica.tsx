@@ -313,26 +313,34 @@ export default function PrateleiraVendaPublica() {
   };
 
   const handleCTA = async () => {
-    // Lead já foi capturado no gate · vai direto pro WhatsApp com mensagem do pacote
-    const targetWhatsApp = resolveAgencyWhatsApp(agencyWhatsApp);
-    const msg = buildCtaMessage(p);
+    // Nova etapa do funil · redireciona pra tela de simulação de parcelamento
+    // (bank-style) antes de entregar o lead ao WhatsApp
     try {
       const email = sessionStorage.getItem(`prateleira_viewer_${slug}`);
       if (email) {
         (supabase as any).from("prateleira_product_viewers")
           .update({
             cta_clicked: true,
-            whatsapp_clicked: true,
             last_active_at: new Date().toISOString(),
           })
           .eq("product_id", p.id).eq("email", email);
       }
-      trackerRef.current?.trackClick("cta_whatsapp", "offer", { agency_whatsapp: !!agencyWhatsApp });
-      (supabase as any).from("experience_products")
-        .update({ lead_count: (p.lead_count ?? 0) + 1 }).eq("id", p.id);
+      trackerRef.current?.trackClick("cta_simulacao", "offer", { agency_whatsapp: !!agencyWhatsApp });
     } catch {}
-    window.open(buildWhatsAppLink(targetWhatsApp, msg), "_blank");
+    navigate(`/loja/${slug}/simulacao`, {
+      state: {
+        product: {
+          id: p.id,
+          slug: p.slug,
+          title: p.title,
+          price: Number(p.price_promo ?? p.price_from ?? 0),
+          currency: p.currency ?? "BRL",
+          whatsapp: agencyWhatsApp ?? null,
+        },
+      },
+    });
   };
+
 
   const handleReservar = async () => {
     try {
