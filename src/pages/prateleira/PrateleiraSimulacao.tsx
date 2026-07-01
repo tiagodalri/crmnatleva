@@ -843,7 +843,7 @@ function AprovadoPhase({
       transition={{ duration: 0.5 }}
       className="pt-4"
     >
-      {/* Selo aprovado */}
+      {/* Selo aprovado · verde vivo com impacto de conquista */}
       <div className="flex justify-center mb-6">
         <motion.div
           initial={{ scale: 0, rotate: -15 }}
@@ -851,9 +851,15 @@ function AprovadoPhase({
           transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
           className="relative"
         >
-          <div className="absolute inset-0 rounded-full bg-[#d4b06a]/30 blur-3xl" />
-          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#d4b06a] to-[#8a6a3a] flex items-center justify-center shadow-2xl shadow-[#d4b06a]/40 border-4 border-[#d4b06a]/50">
-            <Check className="w-12 h-12 text-white" strokeWidth={3} />
+          {/* Glow externo dourado pulsante */}
+          <motion.div
+            className="absolute inset-[-12px] rounded-full bg-[#d4b06a]/40 blur-3xl"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0.9, 0.6] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <div className="absolute inset-0 rounded-full bg-[#22c55e]/30 blur-2xl" />
+          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#4ade80] to-[#16a34a] flex items-center justify-center shadow-[0_0_40px_-8px_rgba(74,222,128,0.6),0_0_16px_-2px_rgba(212,176,106,0.5)] border-[6px] border-[#d4b06a] animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]">
+            <Check className="w-12 h-12 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]" strokeWidth={3} />
           </div>
         </motion.div>
       </div>
