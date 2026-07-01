@@ -173,6 +173,7 @@ const ProdutoEditor = lazy(() => import("@/pages/produtos/ProdutoEditor"));
 const PrateleiraVitrine = lazy(() => import("@/pages/prateleira/PrateleiraVitrine"));
 const PrateleiraVendaPublica = lazy(() => import("@/pages/prateleira/PrateleiraVendaPublica"));
 const PrateleiraRetorno = lazy(() => import("@/pages/prateleira/PrateleiraRetorno"));
+const PrateleiraSimulacao = lazy(() => import("@/pages/prateleira/PrateleiraSimulacao"));
 const CheckoutLayout = lazy(() => import("@/components/checkout/CheckoutLayout"));
 const CheckoutResumo = lazy(() => import("@/pages/checkout/CheckoutResumo"));
 const CheckoutContato = lazy(() => import("@/pages/checkout/CheckoutContato"));
