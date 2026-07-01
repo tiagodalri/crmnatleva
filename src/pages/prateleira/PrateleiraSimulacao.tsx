@@ -619,7 +619,7 @@ function AnalisePhase({ onDone }: { onDone: () => void }) {
   const doneRef = useRef(false);
 
   useEffect(() => {
-    // Avança steps a cada ~1.4s · total ~7s
+    // Avança steps a cada ~3s · total ~15s (mais imersivo e ansioso)
     const stepInterval = setInterval(() => {
       setCurrent((c) => {
         if (c >= ANALYSIS_STEPS.length - 1) {
@@ -628,11 +628,11 @@ function AnalisePhase({ onDone }: { onDone: () => void }) {
         }
         return c + 1;
       });
-    }, 1400);
+    }, 3000);
 
     // Progresso contínuo
     const start = Date.now();
-    const total = ANALYSIS_STEPS.length * 1400 + 400;
+    const total = ANALYSIS_STEPS.length * 3000 + 400;
     const pctInterval = setInterval(() => {
       const elapsed = Date.now() - start;
       const p = Math.min(100, (elapsed / total) * 100);
