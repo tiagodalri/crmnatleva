@@ -11387,6 +11387,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       encrypt_whatsapp_secret: { Args: { plaintext: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
