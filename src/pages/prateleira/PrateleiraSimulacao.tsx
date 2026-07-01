@@ -148,21 +148,21 @@ export default function PrateleiraSimulacao() {
 
   if (loading || !product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a1628]">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0d1f14]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#d4b06a]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a1628] text-slate-100 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0d1f14] text-slate-100 relative overflow-hidden">
       {/* Fundo bank-style · gradiente sutil + grid */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           background:
-            "radial-gradient(ellipse at top left, rgba(16,185,129,0.15), transparent 55%), radial-gradient(ellipse at bottom right, rgba(59,130,246,0.12), transparent 55%)",
+            "radial-gradient(ellipse at top left, rgba(212,176,106,0.18), transparent 55%), radial-gradient(ellipse at bottom right, rgba(45,107,67,0.28), transparent 60%)",
         }}
       />
       <div
@@ -170,7 +170,7 @@ export default function PrateleiraSimulacao() {
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+            "linear-gradient(rgba(212,176,106,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(212,176,106,0.5) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }}
       />
@@ -229,7 +229,7 @@ export default function PrateleiraSimulacao() {
 // ============================================================
 function TopBar({ onBack }: { onBack: () => void }) {
   return (
-    <header className="relative z-10 border-b border-white/10 bg-[#0a1628]/80 backdrop-blur-xl">
+    <header className="relative z-10 border-b border-white/10 bg-[#0d1f14]/80 backdrop-blur-xl">
       <div className="mx-auto max-w-2xl px-4 h-14 flex items-center justify-between">
         <button
           onClick={onBack}
@@ -239,7 +239,7 @@ function TopBar({ onBack }: { onBack: () => void }) {
           Voltar
         </button>
         <div className="flex items-center gap-2 text-[11px] text-slate-400">
-          <Lock className="w-3.5 h-3.5 text-emerald-400" />
+          <Lock className="w-3.5 h-3.5 text-[#d4b06a]" />
           Simulação segura · SSL 256 bits
         </div>
       </div>
@@ -261,15 +261,15 @@ function IntroPhase({ product, onStart }: { product: ProductLite; onStart: () =>
     >
       <div className="flex justify-center mb-6">
         <div className="relative">
-          <div className="absolute inset-0 rounded-2xl bg-emerald-400/30 blur-2xl" />
-          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-2xl">
+          <div className="absolute inset-0 rounded-2xl bg-[#d4b06a]/25 blur-2xl" />
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2d6b43] to-[#12331f] flex items-center justify-center shadow-2xl">
             <Landmark className="w-8 h-8 text-white" />
           </div>
         </div>
       </div>
 
       <div className="text-center mb-8">
-        <p className="text-[11px] tracking-[0.2em] uppercase text-emerald-400 font-semibold mb-2">
+        <p className="text-[11px] tracking-[0.2em] uppercase text-[#d4b06a] font-semibold mb-2">
           Análise de crédito · Boleto NatLeva
         </p>
         <h1 className="text-2xl sm:text-3xl font-semibold text-white leading-tight mb-3">
@@ -283,11 +283,11 @@ function IntroPhase({ product, onStart }: { product: ProductLite; onStart: () =>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-5 mb-5">
         <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          <Sparkles className="w-5 h-5 text-[#d4b06a] shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-1">Pacote analisado</p>
             <p className="text-sm font-semibold text-white leading-snug">{product.title}</p>
-            <p className="text-lg font-semibold text-emerald-400 mt-2">
+            <p className="text-lg font-semibold text-[#d4b06a] mt-2">
               {fmtBRL(product.price)}
             </p>
           </div>
@@ -301,8 +301,8 @@ function IntroPhase({ product, onStart }: { product: ProductLite; onStart: () =>
           { icon: BadgeCheck, label: "Até 12x no boleto", desc: "condições personalizadas pro seu perfil" },
         ].map((it) => (
           <div key={it.label} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <it.icon className="w-4 h-4 text-emerald-400" />
+            <div className="w-9 h-9 rounded-lg bg-[#2d6b43]/20 border border-[#2d6b43]/40 flex items-center justify-center">
+              <it.icon className="w-4 h-4 text-[#d4b06a]" />
             </div>
             <div>
               <p className="text-sm font-medium text-white">{it.label}</p>
@@ -314,7 +314,7 @@ function IntroPhase({ product, onStart }: { product: ProductLite; onStart: () =>
 
       <button
         onClick={onStart}
-        className="w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-semibold text-base shadow-2xl shadow-emerald-500/30 transition flex items-center justify-center gap-2 group"
+        className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#2d6b43] to-[#1f4a2e] hover:from-[#3a8556] hover:to-[#2d6b43] text-white font-semibold text-base shadow-2xl shadow-[#2d6b43]/40 transition flex items-center justify-center gap-2 group"
       >
         Iniciar simulação
         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -385,15 +385,15 @@ function FichaPhase(props: FichaProps) {
             <div
               className={`h-1 rounded-full transition-all ${
                 i < step
-                  ? "bg-emerald-400"
+                  ? "bg-[#d4b06a]"
                   : i === step
-                    ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
+                    ? "bg-gradient-to-r from-[#d4b06a] to-[#b8934a]"
                     : "bg-white/10"
               }`}
             />
             <span
               className={`text-[10px] font-medium tracking-wide transition ${
-                i <= step ? "text-emerald-400" : "text-slate-500"
+                i <= step ? "text-[#d4b06a]" : "text-slate-500"
               }`}
             >
               {String(i + 1).padStart(2, "0")} · {label}
@@ -408,7 +408,7 @@ function FichaPhase(props: FichaProps) {
           <p className="text-[10px] text-slate-500 uppercase tracking-wider">Analisando</p>
           <p className="text-xs font-medium text-white truncate">{product.title}</p>
         </div>
-        <p className="text-sm font-semibold text-emerald-400 shrink-0">{fmtBRL(product.price)}</p>
+        <p className="text-sm font-semibold text-[#d4b06a] shrink-0">{fmtBRL(product.price)}</p>
       </div>
 
       {/* Card do step */}
@@ -467,7 +467,7 @@ function FichaPhase(props: FichaProps) {
                       onClick={() => props.setCivil(opt)}
                       className={`px-3 py-2.5 rounded-xl text-xs font-medium border transition text-left ${
                         props.civil === opt
-                          ? "bg-emerald-500/15 border-emerald-400/60 text-emerald-300"
+                          ? "bg-[#d4b06a]/10 border-[#d4b06a]/60 text-[#e8c77e]"
                           : "bg-white/[0.02] border-white/10 text-slate-300 hover:border-white/20"
                       }`}
                     >
@@ -488,8 +488,8 @@ function FichaPhase(props: FichaProps) {
                 placeholder="(11) 90000-0000"
                 autoFocus
               />
-              <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 p-3 flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="rounded-xl border border-[#d4b06a]/25 bg-[#2d6b43]/10 p-3 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-[#d4b06a] shrink-0 mt-0.5" />
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   Seus dados são protegidos por criptografia. Não compartilhamos com terceiros
                   e você pode solicitar exclusão a qualquer momento.
@@ -511,7 +511,7 @@ function FichaPhase(props: FichaProps) {
           <button
             onClick={next}
             disabled={!canProceed}
-            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#2d6b43] to-[#1f4a2e] hover:from-[#3a8556] hover:to-[#2d6b43] disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-[#2d6b43]/25"
           >
             {step === 3 ? "Enviar para análise" : "Continuar"}
             <ChevronRight className="w-4 h-4" />
@@ -546,8 +546,8 @@ function StepShell({
       transition={{ duration: 0.25 }}
     >
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-400/20 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-emerald-400" />
+        <div className="w-10 h-10 rounded-xl bg-[#2d6b43]/20 border border-[#d4b06a]/25 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-[#d4b06a]" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-white leading-tight">{title}</h2>
@@ -593,7 +593,7 @@ function FieldInput({
           onChange={(e) => onChange(e.target.value)}
           inputMode={inputMode}
           placeholder={placeholder}
-          className={`w-full h-12 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder:text-slate-600 text-base focus:outline-none focus:border-emerald-400/60 focus:bg-white/[0.05] transition ${
+          className={`w-full h-12 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder:text-slate-600 text-base focus:outline-none focus:border-[#d4b06a]/60 focus:bg-white/[0.05] transition ${
             prefix ? "pl-10 pr-4" : "px-4"
           }`}
         />
@@ -662,23 +662,23 @@ function AnalisePhase({ onDone }: { onDone: () => void }) {
       <div className="flex justify-center mb-8">
         <div className="relative w-32 h-32">
           <motion.div
-            className="absolute inset-0 rounded-full border-2 border-emerald-400/20"
+            className="absolute inset-0 rounded-full border-2 border-[#d4b06a]/25"
             animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
           <motion.div
-            className="absolute inset-3 rounded-full border-2 border-emerald-400/30"
+            className="absolute inset-3 rounded-full border-2 border-[#d4b06a]/30"
             animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0, 0.4] }}
             transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
           />
-          <div className="absolute inset-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-2xl shadow-emerald-500/40">
+          <div className="absolute inset-6 rounded-full bg-gradient-to-br from-[#2d6b43] to-[#12331f] flex items-center justify-center shadow-2xl shadow-[#2d6b43]/50">
             <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
         </div>
       </div>
 
       <div className="text-center mb-8">
-        <p className="text-[11px] tracking-[0.2em] uppercase text-emerald-400 font-semibold mb-2">
+        <p className="text-[11px] tracking-[0.2em] uppercase text-[#d4b06a] font-semibold mb-2">
           Análise em andamento
         </p>
         <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">
@@ -693,11 +693,11 @@ function AnalisePhase({ onDone }: { onDone: () => void }) {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Progresso</span>
-          <span className="text-xs font-semibold text-emerald-400 tabular-nums">{Math.floor(percent)}%</span>
+          <span className="text-xs font-semibold text-[#d4b06a] tabular-nums">{Math.floor(percent)}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500"
+            className="h-full bg-gradient-to-r from-[#d4b06a] to-[#b8934a]"
             style={{ width: `${percent}%` }}
             transition={{ ease: "linear" }}
           />
@@ -718,7 +718,7 @@ function AnalisePhase({ onDone }: { onDone: () => void }) {
               transition={{ delay: i * 0.05 }}
               className={`flex items-center gap-3 rounded-xl border p-3 transition ${
                 isActive
-                  ? "border-emerald-400/40 bg-emerald-500/5"
+                  ? "border-[#d4b06a]/40 bg-[#2d6b43]/10"
                   : isDone
                     ? "border-white/5 bg-white/[0.02]"
                     : "border-white/5 bg-white/[0.01] opacity-50"
@@ -727,16 +727,16 @@ function AnalisePhase({ onDone }: { onDone: () => void }) {
               <div
                 className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                   isDone
-                    ? "bg-emerald-500/20 border border-emerald-400/30"
+                    ? "bg-[#2d6b43]/30 border border-[#d4b06a]/40"
                     : isActive
-                      ? "bg-emerald-500/10 border border-emerald-400/40"
+                      ? "bg-[#2d6b43]/20 border border-[#d4b06a]/40"
                       : "bg-white/[0.03] border border-white/10"
                 }`}
               >
                 {isDone ? (
-                  <Check className="w-4 h-4 text-emerald-400" />
+                  <Check className="w-4 h-4 text-[#d4b06a]" />
                 ) : isActive ? (
-                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                  <Loader2 className="w-4 h-4 text-[#d4b06a] animate-spin" />
                 ) : (
                   <s.icon className="w-4 h-4 text-slate-500" />
                 )}
@@ -788,7 +788,7 @@ function AprovadoPhase({
   useEffect(() => {
     const duration = 2500;
     const end = Date.now() + duration;
-    const colors = ["#10b981", "#34d399", "#fbbf24", "#f59e0b", "#ffffff"];
+    const colors = ["#2d6b43", "#4a8f5c", "#d4b06a", "#e8c77e", "#f5efd8"];
 
     (function frame() {
       confetti({
@@ -851,8 +851,8 @@ function AprovadoPhase({
           transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
           className="relative"
         >
-          <div className="absolute inset-0 rounded-full bg-emerald-400/40 blur-3xl" />
-          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-2xl shadow-emerald-500/50 border-4 border-emerald-300/40">
+          <div className="absolute inset-0 rounded-full bg-[#d4b06a]/30 blur-3xl" />
+          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#d4b06a] to-[#8a6a3a] flex items-center justify-center shadow-2xl shadow-[#d4b06a]/40 border-4 border-[#d4b06a]/50">
             <Check className="w-12 h-12 text-white" strokeWidth={3} />
           </div>
         </motion.div>
@@ -864,14 +864,14 @@ function AprovadoPhase({
         transition={{ delay: 0.25 }}
         className="text-center mb-6"
       >
-        <p className="text-[11px] tracking-[0.2em] uppercase text-emerald-400 font-semibold mb-2">
+        <p className="text-[11px] tracking-[0.2em] uppercase text-[#d4b06a] font-semibold mb-2">
           Análise concluída
         </p>
         <h1 className="text-3xl sm:text-4xl font-semibold text-white leading-tight mb-3">
           Parabéns, {firstName}!
         </h1>
         <p className="text-base text-slate-300 max-w-md mx-auto leading-relaxed">
-          <span className="text-emerald-400 font-semibold">3 propostas de parcelamento no boleto</span>{" "}
+          <span className="text-[#d4b06a] font-semibold">3 propostas de parcelamento no boleto</span>{" "}
           foram aprovadas {cpfMasked ? `para o CPF ${cpfMasked}` : "para o seu CPF"}.
         </p>
       </motion.div>
@@ -887,7 +887,7 @@ function AprovadoPhase({
           <p className="text-[10px] text-slate-500 uppercase tracking-wider">Pacote aprovado</p>
           <p className="text-sm font-semibold text-white truncate">{product.title}</p>
         </div>
-        <p className="text-lg font-semibold text-emerald-400 shrink-0">{fmtBRL(product.price)}</p>
+        <p className="text-lg font-semibold text-[#d4b06a] shrink-0">{fmtBRL(product.price)}</p>
       </motion.div>
 
       {/* Propostas */}
@@ -901,7 +901,7 @@ function AprovadoPhase({
             onClick={() => goWhatsApp(p.installments)}
             className={`w-full text-left rounded-2xl border p-4 transition-all hover:scale-[1.01] active:scale-[0.99] ${
               p.highlight
-                ? "border-emerald-400/60 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 shadow-lg shadow-emerald-500/10"
+                ? "border-[#d4b06a]/60 bg-gradient-to-br from-[#d4b06a]/15 to-[#2d6b43]/10 shadow-lg shadow-[#2d6b43]/15"
                 : "border-white/10 bg-white/[0.03] hover:border-white/20"
             }`}
           >
@@ -911,11 +911,11 @@ function AprovadoPhase({
                 <p className="text-2xl font-semibold text-white">
                   {p.installments}x
                   <span className="text-base font-normal text-slate-400"> de </span>
-                  <span className="text-emerald-400">{fmtBRL(p.value)}</span>
+                  <span className="text-[#d4b06a]">{fmtBRL(p.value)}</span>
                 </p>
               </div>
               {p.highlight ? (
-                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-400 text-emerald-950">
+                <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-[#d4b06a] text-[#0d1f14]">
                   {p.tag}
                 </span>
               ) : (
@@ -928,7 +928,7 @@ function AprovadoPhase({
               <span className="text-[11px] text-slate-400">
                 Total: <span className="text-white font-medium">{fmtBRL(p.total)}</span> · sem juros
               </span>
-              <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="text-[11px] text-[#d4b06a] font-semibold flex items-center gap-1">
                 Escolher <ArrowRight className="w-3 h-3" />
               </span>
             </div>
@@ -945,14 +945,14 @@ function AprovadoPhase({
       >
         <button
           onClick={() => goWhatsApp()}
-          className="w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-semibold text-base shadow-2xl shadow-emerald-500/30 transition flex items-center justify-center gap-2"
+          className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#2d6b43] to-[#1f4a2e] hover:from-[#3a8556] hover:to-[#2d6b43] text-white font-semibold text-base shadow-2xl shadow-[#2d6b43]/40 transition flex items-center justify-center gap-2"
         >
           <MessageCircle className="w-5 h-5" />
           Falar com consultor agora
         </button>
 
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex items-start gap-2.5">
-          <Clock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <Clock className="w-4 h-4 text-[#d4b06a] shrink-0 mt-0.5" />
           <p className="text-[11px] text-slate-300 leading-relaxed">
             Ou aguarde · em até <span className="font-semibold text-white">1 hora</span> um consultor NatLeva
             entra em contato pelo número que você informou pra finalizar a reserva.
