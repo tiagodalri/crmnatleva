@@ -727,7 +727,7 @@ function AnalisePhase({ onDone }: { onDone: () => void }) {
               <div
                 className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                   isDone
-                    ? "bg-emerald-500/20 border border-[#d4b06a]/30"
+                    ? "bg-[#2d6b43]/30 border border-[#d4b06a]/40"
                     : isActive
                       ? "bg-[#2d6b43]/20 border border-[#d4b06a]/40"
                       : "bg-white/[0.03] border border-white/10"
