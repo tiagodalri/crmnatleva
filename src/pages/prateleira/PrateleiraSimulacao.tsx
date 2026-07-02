@@ -81,6 +81,9 @@ type ProductLite = {
   price: number;
   currency: string;
   whatsapp?: string | null;
+  paymentTerms?: any;
+  installmentsMax?: number | null;
+  departureDate?: string | null;
 };
 
 const CIVIL_OPTIONS = ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União estável"];
