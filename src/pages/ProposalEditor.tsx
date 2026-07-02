@@ -863,10 +863,11 @@ export default function ProposalEditor() {
       try { localStorage.removeItem(visualDraftKey); } catch { /* ignore */ }
       if (savedItems.length > 0) {
         setItems((prev) => {
-          let savedIdx = 0;
+          let meaningfulIdx = 0;
           return prev.map((item) => {
-            if (item.id || !hasMeaningfulItemContent(item)) return item;
-            const saved = savedItems[savedIdx++];
+            if (!hasMeaningfulItemContent(item)) return item;
+            const saved = savedItems[meaningfulIdx++];
+            if (item.id) return item;
             return saved ? { ...item, id: saved.id } : item;
           });
         });
@@ -919,6 +920,7 @@ export default function ProposalEditor() {
 
   // ── Autosave: grava no banco automaticamente após cada alteração ────
   useEffect(() => {
+    if (promotedNewProposalRef.current) return;
     if (!hydratedRef.current) return;
     // Permite autosave mesmo sem título: gera um automático se houver
     // qualquer dado relevante preenchido. Garante que nada se perca.
