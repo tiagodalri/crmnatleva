@@ -699,6 +699,13 @@ export default function ProposalEditor() {
       const currentItems = itemsRef.current;
       const currentVisualOverrides = visualOverridesRef.current;
       const slug = existing?.slug || generateSlug();
+      const preparedItems = currentItems
+        .filter(hasMeaningfulItemContent)
+        .map((item, idx) => ({
+          ...item,
+          id: item.id || generateUuid(),
+          position: idx,
+        }));
       const payload: Record<string, any> = {
         title: currentForm.title,
         client_name: currentForm.client_name,
@@ -714,10 +721,10 @@ export default function ProposalEditor() {
         status: currentForm.status,
         intro_text: currentForm.intro_text,
         cover_image_url: currentForm.cover_image_url,
-        total_value: currentForm.total_value ? parseFloat(currentForm.total_value) : null,
-        value_per_person: currentForm.value_per_person ? parseFloat(currentForm.value_per_person) : null,
-        internal_cost: currentForm.internal_cost !== "" ? parseFloat(currentForm.internal_cost) : null,
-        internal_profit: currentForm.internal_profit !== "" ? parseFloat(currentForm.internal_profit) : null,
+        total_value: parseOptionalMoney(currentForm.total_value),
+        value_per_person: parseOptionalMoney(currentForm.value_per_person),
+        internal_cost: parseOptionalMoney(currentForm.internal_cost),
+        internal_profit: parseOptionalMoney(currentForm.internal_profit),
         payment_conditions: currentForm.payment_conditions,
         proposal_strategy: currentForm.proposal_strategy || null,
         proposal_outcome: currentForm.proposal_outcome || "pending",
