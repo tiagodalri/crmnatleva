@@ -99,6 +99,22 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
   lost: { label: "Perdida", variant: "destructive" },
 };
 
+function hasMeaningfulProposalContent(p: any): boolean {
+  const title = String(p.title || "").trim();
+  const isAutoDraftTitle = /^rascunho\s*·/i.test(title);
+  return Boolean(
+    (title && !isAutoDraftTitle) ||
+    String(p.client_name || "").trim() ||
+    String(p.origin || "").trim() ||
+    (Array.isArray(p.destinations) && p.destinations.length > 0) ||
+    p.travel_start_date ||
+    p.travel_end_date ||
+    Number(p.total_value) > 0 ||
+    Number(p.internal_cost) > 0 ||
+    String(p.cover_image_url || "").trim()
+  );
+}
+
 export default function Proposals() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -214,6 +230,7 @@ export default function Proposals() {
     const pmax = parseMoney(profitMax);
 
     return proposals?.filter((p: any) => {
+      if (!hasMeaningfulProposalContent(p)) return false;
       if (q && !(p.title?.toLowerCase().includes(q) || p.client_name?.toLowerCase().includes(q))) return false;
 
       if (travelRange?.from && p.travel_start_date) {
