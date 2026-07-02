@@ -382,6 +382,7 @@ export default function Proposals() {
         views_count: _vc,
         last_viewed_at: _lva,
         slug: _slug,
+        sale_id: _saleId,
         public_token: _pt,
         display_id: _did,
         ...rest
@@ -408,7 +409,7 @@ export default function Proposals() {
       // Duplicar todos os itens da viagem (aéreo, hospedagem, cruzeiro, seguro, anexos, etc.)
       const { data: items, error: itemsErr } = await supabase
         .from("proposal_items")
-        .select("item_type, position, title, description, image_url, data")
+        .select("item_type, position, title, description, image_url, data, payment_modality, payment_label, payment_description, cancellation_policy, cancellation_label, free_cancellation_until, prepayment_amount")
         .eq("proposal_id", id);
       if (itemsErr) throw itemsErr;
 
