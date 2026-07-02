@@ -95,7 +95,7 @@ function fmtBR(iso: string) { const [y, m, d] = iso.split("-"); return `${d}/${m
 
 function generateSlug(title: string): string {
   return title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + "-" + Date.now().toString(36);
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6);
 }
 
 // ─── Main function ───
@@ -107,6 +107,17 @@ export interface QuoteToProposalResult {
 
 export async function createProposalFromQuote(quote: Record<string, any>): Promise<QuoteToProposalResult | null> {
   try {
+    if (quote.id) {
+      const { data: existing, error: existingError } = await (supabase as any)
+        .from("proposals")
+        .select("id, slug")
+        .eq("quote_request_id", quote.id)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+      if (existing?.id && existing?.slug) return { proposalId: existing.id, slug: existing.slug };
+    }
+
     const dest = quote.destination_city || "Destino";
     const origin = quote.origin_city || "";
     const cabin = CABIN_LABELS[quote.cabin_class || "economy"] || "Econômica";
@@ -166,6 +177,16 @@ export async function createProposalFromQuote(quote: Record<string, any>): Promi
       .single();
 
     if (error || !created) {
+      if (quote.id) {
+        const { data: existingAfterConflict } = await (supabase as any)
+          .from("proposals")
+          .select("id, slug")
+          .eq("quote_request_id", quote.id)
+          .maybeSingle();
+        if (existingAfterConflict?.id && existingAfterConflict?.slug) {
+          return { proposalId: existingAfterConflict.id, slug: existingAfterConflict.slug };
+        }
+      }
       console.error("[QuoteBridge] Create error:", error);
       return null;
     }
