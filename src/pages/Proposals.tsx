@@ -720,7 +720,7 @@ export default function Proposals() {
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); copyLink(p.slug); }}>
                           <Copy className="w-4 h-4 mr-2" /> Copiar link
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(`/proposta/${p.slug}`, "_blank"); }}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(getPublicProposalUrl(p.slug), "_blank"); }}>
                           <ExternalLink className="w-4 h-4 mr-2" /> Ver proposta
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateProposal(p.id); }}>
