@@ -408,24 +408,33 @@ export default function ProposalEditor() {
 
   // Marca hidratação concluída para liberar o autosave (evita gravar
   // o estado vazio inicial sobre a proposta existente).
+  // IMPORTANTE: só libera quando formRef.current realmente reflete `existing`.
+  // Antes usávamos setTimeout(50ms), o que abria race condition e podia zerar
+  // metadados salvos (título, datas, capa, valores) durante o autosave.
   useEffect(() => {
     if (isNew) {
       hydratedRef.current = true;
       return;
     }
-    if (existing && existingItems !== undefined) {
-      // pequeno delay garante que setForm/setItems já tenham aplicado
-      const t = setTimeout(() => {
-        hydratedRef.current = true;
-        lastAutoSavedSnapshotRef.current = JSON.stringify({
-          f: formRef.current,
-          i: itemsRef.current,
-          v: visualOverridesRef.current,
-        });
-      }, 50);
-      return () => clearTimeout(t);
-    }
-  }, [isNew, existing, existingItems]);
+    if (!existing || existingItems === undefined) return;
+    if (hydratedRef.current) return;
+
+    const expectedTitle = existing.title || "";
+    const currentTitle = formRef.current?.title || "";
+    const itemsMatch = itemsRef.current.length === existingItems.length;
+    // Confirma que o setForm/setItems da hidratação já foi comitado
+    // antes de liberar o autosave.
+    if (currentTitle !== expectedTitle || !itemsMatch) return;
+
+    hydratedRef.current = true;
+    lastAutoSavedSnapshotRef.current = JSON.stringify({
+      f: formRef.current,
+      i: itemsRef.current,
+      v: visualOverridesRef.current,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew, existing, existingItems, form, items]);
+
 
   // ── Recuperação de rascunho local (NOVA ou EXISTENTE) ────────────────
   // Hidrata automaticamente o que o usuário tinha preenchido antes de
