@@ -686,9 +686,34 @@ export default function ProposalEditor() {
         if (error) throw error;
         proposalId = data.id;
       } else {
+        // ── Guard anti-wipe ────────────────────────────────────────────
+        // Se, por qualquer race de hidratação, o payload chega vazio em
+        // campos críticos que estão preenchidos no banco, aborta o save
+        // para preservar o que o usuário já tinha salvo.
+        const isEmpty = (v: any) =>
+          v === null || v === undefined || v === "" ||
+          (Array.isArray(v) && v.length === 0);
+        const dbHas = (v: any) => !isEmpty(v);
+        const wouldWipe =
+          (dbHas((existing as any)?.title) && isEmpty(payload.title)) ||
+          (dbHas((existing as any)?.destinations) && isEmpty(payload.destinations)) ||
+          (dbHas((existing as any)?.travel_start_date) && isEmpty(payload.travel_start_date)) ||
+          (dbHas((existing as any)?.travel_end_date) && isEmpty(payload.travel_end_date)) ||
+          (dbHas((existing as any)?.cover_image_url) && isEmpty(payload.cover_image_url)) ||
+          (dbHas((existing as any)?.total_value) && isEmpty(payload.total_value)) ||
+          (dbHas((existing as any)?.client_name) && isEmpty(payload.client_name));
+        if (wouldWipe) {
+          // Não escreve · força re-hidratação no próximo ciclo
+          hydratedRef.current = false;
+          console.warn("[ProposalEditor] autosave abortado · payload zeraria campos preenchidos", {
+            proposalId: id,
+          });
+          throw new Error("Autosave abortado para preservar dados existentes");
+        }
         const { error } = await supabase.from("proposals").update(payload as any).eq("id", id);
         if (error) throw error;
       }
+
 
       // Save items
       if (!isNew) {
