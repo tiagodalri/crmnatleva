@@ -757,11 +757,13 @@ export default function ProposalEditor() {
           (dbHas((existing as any)?.cover_image_url) && isEmpty(payload.cover_image_url)) ||
           (dbHas((existing as any)?.total_value) && isEmpty(payload.total_value)) ||
           (dbHas((existing as any)?.client_name) && isEmpty(payload.client_name));
-        if (wouldWipe) {
+        const wouldWipeItems = Array.isArray(existingItems) && existingItems.length > 0 && currentItems.length === 0;
+        if (wouldWipe || wouldWipeItems) {
           // Não escreve · força re-hidratação no próximo ciclo
           hydratedRef.current = false;
           console.warn("[ProposalEditor] autosave abortado · payload zeraria campos preenchidos", {
             proposalId: id,
+            wouldWipeItems,
           });
           throw new Error("Autosave abortado para preservar dados existentes");
         }
@@ -770,30 +772,64 @@ export default function ProposalEditor() {
       }
 
 
-      // Save items
-      if (!isNew) {
-        await supabase.from("proposal_items").delete().eq("proposal_id", proposalId!);
-      }
-      if (currentItems.length > 0) {
-        const itemsPayload = currentItems.map((item, idx) => ({
-          proposal_id: proposalId,
+      // Save items sem abrir uma janela pública vazia: primeiro grava/atualiza,
+      // depois remove só o que saiu do editor.
+      if (preparedItems.length > 0) {
+        const itemsPayload = preparedItems.map((item) => ({
+          id: item.id,
+          proposal_id: proposalId!,
           item_type: item.item_type,
-          position: idx,
+          position: item.position,
           title: item.title,
           description: item.description,
           image_url: item.image_url,
           data: item.data || {},
+          payment_modality: item.payment_modality || null,
+          payment_label: item.payment_label || null,
+          payment_description: item.payment_description || null,
+          cancellation_policy: item.cancellation_policy || null,
+          cancellation_label: item.cancellation_label || null,
+          free_cancellation_until: item.free_cancellation_until || null,
+          prepayment_amount: item.prepayment_amount ?? null,
         }));
-        const { error } = await supabase.from("proposal_items").insert(itemsPayload);
+        const { error } = await supabase.from("proposal_items").upsert(itemsPayload as any, { onConflict: "id" });
         if (error) throw error;
       }
 
-      return proposalId;
+      if (!isNew) {
+        if (preparedItems.length > 0) {
+          const ids = preparedItems.map((item) => item.id).join(",");
+          const { error } = await supabase
+            .from("proposal_items")
+            .delete()
+            .eq("proposal_id", proposalId!)
+            .not("id", "in", `(${ids})`);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("proposal_items").delete().eq("proposal_id", proposalId!);
+          if (error) throw error;
+        }
+      }
+
+      return { proposalId, savedItems: preparedItems };
     },
-    onSuccess: (proposalId) => {
+    onSuccess: ({ proposalId, savedItems }) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       try { localStorage.removeItem(visualDraftKey); } catch { /* ignore */ }
-      try { if (isNew) localStorage.removeItem(NEW_DRAFT_KEY); } catch { /* ignore */ }
+      if (savedItems.length > 0) {
+        setItems((prev) => prev.map((item, idx) => item.id ? item : (savedItems[idx] ? { ...item, id: savedItems[idx].id } : item)));
+      }
+      try {
+        if (isNew) {
+          promotedNewProposalRef.current = true;
+          localStorage.removeItem(NEW_DRAFT_KEY);
+        }
+      } catch { /* ignore */ }
+      lastAutoSavedSnapshotRef.current = JSON.stringify({
+        f: formRef.current,
+        i: itemsRef.current,
+        v: visualOverridesRef.current,
+      });
       if (!isAutoSavingRef.current) {
         toast.success("Proposta salva com sucesso!");
       }
