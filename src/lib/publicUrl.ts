@@ -33,7 +33,8 @@ function stripTrailingSlash(s: string) {
 
 /** URL pública da proposta (visível para o cliente). */
 export function getPublicProposalUrl(slug: string, opts?: { print?: boolean }): string {
-  const url = `${getPublicHost()}/proposta/${slug}`;
+  const safeSlug = encodeURIComponent(slug.trim());
+  const url = `${getPublicHost()}/proposta/${safeSlug}`;
   return opts?.print ? `${url}?print=1` : url;
 }
 
