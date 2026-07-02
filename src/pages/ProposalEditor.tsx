@@ -119,6 +119,49 @@ function generateSlug() {
   return result;
 }
 
+function generateUuid() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16);
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function parseOptionalMoney(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+function isEmptyObject(value: unknown) {
+  return !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0;
+}
+
+function hasMeaningfulItemContent(item: any) {
+  if (!item) return false;
+  const data = item.data || {};
+  return Boolean(
+    String(item.title || "").trim() ||
+    String(item.description || "").trim() ||
+    String(item.image_url || "").trim() ||
+    !isEmptyObject(data) ||
+    String(item.payment_modality || "").trim() ||
+    String(item.payment_label || "").trim() ||
+    String(item.payment_description || "").trim() ||
+    String(item.cancellation_policy || "").trim() ||
+    String(item.cancellation_label || "").trim() ||
+    String(item.free_cancellation_until || "").trim() ||
+    item.prepayment_amount != null
+  );
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Hook: retorna um valor "atrasado" para evitar re-renderizar componentes pesados
 // (como o ProposalPreviewRenderer) a cada keystroke. Mantém a digitação fluida.
 function useDebouncedValue<T>(value: T, delay = 250): T {
