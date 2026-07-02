@@ -951,6 +951,7 @@ export default function ProposalEditor() {
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(async () => {
+      if (promotedNewProposalRef.current) return;
       if (saveMutation.isPending) return;
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
