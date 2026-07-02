@@ -168,7 +168,7 @@ function buildIntroText(b: Record<string, any>, startDate: string | null, endDat
 
 function generateSlug(title: string): string {
   return title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + "-" + Date.now().toString(36);
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6);
 }
 
 // ─── Suggestive Items Generator ───
@@ -421,12 +421,22 @@ export async function syncBriefingToProposal(briefingId: string): Promise<string
         .single();
 
       if (cErr) {
+        const { data: existingAfterConflict } = await (supabase as any)
+          .from("proposals")
+          .select("id")
+          .eq("source_briefing_id", briefingId)
+          .maybeSingle();
+        if (existingAfterConflict?.id) {
+          proposalId = existingAfterConflict.id;
+          console.log("[Bridge] Proposal reused after conflict:", proposalId);
+        } else {
         console.error("[Bridge] Create error:", cErr);
         return null;
+        }
+      } else {
+        proposalId = created.id;
+        console.log("[Bridge] Proposal created:", proposalId, "template:", templateId);
       }
-
-      proposalId = created.id;
-      console.log("[Bridge] Proposal created:", proposalId, "template:", templateId);
     }
 
     // 5. Generate and insert suggestive items

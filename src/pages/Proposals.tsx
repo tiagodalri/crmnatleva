@@ -91,13 +91,81 @@ function getCoverImage(proposal: any): string {
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  rascunho_ia: { label: "🤖 Rascunho IA", variant: "outline" },
+  rascunho_ia: { label: "Rascunho IA", variant: "outline" },
   draft: { label: "Em elaboração", variant: "secondary" },
   sent: { label: "Enviada", variant: "default" },
   negotiation: { label: "Em negociação", variant: "outline" },
   approved: { label: "Aprovada", variant: "default" },
   lost: { label: "Perdida", variant: "destructive" },
 };
+
+function hasMeaningfulProposalContent(p: any): boolean {
+  const title = String(p.title || "").trim();
+  const isAutoDraftTitle = /^rascunho\s*·/i.test(title);
+  return Boolean(
+    (title && !isAutoDraftTitle) ||
+    String(p.client_name || "").trim() ||
+    String(p.origin || "").trim() ||
+    (Array.isArray(p.destinations) && p.destinations.length > 0) ||
+    p.travel_start_date ||
+    p.travel_end_date ||
+    Number(p.total_value) > 0 ||
+    Number(p.internal_cost) > 0 ||
+    String(p.cover_image_url || "").trim()
+  );
+}
+
+function proposalSignature(p: any): string | null {
+  const title = String(p.title || "").trim().toLowerCase();
+  const client = String(p.client_name || "").trim().toLowerCase();
+  if (!title || !client) return null;
+  return [title, client, p.travel_start_date || "", p.travel_end_date || ""].join("|");
+}
+
+function proposalIntegrityScore(p: any): number {
+  let score = 0;
+  if (String(p.title || "").trim()) score += 3;
+  if (String(p.client_name || "").trim()) score += 3;
+  if (String(p.cover_image_url || "").trim()) score += 2;
+  if (String(p.origin || "").trim()) score += 1;
+  if (Array.isArray(p.destinations) && p.destinations.length > 0) score += 2;
+  if (p.travel_start_date) score += 2;
+  if (p.travel_end_date) score += 2;
+  if (Number(p.total_value) > 0) score += 4;
+  if (Number(p.internal_cost) > 0) score += 3;
+  if (Number(p.internal_profit) > 0) score += 2;
+  if (Array.isArray(p.payment_conditions) && p.payment_conditions.length > 0) score += 2;
+  return score;
+}
+
+function dedupeExactProposalDrafts(rows: any[] = []) {
+  const bestBySignature = new Map<string, any>();
+  for (const p of rows) {
+    const signature = proposalSignature(p);
+    if (!signature) continue;
+    const current = bestBySignature.get(signature);
+    if (!current) {
+      bestBySignature.set(signature, p);
+      continue;
+    }
+    const pScore = proposalIntegrityScore(p);
+    const currentScore = proposalIntegrityScore(current);
+    const pTime = new Date(p.updated_at || p.created_at || 0).getTime();
+    const currentTime = new Date(current.updated_at || current.created_at || 0).getTime();
+    if (pScore > currentScore || (pScore === currentScore && pTime > currentTime)) {
+      bestBySignature.set(signature, p);
+    }
+  }
+
+  return rows.filter((p) => {
+    const signature = proposalSignature(p);
+    if (!signature) return true;
+    const best = bestBySignature.get(signature);
+    if (!best || best.id === p.id) return true;
+    const hoursApart = Math.abs(new Date(best.created_at).getTime() - new Date(p.created_at).getTime()) / 36e5;
+    return hoursApart > 24;
+  });
+}
 
 export default function Proposals() {
   const navigate = useNavigate();
@@ -213,7 +281,8 @@ export default function Proposals() {
     const pmin = parseMoney(profitMin);
     const pmax = parseMoney(profitMax);
 
-    return proposals?.filter((p: any) => {
+    return dedupeExactProposalDrafts(proposals || []).filter((p: any) => {
+      if (!hasMeaningfulProposalContent(p)) return false;
       if (q && !(p.title?.toLowerCase().includes(q) || p.client_name?.toLowerCase().includes(q))) return false;
 
       if (travelRange?.from && p.travel_start_date) {
@@ -313,6 +382,7 @@ export default function Proposals() {
         views_count: _vc,
         last_viewed_at: _lva,
         slug: _slug,
+        sale_id: _saleId,
         public_token: _pt,
         display_id: _did,
         ...rest
@@ -339,7 +409,7 @@ export default function Proposals() {
       // Duplicar todos os itens da viagem (aéreo, hospedagem, cruzeiro, seguro, anexos, etc.)
       const { data: items, error: itemsErr } = await supabase
         .from("proposal_items")
-        .select("item_type, position, title, description, image_url, data")
+        .select("item_type, position, title, description, image_url, data, payment_modality, payment_label, payment_description, cancellation_policy, cancellation_label, free_cancellation_until, prepayment_amount")
         .eq("proposal_id", id);
       if (itemsErr) throw itemsErr;
 

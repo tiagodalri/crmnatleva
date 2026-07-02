@@ -119,6 +119,49 @@ function generateSlug() {
   return result;
 }
 
+function generateUuid() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16);
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function parseOptionalMoney(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+function isEmptyObject(value: unknown) {
+  return !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0;
+}
+
+function hasMeaningfulItemContent(item: any) {
+  if (!item) return false;
+  const data = item.data || {};
+  return Boolean(
+    String(item.title || "").trim() ||
+    String(item.description || "").trim() ||
+    String(item.image_url || "").trim() ||
+    !isEmptyObject(data) ||
+    String(item.payment_modality || "").trim() ||
+    String(item.payment_label || "").trim() ||
+    String(item.payment_description || "").trim() ||
+    String(item.cancellation_policy || "").trim() ||
+    String(item.cancellation_label || "").trim() ||
+    String(item.free_cancellation_until || "").trim() ||
+    item.prepayment_amount != null
+  );
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Hook: retorna um valor "atrasado" para evitar re-renderizar componentes pesados
 // (como o ProposalPreviewRenderer) a cada keystroke. Mantém a digitação fluida.
 function useDebouncedValue<T>(value: T, delay = 250): T {
@@ -278,6 +321,7 @@ export default function ProposalEditor() {
   const isAutoSavingRef = useRef(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAutoSavedSnapshotRef = useRef<string>("");
+  const promotedNewProposalRef = useRef(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
@@ -499,6 +543,7 @@ export default function ProposalEditor() {
   // — funciona offline, sem internet, com queda de luz. Limpa quando persiste.
   useEffect(() => {
     if (!hydratedRef.current && !isNew) return;
+    if (promotedNewProposalRef.current) return;
     try {
       localStorage.setItem(
         LOCAL_DRAFT_KEY,
@@ -526,6 +571,7 @@ export default function ProposalEditor() {
       if (structure.destinations?.length) {
         for (const d of structure.destinations) {
           newItems.push({
+            id: generateUuid(),
             item_type: "destination",
             title: d.name + (d.country ? `, ${d.country}` : ""),
             description: [
@@ -542,6 +588,7 @@ export default function ProposalEditor() {
       if (structure.flights?.length) {
         for (const f of structure.flights) {
           newItems.push({
+            id: generateUuid(),
             item_type: "flight",
             title: `${f.origin} → ${f.destination}`,
             description: [
@@ -572,6 +619,7 @@ export default function ProposalEditor() {
       if (structure.hotels?.length) {
         for (const h of structure.hotels) {
           newItems.push({
+            id: generateUuid(),
             item_type: "hotel",
             title: h.hotel_name || `Hotel em ${h.city}`,
             description: [
@@ -601,6 +649,7 @@ export default function ProposalEditor() {
       if (structure.experiences?.length) {
         for (const e of structure.experiences) {
           newItems.push({
+            id: generateUuid(),
             item_type: "experience",
             title: e.name,
             description: [
@@ -651,6 +700,13 @@ export default function ProposalEditor() {
       const currentItems = itemsRef.current;
       const currentVisualOverrides = visualOverridesRef.current;
       const slug = existing?.slug || generateSlug();
+      const preparedItems = currentItems
+        .filter(hasMeaningfulItemContent)
+        .map((item, idx) => ({
+          ...item,
+          id: item.id || generateUuid(),
+          position: idx,
+        }));
       const payload: Record<string, any> = {
         title: currentForm.title,
         client_name: currentForm.client_name,
@@ -666,10 +722,10 @@ export default function ProposalEditor() {
         status: currentForm.status,
         intro_text: currentForm.intro_text,
         cover_image_url: currentForm.cover_image_url,
-        total_value: currentForm.total_value ? parseFloat(currentForm.total_value) : null,
-        value_per_person: currentForm.value_per_person ? parseFloat(currentForm.value_per_person) : null,
-        internal_cost: currentForm.internal_cost !== "" ? parseFloat(currentForm.internal_cost) : null,
-        internal_profit: currentForm.internal_profit !== "" ? parseFloat(currentForm.internal_profit) : null,
+        total_value: parseOptionalMoney(currentForm.total_value),
+        value_per_person: parseOptionalMoney(currentForm.value_per_person),
+        internal_cost: parseOptionalMoney(currentForm.internal_cost),
+        internal_profit: parseOptionalMoney(currentForm.internal_profit),
         payment_conditions: currentForm.payment_conditions,
         proposal_strategy: currentForm.proposal_strategy || null,
         proposal_outcome: currentForm.proposal_outcome || "pending",
@@ -681,10 +737,49 @@ export default function ProposalEditor() {
       };
 
       let proposalId = id;
+      let insertedNewProposal = false;
+      let syncExistingItems = !isNew;
       if (isNew) {
-        const { data, error } = await supabase.from("proposals").insert(payload as any).select("id").single();
-        if (error) throw error;
-        proposalId = data.id;
+        const titleKey = String(currentForm.title || "").trim();
+        const clientKey = String(currentForm.client_name || "").trim();
+        const shouldReuseRecentDraft = Boolean(
+          user?.id &&
+          titleKey &&
+          clientKey &&
+          !titleKey.toLowerCase().startsWith("rascunho") &&
+          (currentForm.travel_start_date || currentForm.travel_end_date || preparedItems.length > 0)
+        );
+
+        let reusableDraft: any = null;
+        if (shouldReuseRecentDraft) {
+          let q = supabase
+            .from("proposals")
+            .select("id, slug")
+            .eq("created_by", user!.id)
+            .ilike("title", titleKey)
+            .ilike("client_name", clientKey)
+            .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .order("updated_at", { ascending: false })
+            .limit(1);
+          q = currentForm.travel_start_date ? q.eq("travel_start_date", currentForm.travel_start_date) : q.is("travel_start_date", null);
+          q = currentForm.travel_end_date ? q.eq("travel_end_date", currentForm.travel_end_date) : q.is("travel_end_date", null);
+          const { data: recentDrafts, error: reuseError } = await q;
+          if (reuseError) throw reuseError;
+          reusableDraft = recentDrafts?.[0] || null;
+        }
+
+        if (reusableDraft) {
+          proposalId = reusableDraft.id;
+          syncExistingItems = true;
+          payload.slug = reusableDraft.slug;
+          const { error } = await supabase.from("proposals").update(payload as any).eq("id", proposalId);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from("proposals").insert(payload as any).select("id").single();
+          if (error) throw error;
+          proposalId = data.id;
+          insertedNewProposal = true;
+        }
       } else {
         // ── Guard anti-wipe ────────────────────────────────────────────
         // Se, por qualquer race de hidratação, o payload chega vazio em
@@ -702,11 +797,13 @@ export default function ProposalEditor() {
           (dbHas((existing as any)?.cover_image_url) && isEmpty(payload.cover_image_url)) ||
           (dbHas((existing as any)?.total_value) && isEmpty(payload.total_value)) ||
           (dbHas((existing as any)?.client_name) && isEmpty(payload.client_name));
-        if (wouldWipe) {
+        const wouldWipeItems = Array.isArray(existingItems) && existingItems.length > 0 && currentItems.length === 0;
+        if (wouldWipe || wouldWipeItems) {
           // Não escreve · força re-hidratação no próximo ciclo
           hydratedRef.current = false;
           console.warn("[ProposalEditor] autosave abortado · payload zeraria campos preenchidos", {
             proposalId: id,
+            wouldWipeItems,
           });
           throw new Error("Autosave abortado para preservar dados existentes");
         }
@@ -715,30 +812,79 @@ export default function ProposalEditor() {
       }
 
 
-      // Save items
-      if (!isNew) {
-        await supabase.from("proposal_items").delete().eq("proposal_id", proposalId!);
-      }
-      if (currentItems.length > 0) {
-        const itemsPayload = currentItems.map((item, idx) => ({
-          proposal_id: proposalId,
-          item_type: item.item_type,
-          position: idx,
-          title: item.title,
-          description: item.description,
-          image_url: item.image_url,
-          data: item.data || {},
-        }));
-        const { error } = await supabase.from("proposal_items").insert(itemsPayload);
-        if (error) throw error;
+      try {
+        // Save items sem abrir uma janela pública vazia: primeiro grava/atualiza,
+        // depois remove só o que saiu do editor.
+        if (preparedItems.length > 0) {
+          const itemsPayload = preparedItems.map((item) => ({
+            id: item.id,
+            proposal_id: proposalId!,
+            item_type: item.item_type,
+            position: item.position,
+            title: item.title,
+            description: item.description,
+            image_url: item.image_url,
+            data: item.data || {},
+            payment_modality: item.payment_modality || null,
+            payment_label: item.payment_label || null,
+            payment_description: item.payment_description || null,
+            cancellation_policy: item.cancellation_policy || null,
+            cancellation_label: item.cancellation_label || null,
+            free_cancellation_until: item.free_cancellation_until || null,
+            prepayment_amount: item.prepayment_amount ?? null,
+          }));
+          const { error } = await supabase.from("proposal_items").upsert(itemsPayload as any, { onConflict: "id" });
+          if (error) throw error;
+        }
+
+        if (syncExistingItems) {
+          if (preparedItems.length > 0) {
+            const ids = preparedItems.map((item) => item.id).join(",");
+            const { error } = await supabase
+              .from("proposal_items")
+              .delete()
+              .eq("proposal_id", proposalId!)
+              .not("id", "in", `(${ids})`);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("proposal_items").delete().eq("proposal_id", proposalId!);
+            if (error) throw error;
+          }
+        }
+      } catch (itemError) {
+        if (insertedNewProposal && proposalId) {
+          await supabase.from("proposals").delete().eq("id", proposalId);
+        }
+        throw itemError;
       }
 
-      return proposalId;
+      return { proposalId, savedItems: preparedItems };
     },
-    onSuccess: (proposalId) => {
+    onSuccess: ({ proposalId, savedItems }) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       try { localStorage.removeItem(visualDraftKey); } catch { /* ignore */ }
-      try { if (isNew) localStorage.removeItem(NEW_DRAFT_KEY); } catch { /* ignore */ }
+      if (savedItems.length > 0) {
+        setItems((prev) => {
+          let meaningfulIdx = 0;
+          return prev.map((item) => {
+            if (!hasMeaningfulItemContent(item)) return item;
+            const saved = savedItems[meaningfulIdx++];
+            if (item.id) return item;
+            return saved ? { ...item, id: saved.id } : item;
+          });
+        });
+      }
+      try {
+        if (isNew) {
+          promotedNewProposalRef.current = true;
+          localStorage.removeItem(NEW_DRAFT_KEY);
+        }
+      } catch { /* ignore */ }
+      lastAutoSavedSnapshotRef.current = JSON.stringify({
+        f: formRef.current,
+        i: itemsRef.current,
+        v: visualOverridesRef.current,
+      });
       if (!isAutoSavingRef.current) {
         toast.success("Proposta salva com sucesso!");
       }
@@ -776,6 +922,7 @@ export default function ProposalEditor() {
 
   // ── Autosave: grava no banco automaticamente após cada alteração ────
   useEffect(() => {
+    if (promotedNewProposalRef.current) return;
     if (!hydratedRef.current) return;
     // Permite autosave mesmo sem título: gera um automático se houver
     // qualquer dado relevante preenchido. Garante que nada se perca.
@@ -804,6 +951,7 @@ export default function ProposalEditor() {
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(async () => {
+      if (promotedNewProposalRef.current) return;
       if (saveMutation.isPending) return;
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
@@ -829,6 +977,7 @@ export default function ProposalEditor() {
   // imediato (sem esperar debounce) quando a aba é escondida/fechada
   useEffect(() => {
     const flushNow = () => {
+      if (promotedNewProposalRef.current) return;
       // Cancela debounce pendente e tenta gravar AGORA · best-effort
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
@@ -891,7 +1040,7 @@ export default function ProposalEditor() {
   };
 
   const addItem = (type: string) => {
-    setItems((prev) => [...prev, { item_type: type, title: "", description: "", image_url: "", data: {} }]);
+    setItems((prev) => [...prev, { id: generateUuid(), item_type: type, title: "", description: "", image_url: "", data: {} }]);
   };
 
   const updateItem = (idx: number, field: string, value: any) => {
@@ -1115,9 +1264,60 @@ export default function ProposalEditor() {
     toast.success(`"${data.name}" importado com ${data.selectedPhotos.length} foto${data.selectedPhotos.length !== 1 ? "s" : ""}!`);
   };
 
-  const copyLink = () => {
+  const waitUntilSaveIdle = async () => {
+    for (let i = 0; i < 30; i += 1) {
+      if (!saveMutation.isPending && !isAutoSavingRef.current) return;
+      await delay(150);
+    }
+  };
+
+  const ensureLatestSaved = async () => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    await waitUntilSaveIdle();
+    const snapshot = JSON.stringify({
+      f: formRef.current,
+      i: itemsRef.current,
+      v: visualOverridesRef.current,
+    });
+    if (snapshot !== lastAutoSavedSnapshotRef.current) {
+      isAutoSavingRef.current = true;
+      setAutoSaveStatus("saving");
+      try {
+        const result = await saveMutation.mutateAsync();
+        lastAutoSavedSnapshotRef.current = snapshot;
+        setLastSavedAt(new Date());
+        setAutoSaveStatus("saved");
+        return result.proposalId;
+      } finally {
+        isAutoSavingRef.current = false;
+      }
+    }
+    return id;
+  };
+
+  const handleViewPublic = async () => {
+    const slug = existing?.slug;
+    if (!slug) return;
+    try {
+      await ensureLatestSaved();
+      window.open(getPublicProposalUrl(slug), "_blank");
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao salvar antes de abrir");
+    }
+  };
+
+  const copyLink = async () => {
     const slug = existing?.slug;
     if (slug) {
+      try {
+        await ensureLatestSaved();
+      } catch (err: any) {
+        toast.error(err.message || "Falha ao salvar antes de copiar");
+        return;
+      }
       navigator.clipboard.writeText(getPublicProposalUrl(slug));
       toast.success("Link copiado!");
     }
@@ -1130,6 +1330,7 @@ export default function ProposalEditor() {
     const slug = existing?.slug;
     if (!slug) return;
     try {
+      await ensureLatestSaved();
       const result = await shareProposalLink(slug, form.title || "Proposta");
       toast.success(result === "shared" ? "Proposta compartilhada!" : "Link copiado para a área de transferência!");
     } catch (err: any) {
@@ -1146,6 +1347,7 @@ export default function ProposalEditor() {
     setExportingPdf(true);
     toast.info("Gerando PDF da proposta...", { duration: 4000 });
     try {
+      await ensureLatestSaved();
       await exportProposalPdf(slug, form.title || "proposta");
       toast.success("PDF baixado com sucesso");
     } catch (err: any) {
@@ -1192,7 +1394,7 @@ export default function ProposalEditor() {
           )}
           {!isNew && existing?.slug && (
             <>
-              <Button variant="outline" size="sm" onClick={() => window.open(getPublicProposalUrl(existing.slug), "_blank")} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={handleViewPublic} className="gap-1.5">
                 <ExternalLink className="w-3.5 h-3.5" /> Visualizar
               </Button>
               <Button
@@ -2232,6 +2434,7 @@ export default function ProposalEditor() {
           setItems((prev) => [
             ...prev,
             {
+              id: generateUuid(),
               item_type: "flight",
               title: "",
               description: "",
@@ -2252,6 +2455,7 @@ export default function ProposalEditor() {
             return [
               ...prev,
               {
+                id: generateUuid(),
                 item_type: "flight",
                 title: "",
                 description: "",
