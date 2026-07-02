@@ -739,10 +739,45 @@ export default function ProposalEditor() {
       let proposalId = id;
       let insertedNewProposal = false;
       if (isNew) {
-        const { data, error } = await supabase.from("proposals").insert(payload as any).select("id").single();
-        if (error) throw error;
-        proposalId = data.id;
-        insertedNewProposal = true;
+        const titleKey = String(currentForm.title || "").trim();
+        const clientKey = String(currentForm.client_name || "").trim();
+        const shouldReuseRecentDraft = Boolean(
+          user?.id &&
+          titleKey &&
+          clientKey &&
+          !titleKey.toLowerCase().startsWith("rascunho") &&
+          (currentForm.travel_start_date || currentForm.travel_end_date || preparedItems.length > 0)
+        );
+
+        let reusableDraft: any = null;
+        if (shouldReuseRecentDraft) {
+          let q = supabase
+            .from("proposals")
+            .select("id, slug")
+            .eq("created_by", user!.id)
+            .ilike("title", titleKey)
+            .ilike("client_name", clientKey)
+            .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .order("updated_at", { ascending: false })
+            .limit(1);
+          q = currentForm.travel_start_date ? q.eq("travel_start_date", currentForm.travel_start_date) : q.is("travel_start_date", null);
+          q = currentForm.travel_end_date ? q.eq("travel_end_date", currentForm.travel_end_date) : q.is("travel_end_date", null);
+          const { data: recentDrafts, error: reuseError } = await q;
+          if (reuseError) throw reuseError;
+          reusableDraft = recentDrafts?.[0] || null;
+        }
+
+        if (reusableDraft) {
+          proposalId = reusableDraft.id;
+          payload.slug = reusableDraft.slug;
+          const { error } = await supabase.from("proposals").update(payload as any).eq("id", proposalId);
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase.from("proposals").insert(payload as any).select("id").single();
+          if (error) throw error;
+          proposalId = data.id;
+          insertedNewProposal = true;
+        }
       } else {
         // ── Guard anti-wipe ────────────────────────────────────────────
         // Se, por qualquer race de hidratação, o payload chega vazio em
