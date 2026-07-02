@@ -38,6 +38,7 @@ import {
 import { buildWhatsAppLink } from "@/components/ui/phone-input";
 import { resolveAgencyWhatsApp, DEFAULT_AGENCY_WHATSAPP } from "@/lib/natleva/whatsapp";
 import { toast } from "sonner";
+import { computeNatlevaPlan, paymentPlanOptionsFromTerms, formatMoneyBR } from "@/lib/prateleira/payment-plan";
 
 // ============================================================
 // Utilitários
@@ -80,6 +81,9 @@ type ProductLite = {
   price: number;
   currency: string;
   whatsapp?: string | null;
+  paymentTerms?: any;
+  installmentsMax?: number | null;
+  departureDate?: string | null;
 };
 
 const CIVIL_OPTIONS = ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União estável"];
@@ -117,7 +121,7 @@ export default function PrateleiraSimulacao() {
       try {
         const { data } = await (supabase as any)
           .from("experience_products")
-          .select("id, slug, title, price_from, price_promo, currency, whatsapp_number")
+          .select("id, slug, title, price_from, price_promo, currency, whatsapp_number, payment_terms, installments_max, departure_date")
           .eq("slug", slug)
           .maybeSingle();
         if (data) {
@@ -128,6 +132,9 @@ export default function PrateleiraSimulacao() {
             price: Number(data.price_promo ?? data.price_from ?? 0),
             currency: data.currency ?? "BRL",
             whatsapp: data.whatsapp_number ?? null,
+            paymentTerms: data.payment_terms ?? null,
+            installmentsMax: data.installments_max ?? null,
+            departureDate: data.departure_date ?? null,
           });
         }
       } catch (e) {
@@ -287,9 +294,26 @@ function IntroPhase({ product, onStart }: { product: ProductLite; onStart: () =>
           <div className="flex-1">
             <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-1">Pacote analisado</p>
             <p className="text-sm font-semibold text-white leading-snug">{product.title}</p>
-            <p className="text-lg font-semibold text-[#d4b06a] mt-2">
-              {fmtBRL(product.price)}
-            </p>
+            {(() => {
+              const plan = computeNatlevaPlan(
+                product.price,
+                product.departureDate,
+                paymentPlanOptionsFromTerms(product.paymentTerms, {
+                  currency: product.currency,
+                  maxInstallments: product.installmentsMax ?? undefined,
+                }),
+              );
+              if (!plan) return null;
+              return (
+                <>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400 mt-3 mb-1">A partir de</p>
+                  <p className="text-lg font-semibold text-[#d4b06a] leading-tight">
+                    {plan.installments}x de {formatMoneyBR(plan.installmentAmount, plan.currency)}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1">no boleto · condições sujeitas a análise</p>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
