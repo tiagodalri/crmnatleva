@@ -2378,6 +2378,7 @@ export default function ProposalEditor() {
           setItems((prev) => [
             ...prev,
             {
+              id: generateUuid(),
               item_type: "flight",
               title: "",
               description: "",
@@ -2398,6 +2399,7 @@ export default function ProposalEditor() {
             return [
               ...prev,
               {
+                id: generateUuid(),
                 item_type: "flight",
                 title: "",
                 description: "",
