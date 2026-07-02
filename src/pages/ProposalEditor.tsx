@@ -984,7 +984,7 @@ export default function ProposalEditor() {
   };
 
   const addItem = (type: string) => {
-    setItems((prev) => [...prev, { item_type: type, title: "", description: "", image_url: "", data: {} }]);
+    setItems((prev) => [...prev, { id: generateUuid(), item_type: type, title: "", description: "", image_url: "", data: {} }]);
   };
 
   const updateItem = (idx: number, field: string, value: any) => {
