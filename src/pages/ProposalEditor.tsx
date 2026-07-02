@@ -862,7 +862,14 @@ export default function ProposalEditor() {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       try { localStorage.removeItem(visualDraftKey); } catch { /* ignore */ }
       if (savedItems.length > 0) {
-        setItems((prev) => prev.map((item, idx) => item.id ? item : (savedItems[idx] ? { ...item, id: savedItems[idx].id } : item)));
+        setItems((prev) => {
+          let savedIdx = 0;
+          return prev.map((item) => {
+            if (item.id || !hasMeaningfulItemContent(item)) return item;
+            const saved = savedItems[savedIdx++];
+            return saved ? { ...item, id: saved.id } : item;
+          });
+        });
       }
       try {
         if (isNew) {
