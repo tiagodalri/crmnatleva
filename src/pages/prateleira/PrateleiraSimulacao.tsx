@@ -294,9 +294,26 @@ function IntroPhase({ product, onStart }: { product: ProductLite; onStart: () =>
           <div className="flex-1">
             <p className="text-[11px] text-slate-400 uppercase tracking-wider mb-1">Pacote analisado</p>
             <p className="text-sm font-semibold text-white leading-snug">{product.title}</p>
-            <p className="text-lg font-semibold text-[#d4b06a] mt-2">
-              {fmtBRL(product.price)}
-            </p>
+            {(() => {
+              const plan = computeNatlevaPlan(
+                product.price,
+                product.departureDate,
+                paymentPlanOptionsFromTerms(product.paymentTerms, {
+                  currency: product.currency,
+                  maxInstallments: product.installmentsMax ?? undefined,
+                }),
+              );
+              if (!plan) return null;
+              return (
+                <>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400 mt-3 mb-1">A partir de</p>
+                  <p className="text-lg font-semibold text-[#d4b06a] leading-tight">
+                    {plan.installments}x de {formatMoneyBR(plan.installmentAmount, plan.currency)}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1">no boleto · condições sujeitas a análise</p>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
