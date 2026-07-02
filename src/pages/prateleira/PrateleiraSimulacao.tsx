@@ -38,6 +38,7 @@ import {
 import { buildWhatsAppLink } from "@/components/ui/phone-input";
 import { resolveAgencyWhatsApp, DEFAULT_AGENCY_WHATSAPP } from "@/lib/natleva/whatsapp";
 import { toast } from "sonner";
+import { computeNatlevaPlan, paymentPlanOptionsFromTerms, formatMoneyBR } from "@/lib/prateleira/payment-plan";
 
 // ============================================================
 // Utilitários
