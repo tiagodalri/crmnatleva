@@ -570,6 +570,7 @@ export default function ProposalEditor() {
       if (structure.destinations?.length) {
         for (const d of structure.destinations) {
           newItems.push({
+            id: generateUuid(),
             item_type: "destination",
             title: d.name + (d.country ? `, ${d.country}` : ""),
             description: [
@@ -586,6 +587,7 @@ export default function ProposalEditor() {
       if (structure.flights?.length) {
         for (const f of structure.flights) {
           newItems.push({
+            id: generateUuid(),
             item_type: "flight",
             title: `${f.origin} → ${f.destination}`,
             description: [
@@ -616,6 +618,7 @@ export default function ProposalEditor() {
       if (structure.hotels?.length) {
         for (const h of structure.hotels) {
           newItems.push({
+            id: generateUuid(),
             item_type: "hotel",
             title: h.hotel_name || `Hotel em ${h.city}`,
             description: [
@@ -645,6 +648,7 @@ export default function ProposalEditor() {
       if (structure.experiences?.length) {
         for (const e of structure.experiences) {
           newItems.push({
+            id: generateUuid(),
             item_type: "experience",
             title: e.name,
             description: [
