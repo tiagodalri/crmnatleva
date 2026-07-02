@@ -738,6 +738,7 @@ export default function ProposalEditor() {
 
       let proposalId = id;
       let insertedNewProposal = false;
+      let syncExistingItems = !isNew;
       if (isNew) {
         const titleKey = String(currentForm.title || "").trim();
         const clientKey = String(currentForm.client_name || "").trim();
@@ -769,6 +770,7 @@ export default function ProposalEditor() {
 
         if (reusableDraft) {
           proposalId = reusableDraft.id;
+          syncExistingItems = true;
           payload.slug = reusableDraft.slug;
           const { error } = await supabase.from("proposals").update(payload as any).eq("id", proposalId);
           if (error) throw error;
@@ -835,7 +837,7 @@ export default function ProposalEditor() {
           if (error) throw error;
         }
 
-        if (!isNew) {
+        if (syncExistingItems) {
           if (preparedItems.length > 0) {
             const ids = preparedItems.map((item) => item.id).join(",");
             const { error } = await supabase
