@@ -321,6 +321,7 @@ export default function ProposalEditor() {
   const isAutoSavingRef = useRef(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAutoSavedSnapshotRef = useRef<string>("");
+  const promotedNewProposalRef = useRef(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
