@@ -543,6 +543,7 @@ export default function ProposalEditor() {
   // — funciona offline, sem internet, com queda de luz. Limpa quando persiste.
   useEffect(() => {
     if (!hydratedRef.current && !isNew) return;
+    if (promotedNewProposalRef.current) return;
     try {
       localStorage.setItem(
         LOCAL_DRAFT_KEY,
@@ -920,6 +921,7 @@ export default function ProposalEditor() {
   // imediato (sem esperar debounce) quando a aba é escondida/fechada
   useEffect(() => {
     const flushNow = () => {
+      if (promotedNewProposalRef.current) return;
       // Cancela debounce pendente e tenta gravar AGORA · best-effort
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
