@@ -144,7 +144,6 @@ export async function shareProposalLink(slug: string, title: string) {
   const url = getPublicProposalUrl(slug);
   const shareData = {
     title: title ? `Proposta · ${title}` : "Proposta NatLeva",
-    text: url,
     url,
   };
   if (navigator.share) {
