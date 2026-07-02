@@ -1338,7 +1338,7 @@ export default function ProposalEditor() {
           )}
           {!isNew && existing?.slug && (
             <>
-              <Button variant="outline" size="sm" onClick={() => window.open(getPublicProposalUrl(existing.slug), "_blank")} className="gap-1.5">
+              <Button variant="outline" size="sm" onClick={handleViewPublic} className="gap-1.5">
                 <ExternalLink className="w-3.5 h-3.5" /> Visualizar
               </Button>
               <Button
