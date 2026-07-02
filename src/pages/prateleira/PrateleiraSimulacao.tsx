@@ -121,7 +121,7 @@ export default function PrateleiraSimulacao() {
       try {
         const { data } = await (supabase as any)
           .from("experience_products")
-          .select("id, slug, title, price_from, price_promo, currency, whatsapp_number")
+          .select("id, slug, title, price_from, price_promo, currency, whatsapp_number, payment_terms, installments_max, departure_date")
           .eq("slug", slug)
           .maybeSingle();
         if (data) {
@@ -132,6 +132,9 @@ export default function PrateleiraSimulacao() {
             price: Number(data.price_promo ?? data.price_from ?? 0),
             currency: data.currency ?? "BRL",
             whatsapp: data.whatsapp_number ?? null,
+            paymentTerms: data.payment_terms ?? null,
+            installmentsMax: data.installments_max ?? null,
+            departureDate: data.departure_date ?? null,
           });
         }
       } catch (e) {
