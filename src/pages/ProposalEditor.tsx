@@ -737,10 +737,12 @@ export default function ProposalEditor() {
       };
 
       let proposalId = id;
+      let insertedNewProposal = false;
       if (isNew) {
         const { data, error } = await supabase.from("proposals").insert(payload as any).select("id").single();
         if (error) throw error;
         proposalId = data.id;
+        insertedNewProposal = true;
       } else {
         // ── Guard anti-wipe ────────────────────────────────────────────
         // Se, por qualquer race de hidratação, o payload chega vazio em
@@ -773,43 +775,50 @@ export default function ProposalEditor() {
       }
 
 
-      // Save items sem abrir uma janela pública vazia: primeiro grava/atualiza,
-      // depois remove só o que saiu do editor.
-      if (preparedItems.length > 0) {
-        const itemsPayload = preparedItems.map((item) => ({
-          id: item.id,
-          proposal_id: proposalId!,
-          item_type: item.item_type,
-          position: item.position,
-          title: item.title,
-          description: item.description,
-          image_url: item.image_url,
-          data: item.data || {},
-          payment_modality: item.payment_modality || null,
-          payment_label: item.payment_label || null,
-          payment_description: item.payment_description || null,
-          cancellation_policy: item.cancellation_policy || null,
-          cancellation_label: item.cancellation_label || null,
-          free_cancellation_until: item.free_cancellation_until || null,
-          prepayment_amount: item.prepayment_amount ?? null,
-        }));
-        const { error } = await supabase.from("proposal_items").upsert(itemsPayload as any, { onConflict: "id" });
-        if (error) throw error;
-      }
-
-      if (!isNew) {
+      try {
+        // Save items sem abrir uma janela pública vazia: primeiro grava/atualiza,
+        // depois remove só o que saiu do editor.
         if (preparedItems.length > 0) {
-          const ids = preparedItems.map((item) => item.id).join(",");
-          const { error } = await supabase
-            .from("proposal_items")
-            .delete()
-            .eq("proposal_id", proposalId!)
-            .not("id", "in", `(${ids})`);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("proposal_items").delete().eq("proposal_id", proposalId!);
+          const itemsPayload = preparedItems.map((item) => ({
+            id: item.id,
+            proposal_id: proposalId!,
+            item_type: item.item_type,
+            position: item.position,
+            title: item.title,
+            description: item.description,
+            image_url: item.image_url,
+            data: item.data || {},
+            payment_modality: item.payment_modality || null,
+            payment_label: item.payment_label || null,
+            payment_description: item.payment_description || null,
+            cancellation_policy: item.cancellation_policy || null,
+            cancellation_label: item.cancellation_label || null,
+            free_cancellation_until: item.free_cancellation_until || null,
+            prepayment_amount: item.prepayment_amount ?? null,
+          }));
+          const { error } = await supabase.from("proposal_items").upsert(itemsPayload as any, { onConflict: "id" });
           if (error) throw error;
         }
+
+        if (!isNew) {
+          if (preparedItems.length > 0) {
+            const ids = preparedItems.map((item) => item.id).join(",");
+            const { error } = await supabase
+              .from("proposal_items")
+              .delete()
+              .eq("proposal_id", proposalId!)
+              .not("id", "in", `(${ids})`);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("proposal_items").delete().eq("proposal_id", proposalId!);
+            if (error) throw error;
+          }
+        }
+      } catch (itemError) {
+        if (insertedNewProposal && proposalId) {
+          await supabase.from("proposals").delete().eq("id", proposalId);
+        }
+        throw itemError;
       }
 
       return { proposalId, savedItems: preparedItems };
