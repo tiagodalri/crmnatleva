@@ -9,6 +9,26 @@ import { sanitizeProposalCoverUrl } from "@/lib/proposalCoverImage";
 
 const ProposalPreviewRenderer = lazy(() => import("@/components/proposal/ProposalPreviewRenderer"));
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function loadPublicProposal(identifier: string) {
+  const lookup = identifier.trim();
+  const bySlug = await supabase
+    .from("proposals")
+    .select("*")
+    .eq("slug", lookup)
+    .maybeSingle();
+
+  if (bySlug.error) return bySlug;
+  if (bySlug.data || !UUID_RE.test(lookup)) return bySlug;
+
+  return supabase
+    .from("proposals")
+    .select("*")
+    .eq("id", lookup)
+    .maybeSingle();
+}
+
 export default function ProposalPublicView() {
   const { slug } = useParams();
   const [proposal, setProposal] = useState<any>(null);
@@ -46,14 +66,17 @@ export default function ProposalPublicView() {
     (async () => {
       try {
         setLoadError(false);
-        const { data, error } = await supabase
-          .from("proposals")
-          .select("*")
-          .eq("slug", slug)
-          .single();
+        const { data, error } = await loadPublicProposal(slug);
 
         if (!active) return;
-        if (error || !data) {
+        if (error) {
+          console.error("[ProposalView] Failed to load public proposal", error);
+          setLoadError(true);
+          setLoading(false);
+          return;
+        }
+
+        if (!data) {
           setNotFound(true);
           setLoading(false);
           return;
