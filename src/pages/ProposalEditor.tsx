@@ -1208,9 +1208,60 @@ export default function ProposalEditor() {
     toast.success(`"${data.name}" importado com ${data.selectedPhotos.length} foto${data.selectedPhotos.length !== 1 ? "s" : ""}!`);
   };
 
-  const copyLink = () => {
+  const waitUntilSaveIdle = async () => {
+    for (let i = 0; i < 30; i += 1) {
+      if (!saveMutation.isPending && !isAutoSavingRef.current) return;
+      await delay(150);
+    }
+  };
+
+  const ensureLatestSaved = async () => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    await waitUntilSaveIdle();
+    const snapshot = JSON.stringify({
+      f: formRef.current,
+      i: itemsRef.current,
+      v: visualOverridesRef.current,
+    });
+    if (snapshot !== lastAutoSavedSnapshotRef.current) {
+      isAutoSavingRef.current = true;
+      setAutoSaveStatus("saving");
+      try {
+        const result = await saveMutation.mutateAsync();
+        lastAutoSavedSnapshotRef.current = snapshot;
+        setLastSavedAt(new Date());
+        setAutoSaveStatus("saved");
+        return result.proposalId;
+      } finally {
+        isAutoSavingRef.current = false;
+      }
+    }
+    return id;
+  };
+
+  const handleViewPublic = async () => {
+    const slug = existing?.slug;
+    if (!slug) return;
+    try {
+      await ensureLatestSaved();
+      window.open(getPublicProposalUrl(slug), "_blank");
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao salvar antes de abrir");
+    }
+  };
+
+  const copyLink = async () => {
     const slug = existing?.slug;
     if (slug) {
+      try {
+        await ensureLatestSaved();
+      } catch (err: any) {
+        toast.error(err.message || "Falha ao salvar antes de copiar");
+        return;
+      }
       navigator.clipboard.writeText(getPublicProposalUrl(slug));
       toast.success("Link copiado!");
     }
@@ -1223,6 +1274,7 @@ export default function ProposalEditor() {
     const slug = existing?.slug;
     if (!slug) return;
     try {
+      await ensureLatestSaved();
       const result = await shareProposalLink(slug, form.title || "Proposta");
       toast.success(result === "shared" ? "Proposta compartilhada!" : "Link copiado para a área de transferência!");
     } catch (err: any) {
@@ -1239,6 +1291,7 @@ export default function ProposalEditor() {
     setExportingPdf(true);
     toast.info("Gerando PDF da proposta...", { duration: 4000 });
     try {
+      await ensureLatestSaved();
       await exportProposalPdf(slug, form.title || "proposta");
       toast.success("PDF baixado com sucesso");
     } catch (err: any) {
