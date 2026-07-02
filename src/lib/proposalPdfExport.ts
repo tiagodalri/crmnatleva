@@ -143,8 +143,8 @@ export async function exportProposalPdf(slug: string, title: string) {
 export async function shareProposalLink(slug: string, title: string) {
   const url = getPublicProposalUrl(slug);
   const shareData = {
-    title: `Proposta · ${title}`,
-    text: `Confira sua proposta exclusiva da NatLeva: ${title}`,
+    title: title ? `Proposta · ${title}` : "Proposta NatLeva",
+    text: url,
     url,
   };
   if (navigator.share) {

@@ -10,23 +10,101 @@ import { sanitizeProposalCoverUrl } from "@/lib/proposalCoverImage";
 const ProposalPreviewRenderer = lazy(() => import("@/components/proposal/ProposalPreviewRenderer"));
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SHARE_TEXT_PREFIX_RE = /confira\s+sua\s+proposta\s+exclusiva\s+da\s+natleva\s*:?/i;
+
+function decodeIdentifier(value: string) {
+  let decoded = value.trim();
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    } catch {
+      break;
+    }
+  }
+  return decoded.trim();
+}
+
+function cleanCandidate(value: string) {
+  return value
+    .trim()
+    .replace(/^['"“”‘’]+|['"“”‘’.,;:!?]+$/g, "")
+    .trim();
+}
+
+function extractSlugCandidates(identifier: string) {
+  const decoded = decodeIdentifier(identifier);
+  const candidates = new Set<string>();
+  [identifier, decoded].forEach((v) => {
+    const cleaned = cleanCandidate(v);
+    if (cleaned) candidates.add(cleaned);
+  });
+
+  const proposalPathMatch = decoded.match(/\/proposta\/([^\s?#]+)/i);
+  if (proposalPathMatch?.[1]) candidates.add(cleanCandidate(decodeIdentifier(proposalPathMatch[1])));
+
+  return Array.from(candidates).filter(Boolean);
+}
+
+function extractTitleFromMalformedShare(identifier: string) {
+  const decoded = decodeIdentifier(identifier);
+  if (!SHARE_TEXT_PREFIX_RE.test(decoded)) return null;
+
+  const withoutPrefix = decoded.replace(SHARE_TEXT_PREFIX_RE, "");
+  const beforeUrl = withoutPrefix.split(/https?:\/\//i)[0];
+  const title = cleanCandidate(beforeUrl);
+  return title || null;
+}
 
 async function loadPublicProposal(identifier: string) {
-  const lookup = identifier.trim();
-  const bySlug = await supabase
-    .from("proposals")
-    .select("*")
-    .eq("slug", lookup)
-    .maybeSingle();
+  const slugCandidates = extractSlugCandidates(identifier);
 
-  if (bySlug.error) return bySlug;
-  if (bySlug.data || !UUID_RE.test(lookup)) return bySlug;
+  for (const lookup of slugCandidates) {
+    const bySlug = await supabase
+      .from("proposals")
+      .select("*")
+      .eq("slug", lookup)
+      .maybeSingle();
 
-  return supabase
-    .from("proposals")
-    .select("*")
-    .eq("id", lookup)
-    .maybeSingle();
+    if (bySlug.error) return bySlug;
+    if (bySlug.data) return bySlug;
+
+    if (UUID_RE.test(lookup)) {
+      const byId = await supabase
+        .from("proposals")
+        .select("*")
+        .eq("id", lookup)
+        .maybeSingle();
+
+      if (byId.error || byId.data) return byId;
+    }
+  }
+
+  const titleFallback = extractTitleFromMalformedShare(identifier);
+  if (titleFallback) {
+    const exactTitle = await supabase
+      .from("proposals")
+      .select("*")
+      .eq("title", titleFallback)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+
+    if (exactTitle.error) return { data: null, error: exactTitle.error };
+    if (exactTitle.data?.[0]) return { data: exactTitle.data[0], error: null };
+
+    const fuzzyTitle = await supabase
+      .from("proposals")
+      .select("*")
+      .ilike("title", `%${titleFallback}%`)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+
+    if (fuzzyTitle.error) return { data: null, error: fuzzyTitle.error };
+    if (fuzzyTitle.data?.[0]) return { data: fuzzyTitle.data[0], error: null };
+  }
+
+  return { data: null, error: null };
 }
 
 export default function ProposalPublicView() {
@@ -83,6 +161,13 @@ export default function ProposalPublicView() {
         }
 
         setProposal(data);
+
+        try {
+          if (data.slug && slug !== data.slug) {
+            const qs = window.location.search || "";
+            window.history.replaceState(null, "", `/proposta/${data.slug}${qs}`);
+          }
+        } catch { /* noop */ }
 
         const { data: itemsData, error: itemsError } = await supabase
           .from("proposal_items")
