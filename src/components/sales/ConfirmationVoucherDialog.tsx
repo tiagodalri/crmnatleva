@@ -517,9 +517,9 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
             </ScrollArea>
             {typeof document !== "undefined" && createPortal(
               <div aria-hidden="true" style={{ position: "absolute", left: -10000, top: 0, width: A4_WIDTH_PX, background: "#ffffff", overflow: "visible", pointerEvents: "none" }}>
-                {current?.type === "aereo" && <AereoVoucher ref={exportRef} data={current.data} />}
-                {current?.type === "hotel" && <HotelVoucher ref={exportRef} data={current.data} />}
-                {current?.type === "generic" && <GenericVoucher ref={exportRef} data={current.data} />}
+                {current?.type === "aereo" && <AereoVoucher ref={exportRef} data={current.data} exportMode />}
+                {current?.type === "hotel" && <HotelVoucher ref={exportRef} data={current.data} exportMode />}
+                {current?.type === "generic" && <GenericVoucher ref={exportRef} data={current.data} exportMode />}
               </div>,
               document.body,
             )}
