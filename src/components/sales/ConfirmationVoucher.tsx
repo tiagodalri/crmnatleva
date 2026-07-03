@@ -204,7 +204,7 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData;
     return (
       <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
-          {logoBlock}
+          {renderLogoBlock(exportMode)}
           <div style={sub}>Voucher de Hospedagem</div>
           <h1 style={{ ...h1, marginTop: 6 }}>Confirmação de Reserva</h1>
           <div style={headerRule} />
@@ -328,7 +328,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
     return (
       <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
-          {logoBlock}
+          {renderLogoBlock(exportMode)}
           <div style={sub}>Voucher de Viagem</div>
           <h1 style={{ ...h1, marginTop: 6 }}>Confirmação de Reserva</h1>
           <div style={headerRule} />
@@ -753,7 +753,7 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
     return (
       <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
-          {logoBlock}
+          {renderLogoBlock(exportMode)}
           <div style={sub}>{preset.headerLabel}</div>
           <h1 style={{ ...h1, marginTop: 6 }}>{preset.title}</h1>
           <div style={headerRule} />
