@@ -422,8 +422,9 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
             />
           </div>
 
-          <div style={{ marginTop: 18, fontSize: 14, fontWeight: 800, color: GREEN_DARK }}>Medidas:</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 10 }}>
+          <div style={{ marginTop: 28, fontSize: 14, fontWeight: 800, color: GREEN_DARK }}>Medidas:</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 14 }}>
+
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: GREEN_DARK }}>Item pessoal:</div>
               <div style={{ fontSize: 12, color: "#1f2937", marginTop: 4, lineHeight: 1.6 }}>
