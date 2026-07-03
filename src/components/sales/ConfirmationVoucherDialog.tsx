@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plane, Hotel, Download, Pencil, Package } from "lucide-react";
+import { Loader2, Plane, Hotel, Download, Pencil, Package, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HotelVoucher, AereoVoucher, GenericVoucher, GENERIC_PRESETS, type HotelVoucherData, type AereoVoucherData, type GenericVoucherData, type GenericServiceSlug } from "./ConfirmationVoucher";
+import { exportAereoVoucherBeta } from "@/lib/pdf-engine/aereoVoucher";
 import { iataToLabel } from "@/lib/iataUtils";
 import { ALL_AIRLINES } from "@/lib/airlinesData";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -664,6 +665,24 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
               <Button onClick={handleExport} disabled={!current || exporting} className="mt-auto min-h-11">
                 {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Baixar PDF
               </Button>
+              {current?.type === "aereo" && (
+                <Button
+                  variant="outline"
+                  className="min-h-11 border-dashed"
+                  onClick={() => {
+                    try {
+                      const prefix = testMode ? "Teste-A4" : clientFileName;
+                      exportAereoVoucherBeta(current.data, `Voucher-Aereo-BETA_${prefix}.pdf`);
+                      toast({ title: "PDF beta gerado", description: "Compare com o export normal (nitidez em zoom 400%)." });
+                    } catch (e) {
+                      const msg = e instanceof Error ? e.message : "Falha na engine beta";
+                      toast({ title: "Erro no PDF beta", description: msg, variant: "destructive" });
+                    }
+                  }}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" /> Exportar (beta engine)
+                </Button>
+              )}
             </div>
 
             <ScrollArea className="min-h-0 border rounded-lg bg-muted/30 overflow-hidden">
