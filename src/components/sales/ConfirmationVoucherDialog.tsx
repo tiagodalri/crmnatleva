@@ -32,7 +32,7 @@ const PDF_BODY_BOTTOM_MM = 277;        // fim da área de conteúdo (antes do fo
 const PDF_CONTINUATION_TOP_PAD_PX = 24; // respiro no topo de páginas 2+
 
 // Paleta oficial da marca (espelha ConfirmationVoucher.tsx)
-const BRAND_GREEN = "#1f5f3a";
+// BRAND_GREEN reservado para futura customização vetorial; hoje usamos BRAND_DIVIDER.
 const BRAND_GREEN_DARK = "#0f3d24";
 const BRAND_MUTED = "#6b7280";
 const BRAND_DIVIDER: [number, number, number] = [0x1f, 0x5f, 0x3a];
