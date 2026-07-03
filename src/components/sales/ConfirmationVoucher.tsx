@@ -110,7 +110,7 @@ const cell: CSSProperties = {
   padding: "0 16px",
   height: ROW_H,
   lineHeight: `${ROW_H}px`,
-  fontSize: 12.5,
+  fontSize: 12,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
@@ -392,10 +392,10 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
                   key={t}
                   style={{
                     ...cellHead,
+                    padding: "0 10px",
                     textAlign: i === 0 ? "left" : "center",
-                    justifyContent: i === 0 ? "flex-start" : "center",
                     whiteSpace: "nowrap",
-                    fontSize: 12,
+                    fontSize: 11,
                   }}
                 >
                   <div style={i === 0 ? headerCellInner : centeredHeaderCellInner}>{t}</div>
@@ -431,13 +431,12 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
                         style={{
                           ...cell,
                           borderBottom: "none",
+                          padding: "0 10px",
                           textAlign: j === 0 ? "left" : "center",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
-                          fontSize: 11.5,
-                          padding: "0 8px",
-                          minHeight: 42,
+                          fontSize: 11,
                         }}
                         title={String(c)}
                       >
@@ -450,6 +449,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
             )}
           </div>
         </div>
+
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Bagagens Incluídas (por passageiro)</h2>
