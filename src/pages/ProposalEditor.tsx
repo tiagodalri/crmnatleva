@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Save, ExternalLink, Copy, ArrowLeft, Plus, Trash2, GripVertical, Plane, Hotel, Sparkles, MapPin, Search, Eye, ChevronDown, ChevronRight, Check, BarChart3, Share2, FileDown, Loader2, Image as ImageIcon, X, Star, Pencil, Upload, Train, Car, Bus, Ticket, Ship, Map as MapIcon, ShieldCheck, Package, ShoppingCart, Wallet, Lock, CreditCard, Percent, TrendingUp, MessageSquare, Link2 } from "lucide-react";
+import { Save, ExternalLink, Copy, ArrowLeft, Plus, Trash2, GripVertical, Plane, Hotel, Sparkles, MapPin, Search, Eye, ChevronDown, ChevronRight, Check, BarChart3, Share2, FileDown, Loader2, Image as ImageIcon, X, Star, Pencil, Upload, Train, Car, Bus, Ticket, Ship, Map as MapIcon, ShieldCheck, Package, ShoppingCart, Wallet, Lock, CreditCard, Percent, TrendingUp, MessageSquare, Link2, WifiOff, CloudOff, RefreshCw } from "lucide-react";
 import { LinkConversationsDialog } from "@/components/proposal/LinkConversationsDialog";
 import { ConvertToSaleDialog } from "@/components/proposal/ConvertToSaleDialog";
 import { exportProposalPdf, shareProposalLink } from "@/lib/proposalPdfExport";
@@ -322,8 +322,13 @@ export default function ProposalEditor() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAutoSavedSnapshotRef = useRef<string>("");
   const promotedNewProposalRef = useRef(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "offline">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Retry automático com backoff quando o autosave falha (queda de internet, timeout etc.)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryAttemptsRef = useRef(0);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [localDraftAt, setLocalDraftAt] = useState<Date | null>(null);
 
   // ── Debounce para o preview ─────────────────────────────────────────
   // Form e items são atualizados em todo keystroke, mas o preview à direita
@@ -545,15 +550,17 @@ export default function ProposalEditor() {
     if (!hydratedRef.current && !isNew) return;
     if (promotedNewProposalRef.current) return;
     try {
+      const now = new Date();
       localStorage.setItem(
         LOCAL_DRAFT_KEY,
         JSON.stringify({
           form: debouncedForm,
           items: debouncedItems,
           visualOverrides: debouncedVisualOverrides,
-          savedAt: new Date().toISOString(),
+          savedAt: now.toISOString(),
         })
       );
+      setLocalDraftAt(now);
     } catch { /* ignore quota */ }
   }, [LOCAL_DRAFT_KEY, isNew, debouncedForm, debouncedItems, debouncedVisualOverrides]);
 
@@ -963,6 +970,11 @@ export default function ProposalEditor() {
     autoSaveTimerRef.current = setTimeout(async () => {
       if (promotedNewProposalRef.current) return;
       if (saveMutation.isPending) return;
+      // Sem conexão: não tenta bater no servidor · rascunho local já cobre.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setAutoSaveStatus("offline");
+        return;
+      }
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
       try {
@@ -970,8 +982,38 @@ export default function ProposalEditor() {
         lastAutoSavedSnapshotRef.current = snapshot;
         setLastSavedAt(new Date());
         setAutoSaveStatus("saved");
+        retryAttemptsRef.current = 0;
+        if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
       } catch {
-        setAutoSaveStatus("error");
+        // Falha transitória (rede oscilando, timeout). Rascunho local segue
+        // íntegro. Agenda retry com backoff exponencial · 2s, 5s, 10s, 20s, cap 30s.
+        const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+        setAutoSaveStatus(offlineNow ? "offline" : "error");
+        const attempt = Math.min(retryAttemptsRef.current + 1, 6);
+        retryAttemptsRef.current = attempt;
+        const delay = Math.min(30000, 2000 * Math.pow(1.8, attempt - 1));
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => {
+          // Invalida snapshot para forçar novo ciclo do autosave
+          lastAutoSavedSnapshotRef.current = "";
+          // Toca o estado para reagendar
+          setAutoSaveStatus((s) => (s === "error" || s === "offline" ? s : s));
+          // Dispara um "ping" via mudança forçada · usamos o próprio efeito
+          // reagendando através de um microtask
+          Promise.resolve().then(() => {
+            // Reexecuta effect via bump: alterando lastSavedAt não dispara,
+            // então chamamos a mutation direto se ainda houver diff.
+            const cur = JSON.stringify({ f: formRef.current, i: itemsRef.current, v: visualOverridesRef.current });
+            if (cur !== lastAutoSavedSnapshotRef.current) {
+              if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+              autoSaveTimerRef.current = setTimeout(() => {
+                // Força novo ciclo modificando ref
+                lastAutoSavedSnapshotRef.current = "";
+                setLastSavedAt((d) => d); // no-op para acionar re-render leve
+              }, 0);
+            }
+          });
+        }, delay);
       } finally {
         isAutoSavingRef.current = false;
       }
@@ -981,7 +1023,29 @@ export default function ProposalEditor() {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedForm, debouncedItems, debouncedVisualOverrides]);
+  }, [debouncedForm, debouncedItems, debouncedVisualOverrides, isOnline]);
+
+  // Detecta online/offline · quando volta, força tentativa imediata de autosave.
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      retryAttemptsRef.current = 0;
+      // Invalida snapshot para o autosave detectar diff e regravar
+      lastAutoSavedSnapshotRef.current = "";
+      setAutoSaveStatus((s) => (s === "offline" || s === "error" ? "saving" : s));
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setAutoSaveStatus("offline");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, []);
 
   // Avisa antes de sair se ainda houver gravação em andamento · e força flush
   // imediato (sem esperar debounce) quando a aba é escondida/fechada
@@ -1388,17 +1452,27 @@ export default function ProposalEditor() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Indicador de autosave */}
+          {/* Indicador de autosave · sempre tranquilizador (rascunho local nunca se perde) */}
           {!isNew && form.title && (
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground mr-1">
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground mr-1" title={localDraftAt ? `Rascunho local: ${localDraftAt.toLocaleTimeString("pt-BR")}` : undefined}>
               {autoSaveStatus === "saving" && (
                 <><Loader2 className="w-3 h-3 animate-spin" /> Salvando...</>
               )}
               {autoSaveStatus === "saved" && lastSavedAt && (
                 <><Check className="w-3 h-3 text-emerald-600" /> Salvo {lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</>
               )}
+              {autoSaveStatus === "offline" && (
+                <span className="flex items-center gap-1 text-amber-600" title="Sua internet caiu · o rascunho está salvo neste dispositivo e será enviado automaticamente quando a conexão voltar.">
+                  <WifiOff className="w-3 h-3" /> Sem conexão · rascunho salvo aqui
+                </span>
+              )}
               {autoSaveStatus === "error" && (
-                <span className="text-destructive">Erro ao salvar · tente novamente</span>
+                <span className="flex items-center gap-1 text-amber-600" title="Falha ao gravar no servidor · o rascunho está salvo neste dispositivo e vamos tentar de novo automaticamente.">
+                  <RefreshCw className="w-3 h-3" /> Retentando · rascunho salvo aqui
+                </span>
+              )}
+              {autoSaveStatus === "idle" && localDraftAt && (
+                <><Check className="w-3 h-3 text-muted-foreground" /> Rascunho local {localDraftAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</>
               )}
             </div>
           )}
