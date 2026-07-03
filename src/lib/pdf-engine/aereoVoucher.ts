@@ -85,7 +85,7 @@ export function buildAereoVoucherTree(data: AereoVoucherData): Node {
     ["Código Reserva", (data.reservation_code || "—").toUpperCase()],
   ];
 
-  return col({ gap: SPACING.lg }, [
+  return col({ gap: SPACING.md }, [
     voucherIntro("Voucher de Viagem", "Confirmação de Reserva"),
 
     // Informações Básicas
