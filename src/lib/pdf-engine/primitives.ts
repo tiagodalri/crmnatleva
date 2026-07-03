@@ -11,6 +11,7 @@
  */
 import { col, grid, row, text, spacer, icon, type Node, type Style } from "./index";
 import { BRAND, SPACING } from "./theme/institutional";
+import { iconPlaneRight } from "./icons";
 import type { IconDraw } from "./index";
 
 // ── Estilos atômicos (única fonte da hierarquia) ────────────────────────────
