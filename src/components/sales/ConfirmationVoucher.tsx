@@ -389,7 +389,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
                   key={t}
                   style={{
                     ...cellHead,
-                    padding: "0 10px",
+                    padding: "12px 10px",
                     textAlign: i === 0 ? "left" : "center",
                     whiteSpace: "nowrap",
                     fontSize: 11,
@@ -428,11 +428,9 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
                         style={{
                           ...cell,
                           borderBottom: "none",
-                          padding: "0 10px",
+                          padding: "12px 10px",
                           textAlign: j === 0 ? "left" : "center",
                           whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
                           fontSize: 11,
                         }}
                         title={String(c)}
