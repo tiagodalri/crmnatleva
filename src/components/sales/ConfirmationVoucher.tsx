@@ -66,8 +66,8 @@ const h2: CSSProperties = {
   fontWeight: 700,
   lineHeight: 1.25,
   color: GREEN_DARK,
-  marginTop: 34,
-  marginBottom: 14,
+  marginTop: 40,
+  marginBottom: 22,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
 };
