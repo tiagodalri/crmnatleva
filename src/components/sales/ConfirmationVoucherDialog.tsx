@@ -222,32 +222,25 @@ async function loadLogoAsset(): Promise<LogoAsset | null> {
 interface HeaderMeta {
   label: string;               // "Voucher Aéreo" / "Voucher Hospedagem" / "Voucher de Passeio" etc.
   reservationCode: string | null;
-  emissionDate: string | null; // formato pt-BR já legível
 }
 
 function buildHeaderMeta(voucher: VoucherKind): HeaderMeta {
-  const today = new Date().toLocaleDateString("pt-BR");
   if (voucher.type === "aereo") {
     return {
       label: "Voucher Aéreo",
       reservationCode: voucher.data.reservation_code || null,
-      emissionDate: voucher.data.emission_date
-        ? new Date(voucher.data.emission_date).toLocaleDateString("pt-BR")
-        : today,
     };
   }
   if (voucher.type === "hotel") {
     return {
       label: "Voucher Hospedagem",
       reservationCode: voucher.data.reservation_code || null,
-      emissionDate: today,
     };
   }
   const preset = GENERIC_PRESETS[voucher.data.slug] || GENERIC_PRESETS["generico"];
   return {
     label: preset.headerLabel,
     reservationCode: voucher.data.reservation_code || null,
-    emissionDate: today,
   };
 }
 
@@ -276,7 +269,6 @@ function drawPdfHeader(pdf: any, logo: LogoAsset | null, meta: HeaderMeta) {
   pdf.setTextColor(BRAND_MUTED);
   const line2Parts: string[] = [];
   if (meta.reservationCode) line2Parts.push(`Reserva ${meta.reservationCode}`);
-  if (meta.emissionDate) line2Parts.push(`Emitido em ${meta.emissionDate}`);
   if (line2Parts.length > 0) {
     pdf.text(line2Parts.join("  ·  "), rightX, PDF_HEADER_TOP_MM + 9, { align: "right" });
   }
