@@ -151,9 +151,11 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
       <div ref={ref} data-voucher-page="true" style={page}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
-          <h1 style={h1}>Confirmação de Reserva</h1>
           <div style={sub}>Voucher de Hospedagem</div>
+          <h1 style={{ ...h1, marginTop: 6 }}>Confirmação de Reserva</h1>
+          <div style={headerRule} />
         </div>
+
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Informações Básicas</h2>
