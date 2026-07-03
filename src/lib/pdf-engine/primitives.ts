@@ -184,9 +184,6 @@ export interface BoardingPassSegment {
   duration?: string;           // "9h 45min"
 }
 
-const monoFont = (size: number, color: string, weight: "normal" | "bold" = "normal") =>
-  ({ size, color, weight, letterSpacing: 0 });
-
 // bloco IATA + cidade + hora (usado nas duas pontas do card)
 function endpoint(iata: string, city: string, time: string, align: "left" | "right"): Node {
   return col({ gap: SPACING.xs }, [
