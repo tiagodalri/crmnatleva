@@ -106,7 +106,7 @@ const cell: CSSProperties = {
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
 const logoBlock = (
-  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 28 }}>
+  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
     <img src={logoNatleva} alt="NatLeva" style={{ height: 38, objectFit: "contain" }} crossOrigin="anonymous" />
   </div>
 );
