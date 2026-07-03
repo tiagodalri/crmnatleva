@@ -68,14 +68,14 @@ const h2: CSSProperties = {
   fontWeight: 700,
   lineHeight: 1.25,
   color: GREEN_DARK,
-  marginTop: 40,
-  marginBottom: 22,
+  marginTop: 32,
+  marginBottom: 16,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
 };
 const card: CSSProperties = {
   border: `1px solid ${BORDER}`,
-  borderRadius: 10,
+  borderRadius: 12,
   overflow: "hidden",
   background: SOFT_BG,
 };
@@ -87,6 +87,7 @@ const oneLine: CSSProperties = {
 };
 const ROW_H = 44;
 const HEAD_H = 40;
+
 
 const cellHead: CSSProperties = {
   padding: "0 16px",
