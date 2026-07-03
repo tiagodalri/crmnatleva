@@ -95,6 +95,8 @@ const cellHead: CSSProperties = {
   boxSizing: "border-box",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
+  display: "flex",
+  alignItems: "center",
 };
 const cell: CSSProperties = {
   padding: "13px 16px",
@@ -103,6 +105,8 @@ const cell: CSSProperties = {
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
   lineHeight: 1.5,
+  display: "flex",
+  alignItems: "center",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
