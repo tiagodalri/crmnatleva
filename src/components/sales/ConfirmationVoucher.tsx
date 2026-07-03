@@ -108,15 +108,14 @@ const cellHead: CSSProperties = {
 };
 const cell: CSSProperties = {
   padding: "0 16px",
-  height: ROW_H,
+  minHeight: ROW_H,
   display: "flex",
   alignItems: "center",
-  lineHeight: 1.2,
+  lineHeight: 1.4,
   fontSize: 12,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
-  overflow: "hidden",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
@@ -130,9 +129,13 @@ const tableRow = (background: string, borderBottom: string): CSSProperties => ({
 const cellInner: CSSProperties = {
   display: "block",
   minWidth: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  lineHeight: 1.4,
+  paddingTop: 2,
+  paddingBottom: 2,
   whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  width: "100%",
 };
 
 const centeredCellInner: CSSProperties = {
