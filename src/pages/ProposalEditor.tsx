@@ -920,6 +920,16 @@ export default function ProposalEditor() {
     },
   });
 
+  // Após navegar de /propostas/novo → /propostas/<id>, libera novamente o
+  // autosave. Sem isso, promotedNewProposalRef ficava travado em `true` e
+  // TODO progresso subsequente era perdido (banco + rascunho local).
+  useEffect(() => {
+    if (!isNew && promotedNewProposalRef.current) {
+      promotedNewProposalRef.current = false;
+    }
+  }, [isNew, id]);
+
+
   // ── Autosave: grava no banco automaticamente após cada alteração ────
   useEffect(() => {
     if (promotedNewProposalRef.current) return;
