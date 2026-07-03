@@ -183,6 +183,133 @@ function createLongTestVouchers(): VoucherKind[] {
   ];
 }
 
+// ── PDF header/footer vetorial ────────────────────────────────────────────────
+// Estas helpers desenham o cabeçalho e rodapé institucionais em CAMADA
+// VETORIAL (texto selecionável) sobre cada página do PDF, sem interferir na
+// identidade visual da marca — apenas usam o logo oficial e a paleta atual.
+
+type LogoAsset = { dataUrl: string; widthMm: number; heightMm: number };
+
+async function loadLogoAsset(): Promise<LogoAsset | null> {
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = logoNatleva;
+    await new Promise<void>((resolve, reject) => {
+      if (img.complete && img.naturalWidth > 0) return resolve();
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("logo load failed"));
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0);
+    const dataUrl = canvas.toDataURL("image/png");
+    const heightMm = 9; // altura fixa do logo no header
+    const widthMm = (img.naturalWidth / img.naturalHeight) * heightMm;
+    return { dataUrl, widthMm, heightMm };
+  } catch {
+    return null;
+  }
+}
+
+interface HeaderMeta {
+  label: string;               // "Voucher Aéreo" / "Voucher Hospedagem" / "Voucher de Passeio" etc.
+  reservationCode: string | null;
+  emissionDate: string | null; // formato pt-BR já legível
+}
+
+function buildHeaderMeta(voucher: VoucherKind): HeaderMeta {
+  const today = new Date().toLocaleDateString("pt-BR");
+  if (voucher.type === "aereo") {
+    return {
+      label: "Voucher Aéreo",
+      reservationCode: voucher.data.reservation_code || null,
+      emissionDate: voucher.data.emission_date
+        ? new Date(voucher.data.emission_date).toLocaleDateString("pt-BR")
+        : today,
+    };
+  }
+  if (voucher.type === "hotel") {
+    return {
+      label: "Voucher Hospedagem",
+      reservationCode: voucher.data.reservation_code || null,
+      emissionDate: today,
+    };
+  }
+  const preset = GENERIC_PRESETS[voucher.data.slug] || GENERIC_PRESETS["generico"];
+  return {
+    label: preset.headerLabel,
+    reservationCode: voucher.data.reservation_code || null,
+    emissionDate: today,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drawPdfHeader(pdf: any, logo: LogoAsset | null, meta: HeaderMeta) {
+  const pageWidth = 210;
+  const rightX = pageWidth - PDF_SIDE_MARGIN_MM;
+
+  // Logo à esquerda (identidade da marca preservada)
+  if (logo) {
+    try {
+      pdf.addImage(logo.dataUrl, "PNG", PDF_SIDE_MARGIN_MM, PDF_HEADER_TOP_MM + 1, logo.widthMm, logo.heightMm);
+    } catch {
+      /* fallback silencioso */
+    }
+  }
+
+  // Meta institucional à direita: label do voucher · código · data de emissão
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(BRAND_GREEN_DARK);
+  pdf.text(meta.label.toUpperCase(), rightX, PDF_HEADER_TOP_MM + 4, { align: "right" });
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.setTextColor(BRAND_MUTED);
+  const line2Parts: string[] = [];
+  if (meta.reservationCode) line2Parts.push(`Reserva ${meta.reservationCode}`);
+  if (meta.emissionDate) line2Parts.push(`Emitido em ${meta.emissionDate}`);
+  if (line2Parts.length > 0) {
+    pdf.text(line2Parts.join("  ·  "), rightX, PDF_HEADER_TOP_MM + 9, { align: "right" });
+  }
+
+  // Divisória sutil (paleta da marca) separando header do body
+  pdf.setDrawColor(BRAND_DIVIDER[0], BRAND_DIVIDER[1], BRAND_DIVIDER[2]);
+  pdf.setLineWidth(0.35);
+  pdf.line(PDF_SIDE_MARGIN_MM, PDF_HEADER_LINE_MM, rightX, PDF_HEADER_LINE_MM);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drawPdfFooter(pdf: any, pageNumber: number, totalPages: number) {
+  const pageWidth = 210;
+  const rightX = pageWidth - PDF_SIDE_MARGIN_MM;
+
+  // Divisória sutil separando footer do body
+  pdf.setDrawColor(BRAND_DIVIDER_LIGHT[0], BRAND_DIVIDER_LIGHT[1], BRAND_DIVIDER_LIGHT[2]);
+  pdf.setLineWidth(0.25);
+  pdf.line(PDF_SIDE_MARGIN_MM, PDF_FOOTER_LINE_MM, rightX, PDF_FOOTER_LINE_MM);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(BRAND_GREEN_DARK);
+  pdf.text("NatLeva Viagens", PDF_SIDE_MARGIN_MM, PDF_FOOTER_TEXT_MM);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(BRAND_MUTED);
+  pdf.text("natleva.com  ·  @natleva  ·  Atendimento pelo WhatsApp", PDF_SIDE_MARGIN_MM + 30, PDF_FOOTER_TEXT_MM);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(BRAND_GREEN_DARK);
+  pdf.text(`Página ${pageNumber} de ${totalPages}`, rightX, PDF_FOOTER_TEXT_MM, { align: "right" });
+}
+
+
+
 export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }: Props) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
