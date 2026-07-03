@@ -8,7 +8,8 @@
  *  - <AereoVoucher />   — one consolidated air voucher with all flight segments
  */
 import { forwardRef, type CSSProperties, type ReactNode } from "react";
-import { Backpack, Briefcase, Luggage, Clock, MessageCircle, AlertCircle, ShieldCheck } from "lucide-react";
+import { Backpack, Briefcase, Luggage, Clock, MessageCircle, AlertCircle, ShieldCheck, Shield, MapPin, Ticket, Car, Ship, Train, Bus, Package, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import logoNatleva from "@/assets/logo-natleva.png";
 
 // Brand palette extracted from the original PDF
