@@ -92,6 +92,8 @@ function applyFont(pdf: Pdf, f?: FontSpec) {
   pdf.setFontSize(size);
   const [r, g, b] = hexToRgb(f?.color ?? "#111827");
   pdf.setTextColor(r, g, b);
+  // charSpace nativo do jsPDF em unidade do doc (mm). letterSpacing pequeno (0.1–0.6)
+  // funciona bem em Chrome/Adobe. Sempre resetado a cada chamada, evitando leaks.
   pdf.setCharSpace(typeof f?.letterSpacing === "number" ? f.letterSpacing : 0);
 }
 

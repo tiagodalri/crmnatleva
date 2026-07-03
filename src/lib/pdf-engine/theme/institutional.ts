@@ -107,14 +107,14 @@ export function drawInstitutionalHeader(pdf: Pdf, logo: LogoAsset | null, meta: 
     }
   }
 
-  // Label do voucher — canto direito, uppercase, verde escuro
+  // Label do voucher — canto direito, uppercase, verde escuro (tracking via thin-space)
   const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(8.5);
-  pdf.setCharSpace(0.4);
-  pdf.setTextColor(dr, dg, db);
-  pdf.text(meta.label.toUpperCase(), rightX, topY + 4, { align: "right", baseline: "alphabetic" });
   pdf.setCharSpace(0);
+  pdf.setTextColor(dr, dg, db);
+  const trackedLabel = Array.from(meta.label.toUpperCase()).join("\u2009\u2009");
+  pdf.text(trackedLabel, rightX, topY + 4, { align: "right", baseline: "alphabetic" });
 
   // Segunda linha: código de reserva (opcional) em números tabulares
   if (meta.reservationCode) {
@@ -144,13 +144,12 @@ export function drawInstitutionalFooter(pdf: Pdf, pageNumber: number, totalPages
   const [sr, sg, sb] = hexToRgbLocal(BRAND.textSoft);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(7.5);
-  pdf.setCharSpace(0.15);
+  pdf.setCharSpace(0);
   pdf.setTextColor(sr, sg, sb);
   pdf.text(NATLEVA_FOOTER.phone, leftX, baselineY, { align: "left", baseline: "alphabetic" });
   pdf.setFont("helvetica", "bold");
   pdf.text(NATLEVA_FOOTER.instagram, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
   pdf.setFont("helvetica", "normal");
-  pdf.setCharSpace(0);
   if (totalPages > 1) {
     pdf.text(`${pageNumber} / ${totalPages}`, rightX, baselineY, { align: "right", baseline: "alphabetic" });
   }
