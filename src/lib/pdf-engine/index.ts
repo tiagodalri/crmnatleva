@@ -92,7 +92,23 @@ function applyFont(pdf: Pdf, f?: FontSpec) {
   pdf.setFontSize(size);
   const [r, g, b] = hexToRgb(f?.color ?? "#111827");
   pdf.setTextColor(r, g, b);
-  pdf.setCharSpace(typeof f?.letterSpacing === "number" ? f.letterSpacing : 0);
+  // CRÍTICO: setCharSpace(>0) combinado com splitTextToSize/text() gera quebras
+  // internas nas palavras ("Confi rm ação", "08 :40"). Simulamos tracking manualmente
+  // via aplicação a strings em `transformText` — nunca via setCharSpace.
+  pdf.setCharSpace(0);
+}
+
+// Simula "letter-spacing" inserindo hair-spaces (U+200A) entre caracteres.
+// Isso evita o bug do setCharSpace + splitTextToSize no jsPDF v3.
+function applyTracking(s: string, spacing?: number): string {
+  if (!spacing || spacing <= 0) return s;
+  // Para caps tracking editorial (0.3–0.6), usamos espaço fino real (U+2009) parcial.
+  // Estratégia mais segura em ASCII: espaço normal a cada N caracteres é ruim;
+  // preferimos um único espaço real inserido entre letras. Como jsPDF Helvetica
+  // renderiza U+2009 (thin space, 1/5 em) de forma confiável, usamos ele.
+  const THIN = "\u2009";
+  const rep = spacing >= 0.5 ? THIN + THIN : THIN;
+  return Array.from(s).join(rep);
 }
 
 function transformText(t: string, f?: FontSpec) {
