@@ -108,15 +108,14 @@ const cellHead: CSSProperties = {
 };
 const cell: CSSProperties = {
   padding: "0 16px",
-  height: ROW_H,
+  minHeight: ROW_H,
   display: "flex",
   alignItems: "center",
-  lineHeight: 1.2,
+  lineHeight: 1.4,
   fontSize: 12,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
-  overflow: "hidden",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
