@@ -17,7 +17,7 @@ import {
   SPACING,
 } from "./theme/institutional";
 import {
-  labelValueCard, dataTable, sectionTitle, voucherIntro, infoLine, bagItem, highlightBlock, style,
+  labelValueCard, dataTable, sectionTitle, infoLine, bagItem, highlightBlock, style,
   boardingPassCard, type BoardingPassSegment,
 } from "./primitives";
 import {
@@ -85,8 +85,8 @@ export function buildAereoVoucherTree(data: AereoVoucherData): Node {
     ["Código Reserva", (data.reservation_code || "—").toUpperCase()],
   ];
 
-  return col({ gap: SPACING.lg }, [
-    voucherIntro("Voucher de Viagem", "Confirmação de Reserva"),
+  return col({ gap: SPACING.md }, [
+    // (Intro removida — header já rotula o documento)
 
     // Informações Básicas
     col({ gap: SPACING.sm }, [

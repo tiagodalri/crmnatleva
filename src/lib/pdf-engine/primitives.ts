@@ -11,38 +11,38 @@
  */
 import { col, grid, row, text, spacer, icon, type Node, type Style } from "./index";
 import { BRAND, SPACING } from "./theme/institutional";
+import { iconPlaneRight } from "./icons";
 import type { IconDraw } from "./index";
 
 // ── Estilos atômicos (única fonte da hierarquia) ────────────────────────────
 export const style = {
-  // H1 — nome do voucher (uma vez por página inicial)
-  H1: { font: { size: 26, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.15, lineHeight: 1.1 } },
+  // H1 — nome do voucher (uma vez por página inicial). Reduzido para 22pt: mais editorial.
+  H1: { font: { size: 22, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.1, lineHeight: 1.1 } },
   // Kicker acima do H1
-  SUB: { font: { size: 7.5, weight: "bold" as const, color: BRAND.green, transform: "uppercase" as const, letterSpacing: 0.6 } },
-  // H2 — cada seção
-  H2: { font: { size: 9.5, weight: "bold" as const, color: BRAND.greenDark, transform: "uppercase" as const, letterSpacing: 0.35 } },
-  BODY: { font: { size: 9.5, color: BRAND.textDark, lineHeight: 1.55 } },
-  BODY_MUTED: { font: { size: 9.5, color: BRAND.textSoft, lineHeight: 1.55 } },
+  SUB: { font: { size: 7.5, weight: "bold" as const, color: BRAND.green, transform: "uppercase" as const, letterSpacing: 0.5 } },
+  // H2 — cada seção. Sem uppercase (mais moderno), verde escuro, peso semibold.
+  H2: { font: { size: 10.5, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.05 } },
+  BODY: { font: { size: 9.5, color: BRAND.textDark, lineHeight: 1.5 } },
+  BODY_MUTED: { font: { size: 9.5, color: BRAND.textSoft, lineHeight: 1.5 } },
   // "Tabular numerals" via courier — usar para códigos, horas, distâncias
   MONO: { font: { size: 9.5, color: BRAND.textDark } },
   CELL: {
-    minHeight: SPACING.lg,
-    padding: [0, SPACING.sm] as [number, number],
+    minHeight: SPACING.md,
+    padding: [SPACING.xs, SPACING.sm] as [number, number],
     font: { size: 9, color: BRAND.textDark },
   } satisfies Style,
   CELL_HEAD: {
     minHeight: SPACING.md,
-    padding: [0, SPACING.sm] as [number, number],
-    font: { size: 7, weight: "bold" as const, color: BRAND.textSoft, transform: "uppercase" as const, letterSpacing: 0.5 },
+    padding: [SPACING.xs, SPACING.sm] as [number, number],
+    font: { size: 7, weight: "bold" as const, color: BRAND.textSoft, transform: "uppercase" as const, letterSpacing: 0.4 },
     border: { color: BRAND.hairline, width: 0.15, sides: ["bottom" as const] },
   } satisfies Style,
 };
 
-// ── Section title (sem barra pesada; apenas H2 + spacer) ────────────────────
+// ── Section title (H2 + hairline acessória à direita) ──────────────────────
 export function sectionTitle(label: string): Node {
   return col({ gap: SPACING.xs }, [
     text(label, { minHeight: 5, ...style.H2 }),
-    spacer(SPACING.xs),
   ]);
 }
 
@@ -186,31 +186,37 @@ export interface BoardingPassSegment {
 
 // bloco IATA + cidade + hora (usado nas duas pontas do card)
 function endpoint(iata: string, city: string, time: string, align: "left" | "right"): Node {
-  return col({ gap: SPACING.xs }, [
+  return col({ gap: 1 }, [
     text(iata || "—", {
       textAlign: align,
-      font: { size: 22, weight: "bold", color: BRAND.greenDark, letterSpacing: -0.5, align },
+      minHeight: 9,
+      font: { size: 26, weight: "bold", color: BRAND.greenDark, letterSpacing: -0.4, align, lineHeight: 1.05 },
     }),
     text(city || "", {
       textAlign: align,
-      font: { size: 8, color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.4, align },
+      font: { size: 7.5, color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.4, align },
     }),
+    spacer(SPACING.xs),
     text(time || "—:—", {
       textAlign: align,
-      // Helvetica bold em 12pt tem larguras próximas de tabular para dígitos
-      font: { size: 13, weight: "bold", color: BRAND.textDark, align, letterSpacing: 0.1 },
+      font: { size: 14, weight: "bold", color: BRAND.textDark, align, letterSpacing: 0.2 },
     }),
   ]);
 }
 
-// linha central: hairline com bullet + duration
+// linha central: hairline com plane vetorial + duration em pill sutil
 function connector(duration: string): Node {
-  return col({ gap: SPACING.xs, padding: [SPACING.sm, 0, 0, 0] }, [
-    // hairline horizontal
-    { kind: "rule", color: BRAND.hairline, thickness: 0.3, style: { minHeight: 0.3 } } as Node,
-    text(duration || "—", {
+  return col({ gap: SPACING.xs, padding: [4, 0, 0, 0] }, [
+    // avião centralizado (a hairline "atravessa" visualmente pelas margens dele)
+    row({ gap: 0 }, [
+      { kind: "rule", color: BRAND.hairline, thickness: 0.3, style: { minHeight: 0.3 } } as Node,
+      icon(iconPlaneRight, 6.5, BRAND.green, 0.1, { minHeight: 6, width: 8 }),
+      { kind: "rule", color: BRAND.hairline, thickness: 0.3, style: { minHeight: 0.3 } } as Node,
+    ]),
+    spacer(1),
+    text(duration || "", {
       textAlign: "center",
-      font: { size: 8, color: BRAND.textSoft, align: "center", letterSpacing: 0.2 },
+      font: { size: 8, weight: "bold", color: BRAND.green, align: "center", letterSpacing: 0.2, transform: "uppercase" },
     }),
   ]);
 }
@@ -224,18 +230,18 @@ export function boardingPassCard(seg: BoardingPassSegment): Node {
 
   return col({
     border: { color: BRAND.hairline, width: 0.2 },
-    radius: 1.5,
+    radius: 2,
     padding: [SPACING.md, SPACING.lg],
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   }, [
     // topo: meta esquerda / data direita
     grid([60, 40], {}, [
       text(meta || "—", {
-        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.55 },
+        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.5 },
       }),
       text(seg.dateLabel || "—", {
         textAlign: "right",
-        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.55, align: "right" },
+        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.5, align: "right" },
       }),
     ]),
     spacer(SPACING.xs),
@@ -247,3 +253,4 @@ export function boardingPassCard(seg: BoardingPassSegment): Node {
     ]),
   ]);
 }
+

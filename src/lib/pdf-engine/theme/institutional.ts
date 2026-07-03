@@ -45,8 +45,8 @@ export const PAGE = {
   widthMm: 210,
   heightMm: 297,
   marginMm: 18,       // lateral (18mm = ritmo editorial premium)
-  headerMm: 20,       // altura reservada para o header institucional
-  footerMm: 16,       // altura reservada para o footer institucional
+  headerMm: 16,       // altura reservada para o header institucional
+  footerMm: 14,       // altura reservada para o footer institucional
 } as const;
 
 // Logo asset (carregado uma vez por export)
@@ -96,35 +96,54 @@ const hexToRgbLocal = (hex: string): [number, number, number] => {
 
 export function drawInstitutionalHeader(pdf: Pdf, logo: LogoAsset | null, meta: HeaderMeta) {
   const rightX = PAGE.widthMm - PAGE.marginMm;
+  const leftX = PAGE.marginMm;
   const topY = 10;
+  const baselineY = topY + 6;   // baseline compartilhada entre logo e label
 
-  // Logo (identidade da marca)
+  // Logo (identidade da marca), alinhado à baseline
+  let logoRightEdge = leftX;
   if (logo) {
     try {
-      pdf.addImage(logo.dataUrl, "PNG", PAGE.marginMm, topY + 1, logo.widthMm, logo.heightMm, undefined, "FAST");
-    } catch {
-      /* silent */
-    }
+      pdf.addImage(logo.dataUrl, "PNG", leftX, topY, logo.widthMm, logo.heightMm, undefined, "FAST");
+      logoRightEdge = leftX + logo.widthMm;
+    } catch { /* silent */ }
   }
 
-  // Label do voucher — canto direito, uppercase, verde escuro (tracking via thin-space)
+  // ── Label do voucher, à direita do logo, integrado por separador vertical ─
   const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8.5);
-  pdf.setCharSpace(0);
-  pdf.setTextColor(dr, dg, db);
-  const trackedLabel = Array.from(meta.label.toUpperCase()).join("\u2009\u2009");
-  pdf.text(trackedLabel, rightX, topY + 4, { align: "right", baseline: "alphabetic" });
+  const [sr, sg, sb] = hexToRgbLocal(BRAND.textSoft);
+  const [hr, hg, hb] = hexToRgbLocal(BRAND.hairline);
 
-  // Segunda linha: código de reserva (opcional) em números tabulares
+  const sepX = logoRightEdge + 3.5;
+  pdf.setDrawColor(hr, hg, hb);
+  pdf.setLineWidth(0.25);
+  pdf.line(sepX, topY + 0.5, sepX, topY + (logo?.heightMm ?? 9) - 0.5);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setCharSpace(0.35);
+  pdf.setTextColor(dr, dg, db);
+  pdf.text(meta.label.toUpperCase(), sepX + 3, baselineY - 1.4, { align: "left", baseline: "alphabetic" });
+  pdf.setCharSpace(0);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(sr, sg, sb);
+  pdf.text("Confirmação de reserva", sepX + 3, baselineY + 3.2, { align: "left", baseline: "alphabetic" });
+
+  // ── Bloco direito: código de reserva (se houver) em courier ──────────────
   if (meta.reservationCode) {
-    const [mr, mg, mb] = hexToRgbLocal(BRAND.textSoft);
-    pdf.setFont("courier", "normal");
-    pdf.setFontSize(8.5);
-    pdf.setTextColor(mr, mg, mb);
-    pdf.text(meta.reservationCode.toUpperCase(), rightX, topY + 8.8, { align: "right", baseline: "alphabetic" });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(6.5);
+    pdf.setCharSpace(0.4);
+    pdf.setTextColor(sr, sg, sb);
+    pdf.text("LOCALIZADOR", rightX, baselineY - 1.4, { align: "right", baseline: "alphabetic" });
+    pdf.setCharSpace(0);
+    pdf.setFont("courier", "bold");
+    pdf.setFontSize(10);
+    pdf.setTextColor(dr, dg, db);
+    pdf.text(meta.reservationCode.toUpperCase(), rightX, baselineY + 3.2, { align: "right", baseline: "alphabetic" });
   }
-  // → Sem linha divisória verde. Peso visual do header vem só da tipografia.
 }
 
 // ── Footer institucional ────────────────────────────────────────────────────
