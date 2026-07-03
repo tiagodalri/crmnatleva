@@ -45,8 +45,8 @@ export const PAGE = {
   widthMm: 210,
   heightMm: 297,
   marginMm: 18,       // lateral (18mm = ritmo editorial premium)
-  headerMm: 20,       // altura reservada para o header institucional
-  footerMm: 16,       // altura reservada para o footer institucional
+  headerMm: 16,       // altura reservada para o header institucional
+  footerMm: 14,       // altura reservada para o footer institucional
 } as const;
 
 // Logo asset (carregado uma vez por export)
