@@ -4,6 +4,7 @@
  */
 import { jsPDF } from "jspdf";
 import { renderDocument, col, grid, text, spacer, type Node } from "./index";
+import { NATLEVA_FOOTER_LINE } from "./theme/institutional";
 import type { AereoVoucherData } from "@/components/sales/ConfirmationVoucher";
 
 // Brand palette (mirrors ConfirmationVoucher.tsx)
@@ -58,7 +59,6 @@ function labelValueRow(label: string, value: string, alt: boolean, isLast: boole
 export function buildAereoVoucherTree(data: AereoVoucherData): Node {
   const basics: Array<[string, string]> = [
     ["Classe:", data.flight_class || "Econômica"],
-    ["Data da emissão:", fmtDateBR(data.emission_date)],
     ["Código Reserva:", data.reservation_code || "—"],
   ];
 
@@ -143,24 +143,61 @@ export function buildAereoVoucherTree(data: AereoVoucherData): Node {
   ]);
 }
 
+// ── Institutional footer (fixed, centered, identical on every page) ──────────
+const PAGE_WIDTH_MM = 210;
+const PAGE_HEIGHT_MM = 297;
+const FOOTER_BASELINE_MM = 286;   // baseline central do rodapé
+const FOOTER_LINE_MM = 280;       // divisória sutil acima do rodapé
+const FOOTER_SIDE_MARGIN_MM = 14;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drawInstitutionalFooter(pdf: any) {
+  // divisória
+  pdf.setDrawColor(0xd8, 0xdf, 0xd5);
+  pdf.setLineWidth(0.25);
+  pdf.line(FOOTER_SIDE_MARGIN_MM, FOOTER_LINE_MM, PAGE_WIDTH_MM - FOOTER_SIDE_MARGIN_MM, FOOTER_LINE_MM);
+
+  // texto institucional (fonte única de verdade)
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.setCharSpace(0);
+  pdf.setTextColor(15, 61, 36);
+  pdf.text(NATLEVA_FOOTER_LINE, PAGE_WIDTH_MM / 2, FOOTER_BASELINE_MM, { align: "center", baseline: "alphabetic" });
+}
+
+// ── Pre-render validations (block export if inconsistent) ────────────────────
+function validateFooterInvariants() {
+  const errors: string[] = [];
+  if (!NATLEVA_FOOTER_LINE.includes("+55 (11) 96639-6692")) errors.push("footer:phone missing");
+  if (!NATLEVA_FOOTER_LINE.includes("@natlevaviagens")) errors.push("footer:instagram missing");
+  if (FOOTER_BASELINE_MM <= FOOTER_LINE_MM) errors.push("footer:baseline above divider");
+  if (FOOTER_BASELINE_MM >= PAGE_HEIGHT_MM) errors.push("footer:baseline outside page");
+  return errors;
+}
+
 export function exportAereoVoucherBeta(data: AereoVoucherData, fileName: string) {
+  const preErrors = validateFooterInvariants();
+  if (preErrors.length > 0) {
+    throw new Error(`[pdf-engine] export blocked: ${preErrors.join(", ")}`);
+  }
+
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
   pdf.setProperties({
-    title: "Voucher Aéreo · NatLeva Viagens (beta)",
+    title: "Voucher Aéreo · NatLeva Viagens",
     author: "NatLeva Viagens",
     creator: "NatLeva PDF Engine",
   });
   const tree = buildAereoVoucherTree(data);
   renderDocument(pdf, tree, { pageMargin: 14 });
 
-  // Institutional footer (baseline vector text)
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7.5);
-  pdf.setTextColor(107, 114, 128);
-  pdf.text("NatLeva Viagens · natleva.com · @natleva", 14, 288);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(15, 61, 36);
-  pdf.text("Beta engine · POC", 196, 288, { align: "right" });
+  // Footer institucional fixo em toda página (mesmo layout, sempre centralizado)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyPdf = pdf as any;
+  const totalPages: number = anyPdf.getNumberOfPages?.() ?? 1;
+  for (let p = 1; p <= totalPages; p++) {
+    anyPdf.setPage?.(p);
+    drawInstitutionalFooter(pdf);
+  }
 
   pdf.save(fileName);
 }
