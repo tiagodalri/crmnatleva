@@ -13,15 +13,32 @@ import { ALL_AIRLINES } from "@/lib/airlinesData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { normalizePassengerName } from "@/lib/nameUtils";
+import logoNatleva from "@/assets/logo-natleva.png";
 
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
 const PREVIEW_SCALE = 0.78;
-// Margens físicas reais no PDF (em mm) — o conteúdo é renderizado DENTRO dessa área útil.
-const PDF_SIDE_MARGIN_MM = 10;
-const PDF_TOP_MARGIN_MM = 10;
-const PDF_BOTTOM_MARGIN_MM = 12;
+
+// ── Sistema de página do PDF (todas medidas em mm; A4 = 210 × 297) ───────────
+// O conteúdo do voucher é renderizado apenas dentro da BODY zone. HEADER e
+// FOOTER são desenhados como camada VETORIAL selecionável em toda página.
+const PDF_SIDE_MARGIN_MM = 10;         // margem lateral (esquerda/direita)
+const PDF_HEADER_TOP_MM = 10;          // topo do header (onde o logo começa)
+const PDF_HEADER_LINE_MM = 24;         // linha divisória horizontal do header
+const PDF_BODY_TOP_MM = 28;            // início da área de conteúdo
+const PDF_FOOTER_LINE_MM = 280;        // linha divisória horizontal do footer
+const PDF_FOOTER_TEXT_MM = 286;        // baseline dos textos do footer
+const PDF_BODY_BOTTOM_MM = 277;        // fim da área de conteúdo (antes do footer)
 const PDF_CONTINUATION_TOP_PAD_PX = 24; // respiro no topo de páginas 2+
+
+// Paleta oficial da marca (espelha ConfirmationVoucher.tsx)
+const BRAND_GREEN = "#1f5f3a";
+const BRAND_GREEN_DARK = "#0f3d24";
+const BRAND_MUTED = "#6b7280";
+const BRAND_DIVIDER: [number, number, number] = [0x1f, 0x5f, 0x3a];
+const BRAND_DIVIDER_LIGHT: [number, number, number] = [0xd8, 0xdf, 0xd5];
+
+
 
 type DbRecord = Record<string, unknown>;
 
