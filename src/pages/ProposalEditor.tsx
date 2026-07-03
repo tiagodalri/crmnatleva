@@ -550,15 +550,17 @@ export default function ProposalEditor() {
     if (!hydratedRef.current && !isNew) return;
     if (promotedNewProposalRef.current) return;
     try {
+      const now = new Date();
       localStorage.setItem(
         LOCAL_DRAFT_KEY,
         JSON.stringify({
           form: debouncedForm,
           items: debouncedItems,
           visualOverrides: debouncedVisualOverrides,
-          savedAt: new Date().toISOString(),
+          savedAt: now.toISOString(),
         })
       );
+      setLocalDraftAt(now);
     } catch { /* ignore quota */ }
   }, [LOCAL_DRAFT_KEY, isNew, debouncedForm, debouncedItems, debouncedVisualOverrides]);
 
