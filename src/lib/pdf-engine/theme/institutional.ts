@@ -15,23 +15,37 @@ export const NATLEVA_FOOTER = {
 export const NATLEVA_FOOTER_LINE = `${NATLEVA_FOOTER.phone}   ·   ${NATLEVA_FOOTER.instagram}`;
 
 // ── Paleta institucional (espelha ConfirmationVoucher.tsx) ──────────────────
+// Nota: `rowAlt` propositalmente branco — decisão de design: eliminar zebra
+// em tabelas para linguagem visual mais editorial/premium (Stripe/Airbnb style).
 export const BRAND = {
   green: "#1f5f3a",
-  greenDark: "#0f3d24",
-  textDark: "#1f2937",
+  greenDark: "#0b2f1c",
+  textDark: "#111827",
+  textSoft: "#4b5563",
   muted: "#6b7280",
-  rowAlt: "#f3f5f1",
-  border: "#e2e6df",
-  borderLight: "#d8dfd5",
+  hairline: "#e5e7eb",
+  rowAlt: "#ffffff",
+  border: "#e5e7eb",
+  borderLight: "#eef1ec",
   white: "#ffffff",
+} as const;
+
+// ── Grid 4pt (≈1.41mm). Todos os spacings da engine devem sair daqui. ───────
+export const SPACING = {
+  xs: 1.5,   // ~4pt
+  sm: 3,     // ~8pt
+  md: 4.5,   // ~12pt
+  lg: 6,     // ~16pt
+  xl: 9,     // ~24pt
+  xxl: 12,   // ~32pt
 } as const;
 
 // ── Dimensões reservadas por página ─────────────────────────────────────────
 export const PAGE = {
   widthMm: 210,
   heightMm: 297,
-  marginMm: 14,       // lateral
-  headerMm: 22,       // altura reservada para o header institucional
+  marginMm: 18,       // lateral (18mm = ritmo editorial premium)
+  headerMm: 20,       // altura reservada para o header institucional
   footerMm: 16,       // altura reservada para o footer institucional
 } as const;
 
