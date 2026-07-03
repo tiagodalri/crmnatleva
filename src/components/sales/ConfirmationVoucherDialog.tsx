@@ -479,7 +479,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
         ) : visibleVouchers.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">Esta venda ainda não tem trechos aéreos nem hospedagem cadastrados.</div>
+          <div className="py-10 text-center text-sm text-muted-foreground">Esta venda ainda não tem produtos cadastrados para gerar voucher.</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
             <div className="min-h-0 flex flex-col gap-3">
@@ -487,7 +487,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
               <div className="grid gap-2">
                 {visibleVouchers.map((v) => (
                   <button key={v.id} onClick={() => setSelectedId(v.id)} className={cn("min-h-11 text-left px-3 py-2.5 rounded-lg border text-sm flex items-start gap-2 transition-colors", selectedId === v.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted")}> 
-                    {v.type === "aereo" ? <Plane className="w-4 h-4 mt-0.5 shrink-0" /> : <Hotel className="w-4 h-4 mt-0.5 shrink-0" />}
+                    {v.type === "aereo" ? <Plane className="w-4 h-4 mt-0.5 shrink-0" /> : v.type === "hotel" ? <Hotel className="w-4 h-4 mt-0.5 shrink-0" /> : <Package className="w-4 h-4 mt-0.5 shrink-0" />}
                     <span className="flex-1 leading-snug">{v.label}</span>
                   </button>
                 ))}
@@ -504,6 +504,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
                   <div style={{ width: A4_WIDTH_PX, transform: `scale(${PREVIEW_SCALE})`, transformOrigin: "top left", pointerEvents: "none" }}>
                     {current?.type === "aereo" && <AereoVoucher ref={previewRef} data={current.data} />}
                     {current?.type === "hotel" && <HotelVoucher ref={previewRef} data={current.data} />}
+                    {current?.type === "generic" && <GenericVoucher ref={previewRef} data={current.data} />}
                   </div>
                 </div>
               </div>
@@ -512,6 +513,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
               <div aria-hidden="true" style={{ position: "absolute", left: -10000, top: 0, width: A4_WIDTH_PX, background: "#ffffff", overflow: "visible", pointerEvents: "none" }}>
                 {current?.type === "aereo" && <AereoVoucher ref={exportRef} data={current.data} />}
                 {current?.type === "hotel" && <HotelVoucher ref={exportRef} data={current.data} />}
+                {current?.type === "generic" && <GenericVoucher ref={exportRef} data={current.data} />}
               </div>,
               document.body,
             )}
