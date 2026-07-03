@@ -200,8 +200,8 @@ function endpoint(iata: string, city: string, time: string, align: "left" | "rig
     }),
     text(time || "—:—", {
       textAlign: align,
-      // Courier = tabular figures em ambiente jsPDF nativo
-      font: { ...monoFont(12, BRAND.textDark, "bold"), align },
+      // Helvetica bold em 12pt tem larguras próximas de tabular para dígitos
+      font: { size: 13, weight: "bold", color: BRAND.textDark, align, letterSpacing: 0.1 },
     }),
   ]);
 }
