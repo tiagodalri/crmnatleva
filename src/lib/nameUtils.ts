@@ -46,6 +46,30 @@ export function smartCapitalizeName(name: string | null | undefined): string {
     .join(" ");
 }
 
+/**
+ * Universal passenger name normalization for travel documents.
+ * Every name part is rendered with initial uppercase and the rest lowercase,
+ * including prepositions and extra surname particles.
+ */
+export function normalizePassengerName(name: string | null | undefined): string {
+  if (!name) return "";
+
+  const cleaned = name.trim().replace(/\s+/g, " ");
+  if (!cleaned) return "";
+
+  return cleaned
+    .split(" ")
+    .map((word) => normalizePassengerNamePart(word))
+    .join(" ");
+}
+
+function normalizePassengerNamePart(word: string): string {
+  return word
+    .split(/([-'])/)
+    .map((part) => (part === "-" || part === "'" ? part : capitalizeWord(part)))
+    .join("");
+}
+
 function capitalizeWord(word: string): string {
   if (!word) return word;
   // Lowercase everything, then uppercase first char
