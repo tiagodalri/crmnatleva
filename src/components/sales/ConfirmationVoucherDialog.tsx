@@ -5,8 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Plane, Hotel, Download, Pencil, FlaskConical, Database, Package } from "lucide-react";
+import { Loader2, Plane, Hotel, Download, Pencil, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HotelVoucher, AereoVoucher, GenericVoucher, GENERIC_PRESETS, type HotelVoucherData, type AereoVoucherData, type GenericVoucherData, type GenericServiceSlug } from "./ConfirmationVoucher";
 import { iataToLabel } from "@/lib/iataUtils";
@@ -471,10 +470,6 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
               <DialogDescription>Valide o voucher em A4, ajuste campos se necessário e baixe o PDF final.</DialogDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setTestMode((v) => !v); setSelectedId("aereo"); }}>
-                {testMode ? <Database className="w-4 h-4 mr-2" /> : <FlaskConical className="w-4 h-4 mr-2" />}
-                {testMode ? "Dados reais" : "Teste A4"}
-              </Button>
               <Button variant={editMode ? "default" : "outline"} size="sm" onClick={() => setEditMode((v) => !v)} disabled={testMode || !current}>
                 <Pencil className="w-4 h-4 mr-2" /> Editar campos
               </Button>
@@ -489,7 +484,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
             <div className="min-h-0 flex flex-col gap-3">
-              {testMode && <Badge variant="outline" className="w-fit"><FlaskConical className="w-3.5 h-3.5 mr-1.5" /> Validação com dados longos</Badge>}
+              
               <div className="grid gap-2">
                 {visibleVouchers.map((v) => (
                   <button key={v.id} onClick={() => setSelectedId(v.id)} className={cn("min-h-11 text-left px-3 py-2.5 rounded-lg border text-sm flex items-start gap-2 transition-colors", selectedId === v.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted")}> 
