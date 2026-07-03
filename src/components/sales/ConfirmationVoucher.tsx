@@ -126,6 +126,7 @@ const cellInner: CSSProperties = {
   height: "100%",
   display: "flex",
   alignItems: "center",
+  transform: "translateY(var(--pdf-cell-y, 0px))",
 };
 
 const centeredCellInner: CSSProperties = {
@@ -133,6 +134,21 @@ const centeredCellInner: CSSProperties = {
   justifyContent: "center",
   textAlign: "center",
 };
+
+const headerCellInner: CSSProperties = {
+  ...cellInner,
+  transform: "none",
+};
+
+const centeredHeaderCellInner: CSSProperties = {
+  ...centeredCellInner,
+  transform: "none",
+};
+
+const voucherPageStyle = (exportMode?: boolean): CSSProperties => ({
+  ...page,
+  ...(exportMode ? ({ "--pdf-cell-y": "-6px" } as unknown as CSSProperties) : {}),
+});
 
 function renderPassengerName(name?: string | null): string {
   return normalizePassengerName(name) || "—";
@@ -171,8 +187,8 @@ export interface HotelVoucherData {
   doc_note?: string;
 }
 
-export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData }>(
-  ({ data }, ref) => {
+export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData; exportMode?: boolean }>(
+  ({ data, exportMode }, ref) => {
     const rows: Array<[string, string]> = [
       ["Hotel:", data.hotel_name || "—"],
       ["Alimentação:", data.meal_plan || "—"],
@@ -181,7 +197,7 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
       ["Código pin:", data.pin_code || "—"],
     ];
     return (
-      <div ref={ref} data-voucher-page="true" style={page}>
+      <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
           <div style={sub}>Voucher de Hospedagem</div>
@@ -212,8 +228,8 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
           <h2 style={h2}>Informações do Hóspede</h2>
           <div style={card}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-              <div style={cellHead}><div style={cellInner}>Nome completo:</div></div>
-              <div style={cellHead}><div style={cellInner}>Documento:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Nome completo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Documento:</div></div>
             </div>
             {data.guests.length === 0 ? (
               <div style={{ ...cell, borderBottom: "none", color: "#6b7280" }}>
@@ -240,9 +256,9 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
           <h2 style={h2}>Detalhes da Hospedagem</h2>
           <div style={card}>
             <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr 1fr" }}>
-              <div style={{ ...cellHead, ...oneLine }}><div style={cellInner}>Endereço:</div></div>
-              <div style={{ ...cellHead, ...oneLine }}><div style={cellInner}>Data de Chegada:</div></div>
-              <div style={{ ...cellHead, ...oneLine }}><div style={cellInner}>Data de Saída:</div></div>
+              <div style={{ ...cellHead, ...oneLine }}><div style={headerCellInner}>Endereço:</div></div>
+              <div style={{ ...cellHead, ...oneLine }}><div style={headerCellInner}>Data de Chegada:</div></div>
+              <div style={{ ...cellHead, ...oneLine }}><div style={headerCellInner}>Data de Saída:</div></div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr 1fr" }}>
               <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={data.address || "—"}><div style={cellInner}>{data.address || "—"}</div></div>
@@ -297,15 +313,15 @@ export interface AereoVoucherData {
   }>;
 }
 
-export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData }>(
-  ({ data }, ref) => {
+export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData; exportMode?: boolean }>(
+  ({ data, exportMode }, ref) => {
     const basics: Array<[string, string]> = [
       ["Classe:", data.flight_class || "Econômica"],
       ["Data da emissão:", fmtDateBR(data.emission_date)],
       ["Código Reserva :", data.reservation_code || "—"],
     ];
     return (
-      <div ref={ref} data-voucher-page="true" style={page}>
+      <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
           <div style={sub}>Voucher de Viagem</div>
@@ -336,9 +352,9 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
           <h2 style={h2}>Informações dos Passageiros</h2>
           <div style={card}>
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr" }}>
-              <div style={cellHead}><div style={cellInner}>Nome completo:</div></div>
-              <div style={cellHead}><div style={cellInner}>Tipo de passageiro:</div></div>
-              <div style={cellHead}><div style={cellInner}>Documento:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Nome completo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Tipo de passageiro:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Documento:</div></div>
             </div>
             {data.passengers.length === 0 ? (
               <div style={{ ...cell, borderBottom: "none", color: "#6b7280" }}>
@@ -377,7 +393,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
                     fontSize: 12,
                   }}
                 >
-                  <div style={i === 0 ? cellInner : centeredCellInner}>{t}</div>
+                  <div style={i === 0 ? headerCellInner : centeredHeaderCellInner}>{t}</div>
                 </div>
               ))}
             </div>
@@ -661,8 +677,8 @@ export interface GenericVoucherData {
   notes?: string | null;
 }
 
-export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherData }>(
-  ({ data }, ref) => {
+export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherData; exportMode?: boolean }>(
+  ({ data, exportMode }, ref) => {
     const preset = GENERIC_PRESETS[data.slug] || GENERIC_PRESETS["generico"];
     const Icon = preset.icon;
 
@@ -695,7 +711,7 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
     ];
 
     return (
-      <div ref={ref} data-voucher-page="true" style={page}>
+      <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
           <div style={sub}>{preset.headerLabel}</div>
@@ -736,9 +752,9 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
           <h2 style={h2}>Beneficiários</h2>
           <div style={card}>
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr" }}>
-              <div style={cellHead}><div style={cellInner}>Nome completo:</div></div>
-              <div style={cellHead}><div style={cellInner}>Tipo:</div></div>
-              <div style={cellHead}><div style={cellInner}>Documento:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Nome completo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Tipo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Documento:</div></div>
             </div>
             {data.passengers.length === 0 ? (
               <div style={{ ...cell, borderBottom: "none", color: "#6b7280" }}>
