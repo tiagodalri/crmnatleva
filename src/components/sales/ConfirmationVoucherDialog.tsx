@@ -90,6 +90,33 @@ function prettyClass(c?: string | null): string {
   return map[c.toLowerCase()] || c;
 }
 
+function normalizeGenericSlug(productType?: string | null, category?: string | null, description?: string | null): GenericServiceSlug {
+  const pt = (productType || "").toLowerCase().trim();
+  const cat = (category || "").toLowerCase().trim();
+  const desc = (description || "").toLowerCase();
+
+  const knownSlugs: GenericServiceSlug[] = [
+    "seguro-viagem", "passeios", "ingressos", "transfer", "aluguel-carro",
+    "cruzeiro", "trem", "onibus", "bagagem", "assento-conforto",
+    "roteiro-personalizado", "servicos-extras", "pacote", "outros",
+  ];
+  if (knownSlugs.includes(pt as GenericServiceSlug)) return pt as GenericServiceSlug;
+
+  if (pt === "insurance" || /seguro/.test(desc)) return "seguro-viagem";
+  if (pt === "cruise" || /cruzeiro|msc|costa cruzeiros/.test(desc)) return "cruzeiro";
+  if (/transfer|traslado/.test(desc)) return "transfer";
+  if (/aluguel.*(carro|ve[ií]culo)|rent.*a.*car|locadora/.test(desc)) return "aluguel-carro";
+  if (/passeio|city.?tour|tour|excurs[aã]o/.test(desc)) return "passeios";
+  if (/ingresso|ticket|entrada/.test(desc)) return "ingressos";
+  if (/trem|train/.test(desc)) return "trem";
+  if (/[oô]nibus|bus/.test(desc)) return "onibus";
+  if (/bagagem|luggage/.test(desc)) return "bagagem";
+  if (/assento/.test(desc)) return "assento-conforto";
+  if (/roteiro|itiner[aá]rio/.test(desc)) return "roteiro-personalizado";
+  if (cat === "outro" || cat === "outros") return "servicos-extras";
+  return "generico";
+}
+
 function createLongTestVouchers(): VoucherKind[] {
   const passengers = [
     { name: "Maria Carolina Albuquerque Vasconcellos de Andrade", type: "Adulto", doc: "12345678900" },
