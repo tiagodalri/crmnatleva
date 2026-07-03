@@ -9,6 +9,7 @@ import { Loader2, Plane, Hotel, Download, Pencil, Package, Sparkles } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { HotelVoucher, AereoVoucher, GenericVoucher, GENERIC_PRESETS, type HotelVoucherData, type AereoVoucherData, type GenericVoucherData, type GenericServiceSlug } from "./ConfirmationVoucher";
 import { exportAereoVoucherBeta } from "@/lib/pdf-engine/aereoVoucher";
+import { NATLEVA_FOOTER_LINE } from "@/lib/pdf-engine/theme/institutional";
 import { iataToLabel } from "@/lib/iataUtils";
 import { ALL_AIRLINES } from "@/lib/airlinesData";
 import { ScrollArea } from "@/components/ui/scroll-area";
