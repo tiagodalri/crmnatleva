@@ -349,6 +349,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
                     ...cellHead,
                     flex: i === 1 || i === 2 ? 2 : 1,
                     textAlign: i === 0 ? "left" : "center",
+                    justifyContent: i === 0 ? "flex-start" : "center",
                     whiteSpace: "nowrap",
                     fontSize: 12,
                   }}
