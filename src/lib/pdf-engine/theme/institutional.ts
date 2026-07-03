@@ -15,8 +15,6 @@ export const NATLEVA_FOOTER = {
 export const NATLEVA_FOOTER_LINE = `${NATLEVA_FOOTER.phone}   ·   ${NATLEVA_FOOTER.instagram}`;
 
 // ── Paleta institucional (espelha ConfirmationVoucher.tsx) ──────────────────
-// Nota: `rowAlt` propositalmente branco — decisão de design: eliminar zebra
-// em tabelas para linguagem visual mais editorial/premium (Stripe/Airbnb style).
 export const BRAND = {
   green: "#1f5f3a",
   greenDark: "#0b2f1c",
@@ -24,7 +22,7 @@ export const BRAND = {
   textSoft: "#4b5563",
   muted: "#6b7280",
   hairline: "#e5e7eb",
-  rowAlt: "#ffffff",
+  rowAlt: "#f4f7f2",       // linhas alternadas — zebra sutil verde-tint
   border: "#e5e7eb",
   borderLight: "#eef1ec",
   white: "#ffffff",
