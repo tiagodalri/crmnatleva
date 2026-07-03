@@ -16,34 +16,33 @@ import type { IconDraw } from "./index";
 
 // ── Estilos atômicos (única fonte da hierarquia) ────────────────────────────
 export const style = {
-  // H1 — nome do voucher (uma vez por página inicial)
-  H1: { font: { size: 26, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.15, lineHeight: 1.1 } },
+  // H1 — nome do voucher (uma vez por página inicial). Reduzido para 22pt: mais editorial.
+  H1: { font: { size: 22, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.1, lineHeight: 1.1 } },
   // Kicker acima do H1
-  SUB: { font: { size: 7.5, weight: "bold" as const, color: BRAND.green, transform: "uppercase" as const, letterSpacing: 0.6 } },
-  // H2 — cada seção
-  H2: { font: { size: 9.5, weight: "bold" as const, color: BRAND.greenDark, transform: "uppercase" as const, letterSpacing: 0.35 } },
-  BODY: { font: { size: 9.5, color: BRAND.textDark, lineHeight: 1.55 } },
-  BODY_MUTED: { font: { size: 9.5, color: BRAND.textSoft, lineHeight: 1.55 } },
+  SUB: { font: { size: 7.5, weight: "bold" as const, color: BRAND.green, transform: "uppercase" as const, letterSpacing: 0.5 } },
+  // H2 — cada seção. Sem uppercase (mais moderno), verde escuro, peso semibold.
+  H2: { font: { size: 10.5, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.05 } },
+  BODY: { font: { size: 9.5, color: BRAND.textDark, lineHeight: 1.5 } },
+  BODY_MUTED: { font: { size: 9.5, color: BRAND.textSoft, lineHeight: 1.5 } },
   // "Tabular numerals" via courier — usar para códigos, horas, distâncias
   MONO: { font: { size: 9.5, color: BRAND.textDark } },
   CELL: {
-    minHeight: SPACING.lg,
-    padding: [0, SPACING.sm] as [number, number],
+    minHeight: SPACING.md,
+    padding: [SPACING.xs, SPACING.sm] as [number, number],
     font: { size: 9, color: BRAND.textDark },
   } satisfies Style,
   CELL_HEAD: {
     minHeight: SPACING.md,
-    padding: [0, SPACING.sm] as [number, number],
-    font: { size: 7, weight: "bold" as const, color: BRAND.textSoft, transform: "uppercase" as const, letterSpacing: 0.5 },
+    padding: [SPACING.xs, SPACING.sm] as [number, number],
+    font: { size: 7, weight: "bold" as const, color: BRAND.textSoft, transform: "uppercase" as const, letterSpacing: 0.4 },
     border: { color: BRAND.hairline, width: 0.15, sides: ["bottom" as const] },
   } satisfies Style,
 };
 
-// ── Section title (sem barra pesada; apenas H2 + spacer) ────────────────────
+// ── Section title (H2 + hairline acessória à direita) ──────────────────────
 export function sectionTitle(label: string): Node {
   return col({ gap: SPACING.xs }, [
     text(label, { minHeight: 5, ...style.H2 }),
-    spacer(SPACING.xs),
   ]);
 }
 
