@@ -147,6 +147,7 @@ export async function exportGenericVoucherPdf(data: GenericVoucherData, fileName
     renderHeader: (p) => drawInstitutionalHeader(p, logo, {
       label: meta.headerLabel.replace(/^Voucher (de |da |do |dos |das )?/, "Voucher "),
       reservationCode: data.reservation_code,
+      issueDate: `${String(new Date().getDate()).padStart(2, "0")}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${new Date().getFullYear()}`,
     }),
     renderFooter: (p, page, total) => drawInstitutionalFooter(p, page, total),
   });
