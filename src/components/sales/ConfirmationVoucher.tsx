@@ -567,3 +567,211 @@ function Bag({ icon, title, desc, dims }: { icon: React.ReactNode; title: string
     </div>
   );
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// GENERIC VOUCHER — usado para qualquer produto que NÃO seja hotel/aéreo
+// (seguro viagem, passeios, transfer, aluguel de carro, cruzeiro, ingressos,
+// trem, ônibus, roteiros personalizados, serviços extras, etc.)
+// ────────────────────────────────────────────────────────────────────────────
+
+export type GenericServiceSlug =
+  | "seguro-viagem"
+  | "passeios"
+  | "ingressos"
+  | "transfer"
+  | "aluguel-carro"
+  | "cruzeiro"
+  | "trem"
+  | "onibus"
+  | "bagagem"
+  | "assento-conforto"
+  | "roteiro-personalizado"
+  | "servicos-extras"
+  | "pacote"
+  | "outros"
+  | "generico";
+
+export interface GenericVoucherPreset {
+  headerLabel: string;    // "Voucher de Seguro Viagem"
+  title: string;          // "Confirmação de Serviço"
+  sectionTitle: string;   // "Detalhes do Seguro"
+  icon: LucideIcon;
+}
+
+export const GENERIC_PRESETS: Record<GenericServiceSlug, GenericVoucherPreset> = {
+  "seguro-viagem":       { headerLabel: "Voucher de Seguro Viagem",   title: "Confirmação de Cobertura", sectionTitle: "Detalhes da Cobertura", icon: Shield },
+  "passeios":            { headerLabel: "Voucher de Passeio",         title: "Confirmação de Reserva",   sectionTitle: "Detalhes do Passeio",   icon: MapPin },
+  "ingressos":           { headerLabel: "Voucher de Ingresso",        title: "Confirmação de Reserva",   sectionTitle: "Detalhes do Ingresso",  icon: Ticket },
+  "transfer":            { headerLabel: "Voucher de Transfer",        title: "Confirmação de Reserva",   sectionTitle: "Detalhes do Transfer",  icon: Car },
+  "aluguel-carro":       { headerLabel: "Voucher de Aluguel de Carro",title: "Confirmação de Reserva",   sectionTitle: "Detalhes do Aluguel",   icon: Car },
+  "cruzeiro":            { headerLabel: "Voucher de Cruzeiro",        title: "Confirmação de Reserva",   sectionTitle: "Detalhes do Cruzeiro",  icon: Ship },
+  "trem":                { headerLabel: "Voucher de Passagem de Trem",title: "Confirmação de Reserva",   sectionTitle: "Detalhes do Trecho",    icon: Train },
+  "onibus":              { headerLabel: "Voucher de Passagem de Ônibus",title: "Confirmação de Reserva", sectionTitle: "Detalhes do Trecho",    icon: Bus },
+  "bagagem":             { headerLabel: "Voucher de Bagagem Extra",   title: "Confirmação de Serviço",   sectionTitle: "Detalhes do Serviço",   icon: Luggage },
+  "assento-conforto":    { headerLabel: "Voucher de Assento Conforto",title: "Confirmação de Serviço",   sectionTitle: "Detalhes do Serviço",   icon: Sparkles },
+  "roteiro-personalizado":{headerLabel: "Voucher de Roteiro",         title: "Confirmação de Serviço",   sectionTitle: "Detalhes do Roteiro",   icon: MapPin },
+  "servicos-extras":     { headerLabel: "Voucher de Serviço",         title: "Confirmação de Serviço",   sectionTitle: "Detalhes do Serviço",   icon: Sparkles },
+  "pacote":              { headerLabel: "Voucher de Pacote",          title: "Confirmação de Reserva",   sectionTitle: "Detalhes do Pacote",    icon: Package },
+  "outros":              { headerLabel: "Voucher de Serviço",         title: "Confirmação de Serviço",   sectionTitle: "Detalhes do Serviço",   icon: Package },
+  "generico":            { headerLabel: "Voucher de Serviço",         title: "Confirmação de Serviço",   sectionTitle: "Detalhes do Serviço",   icon: Package },
+};
+
+export interface GenericVoucherData {
+  slug: GenericServiceSlug;
+  service_name: string;             // ex.: nome do passeio, seguradora, cia de cruzeiro
+  supplier?: string | null;
+  reservation_code?: string | null;
+  description?: string | null;      // texto livre descrevendo o produto
+  location?: string | null;         // cidade/endereço/porto/local do passeio
+  start_date?: string | null;
+  end_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  category_label?: string | null;   // ex.: "Categoria do carro", "Cabine", "Cobertura"
+  category_value?: string | null;
+  extras?: Array<[string, string]>; // pares customizados adicionais
+  passengers: Array<{ name: string; doc?: string | null; type?: string | null }>;
+  notes?: string | null;
+}
+
+export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherData }>(
+  ({ data }, ref) => {
+    const preset = GENERIC_PRESETS[data.slug] || GENERIC_PRESETS["generico"];
+    const Icon = preset.icon;
+
+    const period = (() => {
+      const a = fmtDateBR(data.start_date);
+      const b = fmtDateBR(data.end_date);
+      if (a !== "—" && b !== "—" && a !== b) return `${a} → ${b}`;
+      if (a !== "—") return a;
+      return "—";
+    })();
+
+    const times = (() => {
+      const a = data.start_time ? fmtTime(data.start_time) : "";
+      const b = data.end_time ? fmtTime(data.end_time) : "";
+      if (a && b) return `${a} · ${b}`;
+      return a || b || "—";
+    })();
+
+    const basics: Array<[string, string]> = [
+      ["Serviço:", data.service_name || preset.headerLabel],
+      ...(data.supplier ? [["Fornecedor:", data.supplier] as [string, string]] : []),
+      ...(data.category_label && data.category_value
+        ? [[`${data.category_label}:`, data.category_value] as [string, string]]
+        : []),
+      ["Código da reserva:", data.reservation_code || "—"],
+      ["Período:", period],
+      ...(times !== "—" ? [["Horário:", times] as [string, string]] : []),
+      ...(data.location ? [["Local:", data.location] as [string, string]] : []),
+      ...(data.extras || []),
+    ];
+
+    return (
+      <div ref={ref} data-voucher-page="true" style={page}>
+        <div data-pdf-section style={{ breakInside: "avoid" }}>
+          {logoBlock}
+          <div style={sub}>{preset.headerLabel}</div>
+          <h1 style={{ ...h1, marginTop: 6 }}>{preset.title}</h1>
+          <div style={headerRule} />
+        </div>
+
+        <div data-pdf-section style={{ breakInside: "avoid" }}>
+          <h2 style={h2}>Informações Básicas</h2>
+          <div style={card}>
+            {basics.map(([k, v], i) => (
+              <div
+                key={`${k}-${i}`}
+                style={{
+                  display: "flex",
+                  background: i % 2 === 0 ? "transparent" : ROW_ALT,
+                  borderBottom: i === basics.length - 1 ? "none" : `1px solid ${BORDER}`,
+                }}
+              >
+                <div style={{ ...labelCell, borderBottom: "none" }} title={k}>{k}</div>
+                <div style={{ ...cell, borderBottom: "none", fontWeight: 600, wordBreak: "break-word" }} title={v}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {data.description && (
+          <div data-pdf-section style={{ breakInside: "avoid" }}>
+            <h2 style={h2}>{preset.sectionTitle}</h2>
+            <div style={card}>
+              <div style={{ ...cell, borderBottom: "none", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                {data.description}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div data-pdf-section style={{ breakInside: "avoid" }}>
+          <h2 style={h2}>Beneficiários</h2>
+          <div style={card}>
+            <div style={{ display: "flex" }}>
+              <div style={{ ...cellHead, flex: 2 }}>Nome completo:</div>
+              <div style={{ ...cellHead, flex: 1 }}>Tipo:</div>
+              <div style={{ ...cellHead, flex: 1 }}>Documento:</div>
+            </div>
+            {data.passengers.length === 0 ? (
+              <div style={{ ...cell, borderBottom: "none", color: "#6b7280" }}>
+                Nenhum beneficiário cadastrado.
+              </div>
+            ) : (
+              data.passengers.map((p, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    background: i % 2 === 0 ? "transparent" : ROW_ALT,
+                    borderBottom: i === data.passengers.length - 1 ? "none" : `1px solid ${BORDER}`,
+                  }}
+                >
+                  <div style={{ ...cell, ...oneLine, flex: 2, borderBottom: "none" }} title={p.name}>{p.name}</div>
+                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }}>{p.type || "Adulto"}</div>
+                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }} title={p.doc || "—"}>{p.doc || "—"}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div data-pdf-section style={{ breakInside: "avoid" }}>
+          <h2 style={h2}>Informações importantes</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 4 }}>
+            <InfoLine
+              icon={<Icon size={18} color={GREEN} strokeWidth={1.8} />}
+              title="Sobre este serviço"
+              lines={[
+                data.notes ||
+                  "Apresente este voucher ao fornecedor no momento da utilização do serviço. Chegue com antecedência ao ponto de encontro/embarque.",
+              ]}
+            />
+            <InfoLine
+              icon={<AlertCircle size={18} color={GREEN} strokeWidth={1.8} />}
+              title="Documentação"
+              lines={["Tenha em mãos um documento oficial com foto e este voucher (impresso ou digital)."]}
+            />
+            <InfoLine
+              icon={<MessageCircle size={18} color={GREEN} strokeWidth={1.8} />}
+              title="Suporte"
+              lines={["Em caso de dúvidas ou imprevistos, entre em contato com a NatLeva pelo WhatsApp."]}
+            />
+          </div>
+        </div>
+
+        <div data-pdf-section style={{ breakInside: "avoid" }}>
+          <h2 style={h2}>Alterações e Cancelamento</h2>
+          <p style={paragraph}>
+            Solicitações de alteração ou cancelamento estão sujeitas à disponibilidade e às políticas do
+            fornecedor deste serviço. Eventuais custos, taxas ou penalidades aplicáveis são de
+            responsabilidade do cliente.
+          </p>
+        </div>
+      </div>
+    );
+  },
+);
+GenericVoucher.displayName = "GenericVoucher";
+
