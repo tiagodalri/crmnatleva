@@ -33,7 +33,8 @@ interface Props {
 
 type VoucherKind =
   | { type: "aereo"; id: "aereo"; label: string; data: AereoVoucherData }
-  | { type: "hotel"; id: string; label: string; data: HotelVoucherData };
+  | { type: "hotel"; id: string; label: string; data: HotelVoucherData }
+  | { type: "generic"; id: string; label: string; data: GenericVoucherData };
 
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
