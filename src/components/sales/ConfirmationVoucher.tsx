@@ -81,8 +81,6 @@ const card: CSSProperties = {
 };
 const oneLine: CSSProperties = {
   minWidth: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
 const ROW_H = 44;
