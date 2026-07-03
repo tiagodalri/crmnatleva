@@ -439,7 +439,8 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         pageIndex += 1;
       }
 
-      const fileName = `${current.type === "aereo" ? "Voucher-Aereo" : "Voucher-Hotel"}_${testMode ? "Teste-A4" : clientFileName}.pdf`;
+      const prefix = current.type === "aereo" ? "Voucher-Aereo" : current.type === "hotel" ? "Voucher-Hotel" : `Voucher-${(current.data as GenericVoucherData).slug || "Servico"}`;
+      const fileName = `${prefix}_${testMode ? "Teste-A4" : clientFileName}.pdf`;
       pdf.save(fileName);
       toast({ title: "PDF gerado", description: fileName });
     } catch (e) {
