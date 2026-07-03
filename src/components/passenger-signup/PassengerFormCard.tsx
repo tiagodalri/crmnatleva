@@ -13,6 +13,7 @@ import {
   Camera, Upload, X, Trash2, User,
 } from "lucide-react";
 import { DatePartsInput } from "@/components/ui/date-parts-input";
+import { normalizePassengerName } from "@/lib/nameUtils";
 
 export type PassengerFormState = {
   full_name: string;
@@ -238,7 +239,7 @@ export default function PassengerFormCard({ index, value, onChange, onRemove, ca
           </div>
           <h3 className="font-display text-base sm:text-lg">
             Passageiro {index + 1}
-            {value.full_name ? <span className="text-muted-foreground font-sans text-sm font-normal"> · {value.full_name}</span> : null}
+            {value.full_name ? <span className="text-muted-foreground font-sans text-sm font-normal"> · {normalizePassengerName(value.full_name)}</span> : null}
           </h3>
         </div>
         {canRemove && onRemove && (
@@ -257,7 +258,7 @@ export default function PassengerFormCard({ index, value, onChange, onRemove, ca
           </div>
           <div className="space-y-2">
             <Label>Nome completo *</Label>
-            <Input value={value.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))} required />
+            <Input value={value.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))} onBlur={(e) => setForm(f => ({ ...f, full_name: normalizePassengerName(e.target.value) }))} required />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
