@@ -322,8 +322,13 @@ export default function ProposalEditor() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAutoSavedSnapshotRef = useRef<string>("");
   const promotedNewProposalRef = useRef(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "offline">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Retry automático com backoff quando o autosave falha (queda de internet, timeout etc.)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryAttemptsRef = useRef(0);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [localDraftAt, setLocalDraftAt] = useState<Date | null>(null);
 
   // ── Debounce para o preview ─────────────────────────────────────────
   // Form e items são atualizados em todo keystroke, mas o preview à direita
