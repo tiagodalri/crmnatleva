@@ -144,13 +144,12 @@ export function drawInstitutionalFooter(pdf: Pdf, pageNumber: number, totalPages
   const [sr, sg, sb] = hexToRgbLocal(BRAND.textSoft);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(7.5);
-  pdf.setCharSpace(0.15);
+  pdf.setCharSpace(0);
   pdf.setTextColor(sr, sg, sb);
   pdf.text(NATLEVA_FOOTER.phone, leftX, baselineY, { align: "left", baseline: "alphabetic" });
   pdf.setFont("helvetica", "bold");
   pdf.text(NATLEVA_FOOTER.instagram, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
   pdf.setFont("helvetica", "normal");
-  pdf.setCharSpace(0);
   if (totalPages > 1) {
     pdf.text(`${pageNumber} / ${totalPages}`, rightX, baselineY, { align: "right", baseline: "alphabetic" });
   }
