@@ -107,14 +107,14 @@ export function drawInstitutionalHeader(pdf: Pdf, logo: LogoAsset | null, meta: 
     }
   }
 
-  // Label do voucher — canto direito, uppercase, verde escuro
+  // Label do voucher — canto direito, uppercase, verde escuro (tracking via thin-space)
   const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(8.5);
-  pdf.setCharSpace(0.4);
-  pdf.setTextColor(dr, dg, db);
-  pdf.text(meta.label.toUpperCase(), rightX, topY + 4, { align: "right", baseline: "alphabetic" });
   pdf.setCharSpace(0);
+  pdf.setTextColor(dr, dg, db);
+  const trackedLabel = Array.from(meta.label.toUpperCase()).join("\u2009\u2009");
+  pdf.text(trackedLabel, rightX, topY + 4, { align: "right", baseline: "alphabetic" });
 
   // Segunda linha: código de reserva (opcional) em números tabulares
   if (meta.reservationCode) {
