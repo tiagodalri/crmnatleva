@@ -17,7 +17,11 @@ import { cn } from "@/lib/utils";
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
 const PREVIEW_SCALE = 0.78;
-const PDF_CONTINUATION_MARGIN_PX = 56;
+// Margens físicas reais no PDF (em mm) — o conteúdo é renderizado DENTRO dessa área útil.
+const PDF_SIDE_MARGIN_MM = 10;
+const PDF_TOP_MARGIN_MM = 10;
+const PDF_BOTTOM_MARGIN_MM = 12;
+const PDF_CONTINUATION_TOP_PAD_PX = 24; // respiro no topo de páginas 2+
 
 type DbRecord = Record<string, unknown>;
 
