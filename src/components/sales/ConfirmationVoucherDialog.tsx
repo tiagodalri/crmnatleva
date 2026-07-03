@@ -295,19 +295,19 @@ function drawPdfFooter(pdf: any, pageNumber: number, totalPages: number) {
   pdf.setLineWidth(0.25);
   pdf.line(PDF_SIDE_MARGIN_MM, PDF_FOOTER_LINE_MM, rightX, PDF_FOOTER_LINE_MM);
 
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(8);
-  pdf.setTextColor(BRAND_GREEN_DARK);
-  pdf.text("NatLeva Viagens", PDF_SIDE_MARGIN_MM, PDF_FOOTER_TEXT_MM);
-
+  // Footer institucional — fonte única de verdade, centralizado
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7.5);
-  pdf.setTextColor(BRAND_MUTED);
-  pdf.text("natleva.com  ·  @natleva  ·  Atendimento pelo WhatsApp", PDF_SIDE_MARGIN_MM + 30, PDF_FOOTER_TEXT_MM);
-
-  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setCharSpace(0);
   pdf.setTextColor(BRAND_GREEN_DARK);
-  pdf.text(`Página ${pageNumber} de ${totalPages}`, rightX, PDF_FOOTER_TEXT_MM, { align: "right" });
+  pdf.text(NATLEVA_FOOTER_LINE, pageWidth / 2, PDF_FOOTER_TEXT_MM, { align: "center", baseline: "alphabetic" });
+
+  // Paginação discreta à direita (não conflita com o footer central)
+  if (totalPages > 1) {
+    pdf.setFontSize(7);
+    pdf.setTextColor(BRAND_MUTED);
+    pdf.text(`${pageNumber} / ${totalPages}`, rightX, PDF_FOOTER_TEXT_MM, { align: "right", baseline: "alphabetic" });
+  }
 }
 
 
