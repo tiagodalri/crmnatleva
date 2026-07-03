@@ -223,7 +223,7 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Informações importantes</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 4 }}>
             <InfoLine
               icon={<Clock size={18} color={GREEN} strokeWidth={1.8} />}
               title="Horários"
