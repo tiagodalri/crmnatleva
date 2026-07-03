@@ -124,13 +124,12 @@ const tableRow = (background: string, borderBottom: string): CSSProperties => ({
 const cellInner: CSSProperties = {
   display: "block",
   minWidth: 0,
-  lineHeight: 1.4,
-  paddingTop: 2,
-  paddingBottom: 2,
+  lineHeight: 1.45,
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
   overflow: "hidden",
   width: "100%",
+
 };
 
 const centeredCellInner: CSSProperties = {
