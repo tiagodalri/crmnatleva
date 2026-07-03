@@ -85,9 +85,13 @@ const oneLine: CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 };
+const ROW_H = 44;
+const HEAD_H = 40;
+
 const cellHead: CSSProperties = {
   padding: "0 16px",
-  minHeight: 40,
+  height: HEAD_H,
+  lineHeight: `${HEAD_H}px`,
   fontSize: 11,
   fontWeight: 700,
   color: GREEN_DARK,
@@ -97,37 +101,36 @@ const cellHead: CSSProperties = {
   boxSizing: "border-box",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  display: "flex",
-  alignItems: "center",
-  lineHeight: 1.25,
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 };
 const cell: CSSProperties = {
   padding: "0 16px",
-  minHeight: 44,
+  height: ROW_H,
+  lineHeight: `${ROW_H}px`,
   fontSize: 12.5,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
-  lineHeight: 1.35,
-  display: "flex",
-  alignItems: "center",
+  overflow: "hidden",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
 const tableRow = (background: string, borderBottom: string): CSSProperties => ({
   display: "grid",
-  alignItems: "stretch",
   background,
   borderBottom,
 });
 
+// cellInner mantém compatibilidade com chamadas existentes: apenas passa-through de estilo.
 const cellInner: CSSProperties = {
-  width: "100%",
+  display: "block",
   minWidth: 0,
   overflow: "hidden",
   textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 };
-
 
 const centeredCellInner: CSSProperties = {
   ...cellInner,
@@ -146,6 +149,7 @@ const centeredHeaderCellInner: CSSProperties = {
 const voucherPageStyle = (_exportMode?: boolean): CSSProperties => ({
   ...page,
 });
+
 
 
 function renderPassengerName(name?: string | null): string {
