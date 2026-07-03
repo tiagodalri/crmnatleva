@@ -489,6 +489,29 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
     setDraftVouchers((items) => items.map((item) => (item.id === current.id ? updater(item) : item)));
   };
 
+  const handleExportEngine = async () => {
+    if (!current) return;
+    setExporting(true);
+    try {
+      const prefix = current.type === "aereo" ? "Voucher-Aereo" : current.type === "hotel" ? "Voucher-Hotel" : `Voucher-${(current.data as GenericVoucherData).slug || "Servico"}`;
+      const fileName = `${prefix}_${testMode ? "Teste-A4" : clientFileName}.pdf`;
+      if (current.type === "aereo") {
+        await exportAereoVoucherPdf(current.data, fileName);
+      } else if (current.type === "hotel") {
+        await exportHotelVoucherPdf(current.data, fileName);
+      } else {
+        await exportGenericVoucherPdf(current.data, fileName);
+      }
+      toast({ title: "PDF gerado", description: fileName });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao gerar PDF pela engine.";
+      toast({ title: "Erro ao gerar PDF", description: msg, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
   const handleExport = async () => {
     if (!current || !exportRef.current) return;
     setExporting(true);
