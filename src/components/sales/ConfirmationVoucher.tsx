@@ -29,35 +29,53 @@ const baseFont = {
 
 const page: CSSProperties = {
   ...baseFont,
-  width: 794, // ~ A4 @ 96dpi · conteúdo já no tamanho útil (margem é aplicada no PDF)
-  padding: "20px 28px 28px",
+  width: 794,
+  padding: "32px 40px 40px",
   background: SOFT_BG,
   boxSizing: "border-box",
 };
 
 const h1: CSSProperties = {
   fontFamily: baseFont.fontFamily,
-  fontSize: 38,
+  fontSize: 34,
   fontWeight: 800,
-  lineHeight: 1.08,
+  lineHeight: 1.15,
   margin: 0,
   color: GREEN_DARK,
-  letterSpacing: 0,
+  letterSpacing: "-0.01em",
 };
-const sub: CSSProperties = { fontSize: 14, fontWeight: 700, color: GREEN, marginTop: 4 };
+const sub: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: GREEN,
+  marginTop: 8,
+  textTransform: "uppercase",
+  letterSpacing: "0.12em",
+};
+const headerRule: CSSProperties = {
+  height: 3,
+  width: 56,
+  background: GREEN,
+  borderRadius: 2,
+  marginTop: 18,
+  marginBottom: 4,
+};
 const h2: CSSProperties = {
   fontFamily: baseFont.fontFamily,
-  fontSize: 22,
-  fontWeight: 800,
-  lineHeight: 1.2,
+  fontSize: 16,
+  fontWeight: 700,
+  lineHeight: 1.25,
   color: GREEN_DARK,
-  marginTop: 28,
-  marginBottom: 10,
+  marginTop: 34,
+  marginBottom: 14,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
 };
 const card: CSSProperties = {
   border: `1px solid ${BORDER}`,
   borderRadius: 10,
   overflow: "hidden",
+  background: SOFT_BG,
 };
 const oneLine: CSSProperties = {
   minWidth: 0,
@@ -66,26 +84,29 @@ const oneLine: CSSProperties = {
   whiteSpace: "nowrap",
 };
 const cellHead: CSSProperties = {
-  padding: "12px 16px",
-  fontSize: 13,
+  padding: "11px 16px",
+  fontSize: 11,
   fontWeight: 700,
   color: GREEN_DARK,
   background: ROW_ALT,
   textAlign: "left",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
 };
 const cell: CSSProperties = {
-  padding: "12px 16px",
-  fontSize: 13,
+  padding: "13px 16px",
+  fontSize: 12.5,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
+  lineHeight: 1.5,
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
 const logoBlock = (
-  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 28 }}>
+  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
     <img src={logoNatleva} alt="NatLeva" style={{ height: 38, objectFit: "contain" }} crossOrigin="anonymous" />
   </div>
 );
@@ -130,9 +151,11 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
       <div ref={ref} data-voucher-page="true" style={page}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
-          <h1 style={h1}>Confirmação de Reserva</h1>
           <div style={sub}>Voucher de Hospedagem</div>
+          <h1 style={{ ...h1, marginTop: 6 }}>Confirmação de Reserva</h1>
+          <div style={headerRule} />
         </div>
+
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Informações Básicas</h2>
@@ -254,9 +277,11 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
       <div ref={ref} data-voucher-page="true" style={page}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
-          <h1 style={h1}>Confirmação de Reserva</h1>
-          <div style={sub}>Voucher de viagem</div>
+          <div style={sub}>Voucher de Viagem</div>
+          <h1 style={{ ...h1, marginTop: 6 }}>Confirmação de Reserva</h1>
+          <div style={headerRule} />
         </div>
+
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Informações Básicas</h2>
