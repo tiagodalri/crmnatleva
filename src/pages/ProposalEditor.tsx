@@ -1452,17 +1452,27 @@ export default function ProposalEditor() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Indicador de autosave */}
+          {/* Indicador de autosave · sempre tranquilizador (rascunho local nunca se perde) */}
           {!isNew && form.title && (
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground mr-1">
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground mr-1" title={localDraftAt ? `Rascunho local: ${localDraftAt.toLocaleTimeString("pt-BR")}` : undefined}>
               {autoSaveStatus === "saving" && (
                 <><Loader2 className="w-3 h-3 animate-spin" /> Salvando...</>
               )}
               {autoSaveStatus === "saved" && lastSavedAt && (
                 <><Check className="w-3 h-3 text-emerald-600" /> Salvo {lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</>
               )}
+              {autoSaveStatus === "offline" && (
+                <span className="flex items-center gap-1 text-amber-600" title="Sua internet caiu · o rascunho está salvo neste dispositivo e será enviado automaticamente quando a conexão voltar.">
+                  <WifiOff className="w-3 h-3" /> Sem conexão · rascunho salvo aqui
+                </span>
+              )}
               {autoSaveStatus === "error" && (
-                <span className="text-destructive">Erro ao salvar · tente novamente</span>
+                <span className="flex items-center gap-1 text-amber-600" title="Falha ao gravar no servidor · o rascunho está salvo neste dispositivo e vamos tentar de novo automaticamente.">
+                  <RefreshCw className="w-3 h-3" /> Retentando · rascunho salvo aqui
+                </span>
+              )}
+              {autoSaveStatus === "idle" && localDraftAt && (
+                <><Check className="w-3 h-3 text-muted-foreground" /> Rascunho local {localDraftAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</>
               )}
             </div>
           )}
