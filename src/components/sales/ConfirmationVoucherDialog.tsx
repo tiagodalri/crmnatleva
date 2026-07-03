@@ -248,6 +248,51 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         });
       });
 
+      // Vouchers genéricos: qualquer cost_item que não seja aéreo nem hospedagem
+      // (seguro, passeio, transfer, cruzeiro, aluguel de carro, ingressos, etc.)
+      const paxForGeneric = passengersRaw.map((p) => ({
+        name: asString(p.full_name) || "—",
+        type: inferPaxType(asString(p.birth_date)),
+        doc: asString(p.passport_number) || asString(p.cpf) || asString(p.rg),
+      }));
+
+      const genericItems = costItems.filter((c) => {
+        const cat = asString(c.category);
+        const pt = asString(c.product_type);
+        // exclui aéreo e hotel (já geraram vouchers dedicados)
+        if (cat === "aereo") return false;
+        if (cat === "hotel" || pt === "hotel" || pt === "hospedagem") return false;
+        return true;
+      });
+
+      genericItems.forEach((item, i) => {
+        const rawDesc = asString(item.description) || "";
+        const [firstLine, ...rest] = rawDesc.split("·").map((s) => s.trim()).filter(Boolean);
+        const serviceName = firstLine || "Serviço";
+        const detail = rest.join(" · ");
+        const slug = normalizeGenericSlug(asString(item.product_type), asString(item.category), rawDesc);
+        const preset = GENERIC_PRESETS[slug];
+
+        out.push({
+          type: "generic",
+          id: `generic-${asString(item.id) || i}`,
+          label: `${preset.headerLabel} · ${serviceName}`,
+          data: {
+            slug,
+            service_name: serviceName,
+            supplier: null,
+            reservation_code: asString(item.reservation_code),
+            description: detail || (rawDesc && rawDesc !== serviceName ? rawDesc : null),
+            location: null,
+            start_date: asString(sale.departure_date) || asString(sale.hotel_checkin_date) || null,
+            end_date: asString(sale.return_date) || asString(sale.hotel_checkout_date) || null,
+            passengers: paxForGeneric,
+            notes: null,
+          },
+        });
+      });
+
+
       setRealVouchers(out);
       setDraftVouchers(out);
       setSelectedId(out[0]?.id || null);
