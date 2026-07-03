@@ -582,7 +582,7 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
                 <p className="text-xs font-semibold text-foreground">Passageiro {i + 1}</p>
                 <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removePax(i)}>Remover</Button>
               </div>
-              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: normalizePassengerName(e.target.value) })} /></Field>
+              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: e.target.value })} onBlur={(e) => updatePax(i, { name: normalizePassengerName(e.target.value) })} /></Field>
               <Field label="Tipo de passageiro"><Input value={p.type || ""} placeholder="Adulto / Criança / Bebê" onChange={(e) => updatePax(i, { type: e.target.value })} /></Field>
               <Field label="Documento"><Input value={p.doc || ""} onChange={(e) => updatePax(i, { doc: e.target.value })} /></Field>
             </div>
@@ -648,7 +648,7 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
                 <p className="text-xs font-semibold text-foreground">Beneficiário {i + 1}</p>
                 <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removePax(i)}>Remover</Button>
               </div>
-              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: normalizePassengerName(e.target.value) })} /></Field>
+              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: e.target.value })} onBlur={(e) => updatePax(i, { name: normalizePassengerName(e.target.value) })} /></Field>
               <Field label="Documento"><Input value={p.doc || ""} onChange={(e) => updatePax(i, { doc: e.target.value })} /></Field>
             </div>
           ))}
@@ -685,7 +685,7 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
               <p className="text-xs font-semibold text-foreground">Hóspede {i + 1}</p>
               <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removeGuest(i)}>Remover</Button>
             </div>
-            <Field label="Nome completo"><Input value={g.name || ""} onChange={(e) => updateGuest(i, { name: normalizePassengerName(e.target.value) })} /></Field>
+            <Field label="Nome completo"><Input value={g.name || ""} onChange={(e) => updateGuest(i, { name: e.target.value })} onBlur={(e) => updateGuest(i, { name: normalizePassengerName(e.target.value) })} /></Field>
             <Field label="Documento"><Input value={g.doc || ""} onChange={(e) => updateGuest(i, { doc: e.target.value })} /></Field>
           </div>
         ))}
