@@ -471,10 +471,6 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
               <DialogDescription>Valide o voucher em A4, ajuste campos se necessário e baixe o PDF final.</DialogDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setTestMode((v) => !v); setSelectedId("aereo"); }}>
-                {testMode ? <Database className="w-4 h-4 mr-2" /> : <FlaskConical className="w-4 h-4 mr-2" />}
-                {testMode ? "Dados reais" : "Teste A4"}
-              </Button>
               <Button variant={editMode ? "default" : "outline"} size="sm" onClick={() => setEditMode((v) => !v)} disabled={testMode || !current}>
                 <Pencil className="w-4 h-4 mr-2" /> Editar campos
               </Button>
