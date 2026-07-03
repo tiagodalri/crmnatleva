@@ -110,39 +110,35 @@ export function drawInstitutionalHeader(pdf: Pdf, logo: LogoAsset | null, meta: 
   // Label do voucher — canto direito, uppercase, verde escuro
   const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
-  pdf.setCharSpace(0.3);
+  pdf.setFontSize(8.5);
+  pdf.setCharSpace(0.4);
   pdf.setTextColor(dr, dg, db);
   pdf.text(meta.label.toUpperCase(), rightX, topY + 4, { align: "right", baseline: "alphabetic" });
   pdf.setCharSpace(0);
 
-  // Segunda linha: código de reserva (opcional)
+  // Segunda linha: código de reserva (opcional) em números tabulares
   if (meta.reservationCode) {
-    const [mr, mg, mb] = hexToRgbLocal(BRAND.muted);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
+    const [mr, mg, mb] = hexToRgbLocal(BRAND.textSoft);
+    pdf.setFont("courier", "normal");
+    pdf.setFontSize(8.5);
     pdf.setTextColor(mr, mg, mb);
-    pdf.text(`Reserva ${meta.reservationCode}`, rightX, topY + 9, { align: "right", baseline: "alphabetic" });
+    pdf.text(meta.reservationCode.toUpperCase(), rightX, topY + 8.8, { align: "right", baseline: "alphabetic" });
   }
-
-  // Divisória sutil (verde da marca)
-  const [gr, gg, gb] = hexToRgbLocal(BRAND.green);
-  pdf.setDrawColor(gr, gg, gb);
-  pdf.setLineWidth(0.35);
-  pdf.line(PAGE.marginMm, topY + 12, rightX, topY + 12);
+  // → Sem linha divisória verde. Peso visual do header vem só da tipografia.
 }
 
 // ── Footer institucional ────────────────────────────────────────────────────
 export function drawInstitutionalFooter(pdf: Pdf, pageNumber: number, totalPages: number) {
   const rightX = PAGE.widthMm - PAGE.marginMm;
+  const leftX = PAGE.marginMm;
   const dividerY = PAGE.heightMm - PAGE.footerMm + 2;
   const baselineY = PAGE.heightMm - 6;
 
-  // Divisória
-  const [bl_r, bl_g, bl_b] = hexToRgbLocal(BRAND.borderLight);
+  // Hairline suave
+  const [bl_r, bl_g, bl_b] = hexToRgbLocal(BRAND.hairline);
   pdf.setDrawColor(bl_r, bl_g, bl_b);
-  pdf.setLineWidth(0.25);
-  pdf.line(PAGE.marginMm, dividerY, rightX, dividerY);
+  pdf.setLineWidth(0.2);
+  pdf.line(leftX, dividerY, rightX, dividerY);
 
   // Texto central (fonte única de verdade)
   const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
