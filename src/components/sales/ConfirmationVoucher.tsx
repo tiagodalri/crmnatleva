@@ -534,24 +534,59 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <div
             style={{
-              marginTop: 16,
+              marginTop: 24,
               background: "#eaf3ec",
               border: `1px solid ${BORDER}`,
               borderRadius: 10,
-              padding: "18px 22px",
+              padding: "22px 26px 24px",
             }}
           >
-            <div style={{ ...h2, marginTop: 0 }}>Política de No-Show</div>
-            <p style={{ ...paragraph, marginTop: 6 }}>
+            <div
+              style={{
+                ...h2,
+                marginTop: 0,
+                marginBottom: 14,
+              }}
+            >
+              Política de No-Show
+            </div>
+            <p style={{ ...paragraph, margin: 0 }}>
               Em caso de não comparecimento (no-show), a Agência não efetuará reembolsos e não será
               responsável por quaisquer custos ou despesas adicionais incorridas pelo cliente devido a
               esse não comparecimento. Em caso de não comparecimento, as incidências são:
             </p>
-            <ul style={{ margin: "8px 0 0 20px", padding: 0, color: "#1f2937", fontSize: 13, lineHeight: 1.7 }}>
-              <li>Perda total do valor pago</li>
-              <li>Cancelamento automático da reserva</li>
-              <li>Impossibilidade de remarcação</li>
-            </ul>
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+              {[
+                "Perda total do valor pago",
+                "Cancelamento automático da reserva",
+                "Impossibilidade de remarcação",
+              ].map((item) => (
+                <div
+                  key={item}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: "#1f2937",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 5,
+                      height: 5,
+                      borderRadius: 999,
+                      background: GREEN,
+                      marginTop: 8,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
