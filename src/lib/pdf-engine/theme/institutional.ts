@@ -117,7 +117,7 @@ export function drawInstitutionalHeader(pdf: Pdf, logo: LogoAsset | null, meta: 
   const sepX = logoRightEdge + 3.5;
   pdf.setDrawColor(hr, hg, hb);
   pdf.setLineWidth(0.25);
-  pdf.line(sepX, topY + 0.5, sepX, topY + logo!.heightMm - 0.5 || topY + 8);
+  pdf.line(sepX, topY + 0.5, sepX, topY + (logo?.heightMm ?? 9) - 0.5);
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
