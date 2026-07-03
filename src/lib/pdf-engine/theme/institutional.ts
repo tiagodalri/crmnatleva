@@ -137,22 +137,18 @@ export function drawInstitutionalFooter(pdf: Pdf, pageNumber: number, totalPages
   const dividerY = PAGE.heightMm - PAGE.footerMm + 2;
   const baselineY = PAGE.heightMm - 6;
 
-  // Hairline suave
   const [bl_r, bl_g, bl_b] = hexToRgbLocal(BRAND.hairline);
   pdf.setDrawColor(bl_r, bl_g, bl_b);
   pdf.setLineWidth(0.2);
   pdf.line(leftX, dividerY, rightX, dividerY);
 
-  // Footer 3 colunas: telefone à esquerda · handle ao centro · página à direita
   const [sr, sg, sb] = hexToRgbLocal(BRAND.textSoft);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7.5);
+  pdf.setFontSize(8);
   pdf.setCharSpace(0);
   pdf.setTextColor(sr, sg, sb);
-  pdf.text(NATLEVA_FOOTER.phone, leftX, baselineY, { align: "left", baseline: "alphabetic" });
-  pdf.setFont("helvetica", "bold");
-  pdf.text(NATLEVA_FOOTER.instagram, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
-  pdf.setFont("helvetica", "normal");
+  pdf.text(NATLEVA_FOOTER_LINE, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
+
   if (totalPages > 1) {
     pdf.text(`${pageNumber} / ${totalPages}`, rightX, baselineY, { align: "right", baseline: "alphabetic" });
   }
