@@ -187,6 +187,7 @@ export async function exportAereoVoucherPdf(data: AereoVoucherData, fileName: st
     renderHeader: (p) => drawInstitutionalHeader(p, logo, {
       label: "Voucher Aéreo",
       reservationCode: data.reservation_code,
+      issueDate: `${String(new Date().getDate()).padStart(2, "0")}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${new Date().getFullYear()}`,
     }),
     renderFooter: (p, page, total) => drawInstitutionalFooter(p, page, total),
   });
