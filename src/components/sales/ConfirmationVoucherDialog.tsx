@@ -374,11 +374,12 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
 
       const rootWidth = Math.round(root.getBoundingClientRect().width || A4_WIDTH_PX);
       const rootHeight = Math.ceil(root.scrollHeight || root.getBoundingClientRect().height || A4_HEIGHT_PX);
-      const captureScale = 2;
+      // Captura em 3x → ~300 DPI equivalente, texto muito mais nítido no PDF final.
+      const captureScale = 3;
       const minSlicePx = Math.round(160 * captureScale);
 
       // 1) Captura única do voucher inteiro no mesmo grid de pixels do preview.
-      const canvas = await html2canvas(root, {
+      const bodyCanvas = await html2canvas(root, {
         scale: captureScale,
         useCORS: true,
         backgroundColor: "#ffffff",
@@ -391,73 +392,94 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         scrollY: 0,
       });
 
-      // Mapeia px do canvas para a ÁREA ÚTIL do PDF (não a folha inteira).
+      // 2) Zonas físicas da folha A4 (mm). O body do voucher só desenha entre
+      // PDF_BODY_TOP_MM e PDF_BODY_BOTTOM_MM; header e footer vetoriais ocupam
+      // as áreas reservadas em toda página.
       const innerWidthMm = 210 - 2 * PDF_SIDE_MARGIN_MM;
-      const innerHeightMm = 297 - PDF_TOP_MARGIN_MM - PDF_BOTTOM_MARGIN_MM;
-      const pxPerMm = canvas.width / innerWidthMm;
-      const pdfPageHeightPx = Math.round(innerHeightMm * pxPerMm);
+      const bodyHeightMm = PDF_BODY_BOTTOM_MM - PDF_BODY_TOP_MM;
+      const pxPerMm = bodyCanvas.width / innerWidthMm;
+      const pdfBodyPxCapacity = Math.round(bodyHeightMm * pxPerMm);
 
-      // 2) Mapeia pontos de quebra naturais = topo de cada [data-pdf-section]
+      // 3) Pontos de quebra naturais = topo de cada [data-pdf-section] no canvas.
       const rootRect = root.getBoundingClientRect();
       const sectionTops = Array.from(
         root.querySelectorAll<HTMLElement>("[data-pdf-section]"),
       )
-        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * (canvas.height / rootHeight)))
+        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * (bodyCanvas.height / rootHeight)))
         .filter((y) => y > 0);
-      const breaks = Array.from(new Set([0, ...sectionTops, canvas.height])).sort((a, b) => a - b);
+      const breaks = Array.from(new Set([0, ...sectionTops, bodyCanvas.height])).sort((a, b) => a - b);
 
-      // 3) Cada página do PDF respeita margens físicas reais. O conteúdo é
-      // desenhado apenas na área útil (innerWidthMm × innerHeightMm).
-      const pdf = new jsPDF("p", "mm", "a4", true);
+      // 4) Fatia o canvas em N buffers (um por página), respeitando quebras.
+      type PageBuffer = { dataUrl: string; heightMm: number };
+      const pageBuffers: PageBuffer[] = [];
       let pageStart = 0;
-      let firstPage = true;
       let pageIndex = 0;
 
-      while (pageStart < canvas.height - 1) {
+      while (pageStart < bodyCanvas.height - 1) {
         const topPad = pageIndex === 0 ? 0 : PDF_CONTINUATION_TOP_PAD_PX;
-        const pageCapacityPx = pdfPageHeightPx - topPad;
+        const pageCapacityPx = pdfBodyPxCapacity - topPad;
         const idealEnd = pageStart + pageCapacityPx;
         let pageEnd: number;
 
-        if (idealEnd >= canvas.height) {
-          pageEnd = canvas.height;
+        if (idealEnd >= bodyCanvas.height) {
+          pageEnd = bodyCanvas.height;
         } else {
           // Maior ponto de quebra que cabe na página atual
           const candidate = [...breaks]
             .reverse()
             .find((bp) => bp > pageStart + minSlicePx && bp <= idealEnd);
-          if (candidate) {
-            pageEnd = candidate;
-          } else {
-            // Fallback duro: corta no ideal (seção maior que a página inteira)
-            pageEnd = Math.floor(idealEnd);
-          }
+          pageEnd = candidate ?? Math.floor(idealEnd);
         }
 
         const sliceH = pageEnd - pageStart;
         const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = pdfPageHeightPx;
+        pageCanvas.width = bodyCanvas.width;
+        // Buffer apenas com o conteúdo real (sem padding) — o topPad vira
+        // margem no momento de posicionar no PDF, sem inflar o buffer.
+        pageCanvas.height = sliceH + topPad;
         const ctx = pageCanvas.getContext("2d")!;
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, pageStart, canvas.width, sliceH, 0, topPad, canvas.width, sliceH);
-        const pageData = pageCanvas.toDataURL("image/png");
+        ctx.drawImage(bodyCanvas, 0, pageStart, bodyCanvas.width, sliceH, 0, topPad, bodyCanvas.width, sliceH);
 
-        if (!firstPage) pdf.addPage();
+        pageBuffers.push({
+          dataUrl: pageCanvas.toDataURL("image/png"),
+          heightMm: (sliceH + topPad) / pxPerMm,
+        });
+        pageStart = pageEnd;
+        pageIndex += 1;
+      }
+
+      // 5) Carrega logo como dataURL para o header vetorial de cada página.
+      const logoAsset = await loadLogoAsset();
+
+      // 6) Metadados do voucher para o header institucional.
+      const headerMeta = buildHeaderMeta(current);
+      const totalPages = Math.max(1, pageBuffers.length);
+
+      // 7) Monta o PDF: em cada página desenha header vetorial → body (imagem) → footer vetorial.
+      const pdf = new jsPDF("p", "mm", "a4", true);
+      pdf.setProperties({
+        title: `${headerMeta.label} · NatLeva Viagens`,
+        subject: headerMeta.label,
+        author: "NatLeva Viagens",
+        creator: "NatLeva Viagens",
+      });
+
+      for (let i = 0; i < pageBuffers.length; i++) {
+        if (i > 0) pdf.addPage();
+        drawPdfHeader(pdf, logoAsset, headerMeta);
         pdf.addImage(
-          pageData,
+          pageBuffers[i].dataUrl,
           "PNG",
           PDF_SIDE_MARGIN_MM,
-          PDF_TOP_MARGIN_MM,
+          PDF_BODY_TOP_MM,
           innerWidthMm,
-          innerHeightMm,
+          Math.min(bodyHeightMm, pageBuffers[i].heightMm),
           undefined,
           "SLOW",
         );
-        firstPage = false;
-        pageStart = pageEnd;
-        pageIndex += 1;
+        drawPdfFooter(pdf, i + 1, totalPages);
       }
 
       const prefix = current.type === "aereo" ? "Voucher-Aereo" : current.type === "hotel" ? "Voucher-Hotel" : `Voucher-${(current.data as GenericVoucherData).slug || "Servico"}`;
@@ -471,6 +493,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
       setExporting(false);
     }
   };
+
 
   const resetDraft = () => {
     setDraftVouchers(realVouchers);
