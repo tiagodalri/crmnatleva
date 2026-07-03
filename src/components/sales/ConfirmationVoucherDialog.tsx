@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plane, Hotel, Download, Pencil, Package } from "lucide-react";
+import { Loader2, Plane, Hotel, Download, Pencil, Package, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HotelVoucher, AereoVoucher, GenericVoucher, GENERIC_PRESETS, type HotelVoucherData, type AereoVoucherData, type GenericVoucherData, type GenericServiceSlug } from "./ConfirmationVoucher";
+import { exportAereoVoucherBeta } from "@/lib/pdf-engine/aereoVoucher";
 import { iataToLabel } from "@/lib/iataUtils";
 import { ALL_AIRLINES } from "@/lib/airlinesData";
 import { ScrollArea } from "@/components/ui/scroll-area";
