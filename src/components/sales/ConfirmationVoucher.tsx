@@ -107,15 +107,13 @@ const cellHead: CSSProperties = {
   textOverflow: "ellipsis",
 };
 const cell: CSSProperties = {
-  padding: "0 16px",
-  minHeight: ROW_H,
-  display: "flex",
-  alignItems: "center",
-  lineHeight: 1.4,
+  padding: "13px 16px",
   fontSize: 12,
+  lineHeight: 1.45,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
+  minWidth: 0,
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
