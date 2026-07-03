@@ -17,7 +17,7 @@ import {
   SPACING,
 } from "./theme/institutional";
 import {
-  labelValueCard, dataTable, sectionTitle, voucherIntro, infoLine, bagItem, highlightBlock, style,
+  labelValueCard, dataTable, sectionTitle, infoLine, bagItem, highlightBlock, style,
   boardingPassCard, type BoardingPassSegment,
 } from "./primitives";
 import {
