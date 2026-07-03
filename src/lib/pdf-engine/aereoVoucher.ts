@@ -4,6 +4,7 @@
  */
 import { jsPDF } from "jspdf";
 import { renderDocument, col, grid, text, spacer, type Node } from "./index";
+import { NATLEVA_FOOTER_LINE } from "./theme/institutional";
 import type { AereoVoucherData } from "@/components/sales/ConfirmationVoucher";
 
 // Brand palette (mirrors ConfirmationVoucher.tsx)
