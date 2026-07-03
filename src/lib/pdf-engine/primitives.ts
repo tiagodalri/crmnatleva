@@ -16,50 +16,47 @@ import type { IconDraw } from "./index";
 
 // ── Estilos atômicos (única fonte da hierarquia) ────────────────────────────
 export const style = {
-  // H1 — nome do voucher (uma vez por página inicial). Reduzido para 22pt: mais editorial.
-  H1: { font: { size: 22, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.1, lineHeight: 1.1 } },
-  // Kicker acima do H1
-  SUB: { font: { size: 7.5, weight: "bold" as const, color: BRAND.green, transform: "uppercase" as const, letterSpacing: 0.5 } },
-  // H2 — cada seção. Sem uppercase (mais moderno), verde escuro, peso semibold.
-  H2: { font: { size: 10.5, weight: "bold" as const, color: BRAND.greenDark, letterSpacing: -0.05 } },
+  H1: { font: { size: 22, weight: "bold" as const, color: BRAND.textDark, letterSpacing: -0.1, lineHeight: 1.1 } },
+  SUB: { font: { size: 7.5, weight: "bold" as const, color: BRAND.textSoft, transform: "uppercase" as const, letterSpacing: 0.6 } },
+  // H2 — seções: UPPERCASE, verde escuro, tracking generoso (linguagem institucional)
+  H2: { font: { size: 10, weight: "bold" as const, color: BRAND.greenDark, transform: "uppercase" as const, letterSpacing: 0.6 } },
   BODY: { font: { size: 9.5, color: BRAND.textDark, lineHeight: 1.5 } },
   BODY_MUTED: { font: { size: 9.5, color: BRAND.textSoft, lineHeight: 1.5 } },
-  // "Tabular numerals" via courier — usar para códigos, horas, distâncias
   MONO: { font: { size: 9.5, color: BRAND.textDark } },
   CELL: {
-    minHeight: SPACING.md,
-    padding: [SPACING.xs, SPACING.sm] as [number, number],
+    minHeight: 7,
+    padding: [SPACING.sm, SPACING.sm] as [number, number],
     font: { size: 9, color: BRAND.textDark },
   } satisfies Style,
   CELL_HEAD: {
-    minHeight: SPACING.md,
-    padding: [SPACING.xs, SPACING.sm] as [number, number],
-    font: { size: 7, weight: "bold" as const, color: BRAND.textSoft, transform: "uppercase" as const, letterSpacing: 0.4 },
-    border: { color: BRAND.hairline, width: 0.15, sides: ["bottom" as const] },
+    minHeight: 7,
+    padding: [SPACING.sm, SPACING.sm] as [number, number],
+    bg: BRAND.rowAlt,
+    font: { size: 8, weight: "bold" as const, color: BRAND.textDark, transform: "uppercase" as const, letterSpacing: 0.5 },
   } satisfies Style,
 };
 
-// ── Section title (H2 + hairline acessória à direita) ──────────────────────
+// ── Section title (H2 uppercase com tracking) ──────────────────────────────
 export function sectionTitle(label: string): Node {
   return col({ gap: SPACING.xs }, [
     text(label, { minHeight: 5, ...style.H2 }),
   ]);
 }
 
-// ── Card "chave: valor" (Informações Básicas) — sem zebra ──────────────────
+// ── Card "chave: valor" (Informações Básicas) com zebra sutil ──────────────
 export function labelValueCard(rows: Array<[string, string]>): Node {
   return col({
-    border: { color: BRAND.hairline, width: 0.15 },
-    radius: 1,
+    border: { color: BRAND.hairline, width: 0.2 },
+    radius: 1.5,
   }, rows.map(([k, v], i) => grid([38, 62], {
-    border: i === rows.length - 1 ? undefined : { color: BRAND.hairline, width: 0.1, sides: ["bottom"] },
+    bg: i % 2 === 1 ? BRAND.rowAlt : undefined,
   }, [
-    text(k, { ...style.CELL, font: { ...style.CELL.font, color: BRAND.textSoft } }),
-    text(v, { ...style.CELL, font: { ...style.CELL.font, weight: "bold", color: BRAND.textDark } }),
+    text(k, { ...style.CELL, font: { ...style.CELL.font, weight: "bold", color: BRAND.textDark } }),
+    text(v, { ...style.CELL, font: { ...style.CELL.font, color: BRAND.textSoft } }),
   ])));
 }
 
-// ── Tabela genérica (header + linhas, ZERO zebra) ──────────────────────────
+// ── Tabela genérica (header + linhas com zebra sutil) ──────────────────────
 export interface TableSpec {
   cols: number[];
   headers: string[];
@@ -90,9 +87,8 @@ export function dataTable(spec: TableSpec): Node {
     );
   } else {
     spec.rows.forEach((cells, i) => {
-      const isLast = i === spec.rows.length - 1;
       children.push(grid(spec.cols, {
-        border: isLast ? undefined : { color: BRAND.hairline, width: 0.1, sides: ["bottom"] },
+        bg: i % 2 === 1 ? BRAND.rowAlt : undefined,
       }, cells.map((v, j) => text(v, {
         ...style.CELL,
         textAlign: align[j],
@@ -101,7 +97,7 @@ export function dataTable(spec: TableSpec): Node {
     });
   }
 
-  return col({}, children);
+  return col({ border: { color: BRAND.hairline, width: 0.2 }, radius: 1.5 }, children);
 }
 
 // ── InfoLine: ícone em círculo + título + subtítulo ────────────────────────

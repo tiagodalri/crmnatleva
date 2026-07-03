@@ -1,9 +1,8 @@
 /**
- * Voucher Aéreo — blueprint declarativo renderizado pela engine.
- * 100% vetorial (texto selecionável, ícones vetoriais, header/footer institucionais).
- *
- * Design language: linguagem de boarding-pass moderno (Amadeus / Airbnb / Stripe).
- * Zero tabela de voos, zero zebra, zero linha divisória verde no header.
+ * Voucher Aéreo — modelo tabular institucional NatLeva.
+ * Estrutura: intro (kicker + H1) · Informações Básicas · Passageiros ·
+ * Detalhes da Viagem (tabela de voos) · Bagagens · Check-in · Alterações ·
+ * Cancelamento · No-Show.
  */
 import { jsPDF } from "jspdf";
 import { renderDocument, col, spacer, grid, text, type Node } from "./index";
@@ -18,102 +17,91 @@ import {
 } from "./theme/institutional";
 import {
   labelValueCard, dataTable, sectionTitle, infoLine, bagItem, highlightBlock, style,
-  boardingPassCard, type BoardingPassSegment,
+  voucherIntro,
 } from "./primitives";
 import {
   iconBackpack, iconBriefcase, iconLuggage, iconClock, iconMessageCircle, iconAlertCircle,
 } from "./icons";
 import type { AereoVoucherData } from "@/components/sales/ConfirmationVoucher";
 
-// ─── Formatação (edge cases isolados) ────────────────────────────────────────
-const WEEKDAY = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-const fmtDateLong = (s?: string | null) => {
+// ─── Formatação ──────────────────────────────────────────────────────────────
+const fmtDateShort = (s?: string | null) => {
   if (!s) return "—";
   const iso = s.split("T")[0];
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return s;
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  return `${WEEKDAY[dt.getUTCDay()]}, ${String(d).padStart(2, "0")} ${MONTH_ABBR[m - 1]} ${y}`;
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${String(y).slice(-2)}`;
+};
+
+const fmtDateFull = (s?: string | null) => {
+  if (!s) return "—";
+  const iso = s.split("T")[0];
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return s;
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
 };
 
 const fmtTime = (s?: string | null) => (s ? s.slice(0, 5) : "—");
 
-const durationBetween = (dep?: string | null, arr?: string | null): string => {
-  if (!dep || !arr) return "";
-  const [dh, dm] = dep.split(":").map(Number);
-  const [ah, am] = arr.split(":").map(Number);
-  if ([dh, dm, ah, am].some((n) => Number.isNaN(n))) return "";
-  let mins = ah * 60 + am - (dh * 60 + dm);
-  if (mins < 0) mins += 24 * 60;                    // trans-noite
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${h}h ${String(m).padStart(2, "0")}min`;
-};
-
-// Extrai IATA + cidade a partir de "GRU · São Paulo" ou fallback.
-const splitLabel = (label?: string, iata?: string | null): { iata: string; city: string } => {
+const fmtRoute = (label?: string | null, iata?: string | null) => {
   const clean = (label || "").trim();
-  if (!clean) return { iata: (iata || "").toUpperCase(), city: "" };
-  // Se vier "IATA · Cidade"
-  const parts = clean.split(/[·•\-—|]/).map((s) => s.trim()).filter(Boolean);
-  if (parts.length >= 2) return { iata: (iata || parts[0]).toUpperCase(), city: parts.slice(1).join(" ") };
-  if (iata) return { iata: iata.toUpperCase(), city: clean };
-  return { iata: clean.slice(0, 3).toUpperCase(), city: clean };
-};
-
-const toBoardingPass = (s: AereoVoucherData["segments"][number]): BoardingPassSegment => {
-  const o = splitLabel(s.origin_label, s.origin_iata);
-  const d = splitLabel(s.destination_label, s.destination_iata);
-  return {
-    flightNumber: s.flight_number || undefined,
-    airline: s.airline || undefined,
-    cabin: undefined,
-    dateLabel: fmtDateLong(s.date),
-    originIata: o.iata, originCity: o.city,
-    destinationIata: d.iata, destinationCity: d.city,
-    departureTime: fmtTime(s.departure_time),
-    arrivalTime: fmtTime(s.arrival_time),
-    duration: durationBetween(s.departure_time, s.arrival_time),
-  };
+  const code = (iata || "").toUpperCase().trim();
+  if (clean && code) {
+    // se label já contém IATA, mostra só o label; senão "Cidade / IATA"
+    if (clean.toUpperCase().includes(code)) return clean;
+    return `${clean} / ${code}`;
+  }
+  return clean || code || "—";
 };
 
 export function buildAereoVoucherTree(data: AereoVoucherData): Node {
+  const today = new Date();
+  const todayLabel = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getFullYear()).slice(-2)}`;
+
   const basics: Array<[string, string]> = [
-    ["Classe", data.flight_class || "Econômica"],
-    ["Código Reserva", (data.reservation_code || "—").toUpperCase()],
+    ["Classe:", data.flight_class || "Econômica"],
+    ["Data da emissão:", todayLabel],
+    ["Código Reserva:", (data.reservation_code || "—").toUpperCase()],
   ];
 
   return col({ gap: SPACING.md }, [
-    // (Intro removida — header já rotula o documento)
+    voucherIntro("Voucher de Viagem", "Confirmação de Reserva"),
 
-    // Informações Básicas
     col({ gap: SPACING.sm }, [
       sectionTitle("Informações Básicas"),
       labelValueCard(basics),
     ]),
 
-    // Passageiros
     col({ gap: SPACING.sm }, [
-      sectionTitle("Passageiros"),
+      sectionTitle("Informações dos Passageiros"),
       dataTable({
-        cols: [46, 22, 32],
-        headers: ["Nome completo", "Tipo", "Documento"],
+        cols: [46, 26, 28],
+        headers: ["Nome completo:", "Tipo de passageiro:", "Documento:"],
         align: ["left", "left", "left"],
         rows: data.passengers.map((p) => [p.name || "—", p.type || "Adulto", p.doc || "—"]),
         emptyLabel: "Nenhum passageiro cadastrado.",
       }),
     ]),
 
-    // Voos — BOARDING-PASS style (upgrade principal)
     col({ gap: SPACING.sm }, [
-      sectionTitle("Voos"),
-      col({ gap: SPACING.sm }, data.segments.length === 0
-        ? [text("Nenhum trecho cadastrado.", style.BODY_MUTED)]
-        : data.segments.map((s) => boardingPassCard(toBoardingPass(s)))
-      ),
+      sectionTitle("Detalhes da Viagem"),
+      dataTable({
+        cols: [10, 20, 20, 10, 14, 13, 13],
+        headers: ["Voo:", "De:", "Para:", "Cia:", "Data:", "Partida:", "Chegada:"],
+        align: ["left", "left", "left", "left", "left", "left", "left"],
+        rows: data.segments.map((s) => [
+          s.flight_number || "—",
+          fmtRoute(s.origin_label, s.origin_iata),
+          fmtRoute(s.destination_label, s.destination_iata),
+          s.airline || "—",
+          fmtDateShort(s.date),
+          fmtTime(s.departure_time),
+          fmtTime(s.arrival_time),
+        ]),
+        emptyLabel: "Nenhum trecho cadastrado.",
+      }),
     ]),
+
 
     // Bagagens
     col({ gap: SPACING.sm }, [
@@ -199,6 +187,7 @@ export async function exportAereoVoucherPdf(data: AereoVoucherData, fileName: st
     renderHeader: (p) => drawInstitutionalHeader(p, logo, {
       label: "Voucher Aéreo",
       reservationCode: data.reservation_code,
+      issueDate: `${String(new Date().getDate()).padStart(2, "0")}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${new Date().getFullYear()}`,
     }),
     renderFooter: (p, page, total) => drawInstitutionalFooter(p, page, total),
   });
