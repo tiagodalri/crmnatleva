@@ -97,8 +97,8 @@ const cellHead: CSSProperties = {
   boxSizing: "border-box",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  display: "table-cell",
-  verticalAlign: "middle",
+  display: "flex",
+  alignItems: "center",
   lineHeight: 1.25,
 };
 const cell: CSSProperties = {
@@ -109,8 +109,8 @@ const cell: CSSProperties = {
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
   lineHeight: 1.35,
-  display: "table-cell",
-  verticalAlign: "middle",
+  display: "flex",
+  alignItems: "center",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
@@ -122,16 +122,16 @@ const tableRow = (background: string, borderBottom: string): CSSProperties => ({
 });
 
 const cellInner: CSSProperties = {
-  minHeight: "inherit",
-  height: "100%",
-  display: "flex",
-  alignItems: "center",
+  width: "100%",
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
   transform: "translateY(var(--pdf-cell-y, 0px))",
 };
 
+
 const centeredCellInner: CSSProperties = {
   ...cellInner,
-  justifyContent: "center",
   textAlign: "center",
 };
 
@@ -144,6 +144,7 @@ const centeredHeaderCellInner: CSSProperties = {
   ...centeredCellInner,
   transform: "none",
 };
+
 
 const voucherPageStyle = (exportMode?: boolean): CSSProperties => ({
   ...page,
