@@ -665,27 +665,17 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
                 ))}
               </div>
               {editMode && current && !testMode && <EditPanel voucher={current} onChange={updateCurrent} onReset={resetDraft} />}
-              <Button onClick={handleExport} disabled={!current || exporting} className="mt-auto min-h-11">
+              <Button onClick={handleExportEngine} disabled={!current || exporting} className="mt-auto min-h-11">
                 {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Baixar PDF
               </Button>
-              {current?.type === "aereo" && (
-                <Button
-                  variant="outline"
-                  className="min-h-11 border-dashed"
-                  onClick={() => {
-                    try {
-                      const prefix = testMode ? "Teste-A4" : clientFileName;
-                      exportAereoVoucherBeta(current.data, `Voucher-Aereo-BETA_${prefix}.pdf`);
-                      toast({ title: "PDF beta gerado", description: "Compare com o export normal (nitidez em zoom 400%)." });
-                    } catch (e) {
-                      const msg = e instanceof Error ? e.message : "Falha na engine beta";
-                      toast({ title: "Erro no PDF beta", description: msg, variant: "destructive" });
-                    }
-                  }}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" /> Exportar (beta engine)
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                className="min-h-11 border-dashed text-xs"
+                onClick={handleExport}
+                disabled={!current || exporting}
+              >
+                <FileCode2 className="w-4 h-4 mr-2" /> Exportar (modo legado)
+              </Button>
             </div>
 
             <ScrollArea className="min-h-0 border rounded-lg bg-muted/30 overflow-hidden">
