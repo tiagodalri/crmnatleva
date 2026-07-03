@@ -66,8 +66,8 @@ const h2: CSSProperties = {
   fontWeight: 700,
   lineHeight: 1.25,
   color: GREEN_DARK,
-  marginTop: 34,
-  marginBottom: 14,
+  marginTop: 40,
+  marginBottom: 22,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
 };
@@ -223,7 +223,7 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Informações importantes</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 4 }}>
             <InfoLine
               icon={<Clock size={18} color={GREEN} strokeWidth={1.8} />}
               title="Horários"
@@ -404,7 +404,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Bagagens Incluídas (por passageiro)</h2>
-          <div style={{ display: "flex", gap: 24, marginTop: 4 }}>
+          <div style={{ display: "flex", gap: 24, marginTop: 6 }}>
             <Bag
               icon={<Backpack size={28} color={GREEN} strokeWidth={1.6} />}
               title="1 item pessoal (10kg)"
@@ -422,8 +422,9 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
             />
           </div>
 
-          <div style={{ marginTop: 18, fontSize: 14, fontWeight: 800, color: GREEN_DARK }}>Medidas:</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 10 }}>
+          <div style={{ marginTop: 28, fontSize: 14, fontWeight: 800, color: GREEN_DARK }}>Medidas:</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 14 }}>
+
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: GREEN_DARK }}>Item pessoal:</div>
               <div style={{ fontSize: 12, color: "#1f2937", marginTop: 4, lineHeight: 1.6 }}>
@@ -447,7 +448,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Check-in Automático</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 4 }}>
             <InfoLine
               icon={<Clock size={18} color={GREEN} strokeWidth={1.8} />}
               title="24 Horas Antes"
