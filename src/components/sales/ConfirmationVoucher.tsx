@@ -404,7 +404,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Bagagens Incluídas (por passageiro)</h2>
-          <div style={{ display: "flex", gap: 24, marginTop: 4 }}>
+          <div style={{ display: "flex", gap: 24, marginTop: 6 }}>
             <Bag
               icon={<Backpack size={28} color={GREEN} strokeWidth={1.6} />}
               title="1 item pessoal (10kg)"
