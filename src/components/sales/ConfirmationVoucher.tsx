@@ -124,8 +124,11 @@ const tableRow = (background: string, borderBottom: string): CSSProperties => ({
 const cellInner: CSSProperties = {
   width: "100%",
   minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
   transform: "translateY(var(--pdf-cell-y, 0px))",
 };
+
 
 const centeredCellInner: CSSProperties = {
   ...cellInner,
