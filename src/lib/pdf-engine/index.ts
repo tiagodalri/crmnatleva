@@ -1,20 +1,18 @@
 /**
- * PDF Engine POC — Declarative layout tree → jsPDF vector render.
+ * PDF Engine — Declarative layout tree → jsPDF vector render.
  *
- * Scope (POC):
- * - Node types: box, text
+ * Capabilities:
+ * - Node types: box, text, image, icon (vector), rule
  * - Layout: column (default), row, grid (fixed fractional cols)
- * - Properties: width, minHeight, padding, gap, bg, border, radius, textAlign,
- *   font{size,weight,color}, gridCols
- * - Passes: measure → layout → render (no pagination, no QA)
- * - Fonts: Helvetica nativa (jsPDF built-in), 100% vetorial/selecionável
- *
- * All coordinates in mm. All final positions snapped via Math.round to
- * 0.1mm precision to avoid sub-point drift.
+ * - Style: padding, gap, bg, border(+sides), radius, minHeight, height, font, textAlign
+ * - Pagination: top-level column children snap to pages; header/footer callbacks
+ *   run on every page (vector, selectable).
+ * - Coordinates in mm, snapped to 0.1mm to avoid sub-point drift.
+ * - Fonts: Helvetica nativa (jsPDF built-in), 100% vetorial/selecionável.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Pdf = any;
+export type Pdf = any;
 
 export type Edges = number | [number, number] | [number, number, number, number];
 
@@ -23,7 +21,7 @@ export interface FontSpec {
   weight?: "normal" | "bold";
   color?: string;             // hex
   lineHeight?: number;        // multiplier of size
-  letterSpacing?: number;     // mm added between chars (jsPDF charSpace)
+  letterSpacing?: number;     // spacing between chars (jsPDF charSpace, pt)
   align?: "left" | "center" | "right";
   transform?: "none" | "uppercase";
 }
@@ -34,19 +32,27 @@ export interface Style {
   height?: number;
   padding?: Edges;
   gap?: number;
-  bg?: string;                // hex
+  bg?: string;
   border?: { color: string; width: number; sides?: ("top"|"right"|"bottom"|"left")[] };
-  radius?: number;            // mm; 0 = square
+  radius?: number;
   layout?: "column" | "row" | "grid";
-  gridCols?: number[];        // fractions summing to any positive number
-  align?: "start" | "center" | "end";       // cross-axis for row / row-in-column
+  gridCols?: number[];
+  align?: "start" | "center" | "end";
   font?: FontSpec;
   textAlign?: "left" | "center" | "right";
+  /** For root-level column children: never split across pages (default true). */
+  breakInside?: "avoid" | "auto";
 }
 
 export type Node =
   | { kind: "box"; style?: Style; children?: Node[] }
-  | { kind: "text"; text: string; style?: Style };
+  | { kind: "text"; text: string; style?: Style }
+  | { kind: "image"; src: string; imgW: number; imgH: number; style?: Style }
+  | { kind: "icon"; draw: IconDraw; size: number; color?: string; strokeWidth?: number; style?: Style }
+  | { kind: "rule"; color: string; thickness: number; style?: Style };
+
+/** Icon draw callback — draws a vector icon at (cx,cy) with radius r using pdf primitives. */
+export type IconDraw = (pdf: Pdf, cx: number, cy: number, size: number, color: string, strokeWidth: number) => void;
 
 interface Box {
   node: Node;
@@ -73,7 +79,7 @@ function edges(e?: Edges): [number, number, number, number] {
 
 function ptToMm(pt: number) { return (pt * 25.4) / 72; }
 
-function hexToRgb(hex: string): [number, number, number] {
+export function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
   return [parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)];
@@ -86,8 +92,7 @@ function applyFont(pdf: Pdf, f?: FontSpec) {
   pdf.setFontSize(size);
   const [r, g, b] = hexToRgb(f?.color ?? "#111827");
   pdf.setTextColor(r, g, b);
-  if (typeof f?.letterSpacing === "number") pdf.setCharSpace(f.letterSpacing);
-  else pdf.setCharSpace(0);
+  pdf.setCharSpace(typeof f?.letterSpacing === "number" ? f.letterSpacing : 0);
 }
 
 function transformText(t: string, f?: FontSpec) {
@@ -95,23 +100,24 @@ function transformText(t: string, f?: FontSpec) {
 }
 
 // ── measure ──────────────────────────────────────────────────────────────────
-/** Returns text height in mm for a given width and font. */
-function measureText(pdf: Pdf, text: string, widthMm: number, f?: FontSpec): { h: number; lines: string[] } {
-  applyFont(pdf, f);
-  const size = f?.size ?? 10;
-  const lh = (f?.lineHeight ?? 1.35) * ptToMm(size);
-  const lines: string[] = pdf.splitTextToSize(transformText(text, f), Math.max(1, widthMm));
-  return { h: lines.length * lh, lines };
-}
-
-// ── layout ───────────────────────────────────────────────────────────────────
 function resolveNodeIntrinsicHeight(pdf: Pdf, node: Node, contentW: number): number {
   if (node.kind === "text") {
-    const { h } = measureText(pdf, node.text, contentW, node.style?.font);
+    applyFont(pdf, node.style?.font);
+    const size = node.style?.font?.size ?? 10;
+    const lh = (node.style?.font?.lineHeight ?? 1.35) * ptToMm(size);
+    const lines: string[] = pdf.splitTextToSize(transformText(node.text, node.style?.font), Math.max(1, contentW));
+    return Math.max(lines.length * lh, node.style?.minHeight ?? 0);
+  }
+  if (node.kind === "image" || node.kind === "icon") {
+    const h = node.kind === "image" ? node.imgH : node.size;
     return Math.max(h, node.style?.minHeight ?? 0);
   }
+  if (node.kind === "rule") {
+    return Math.max(node.thickness, node.style?.minHeight ?? 0);
+  }
   const style = node.style ?? {};
-  const [pt, pr, pb, pl] = edges(style.padding);
+  const [pt, , pb, pl] = edges(style.padding);
+  const [, pr] = edges(style.padding);
   const gap = style.gap ?? 0;
   const layout = style.layout ?? "column";
   const innerW = contentW - pl - pr;
@@ -124,7 +130,6 @@ function resolveNodeIntrinsicHeight(pdf: Pdf, node: Node, contentW: number): num
       if (i < children.length - 1) contentH += gap;
     }
   } else if (layout === "row") {
-    // row: children share width equally unless width set (POC: equal split)
     const cols = children.length || 1;
     const totalGap = gap * (cols - 1);
     const each = (innerW - totalGap) / cols;
@@ -141,7 +146,6 @@ function resolveNodeIntrinsicHeight(pdf: Pdf, node: Node, contentW: number): num
       const w = widths[i % cols.length];
       maxH = Math.max(maxH, resolveNodeIntrinsicHeight(pdf, children[i], w));
     }
-    // grid rows: for POC we assume single row per grid; caller composes rows via column-of-grids
     contentH = maxH;
   }
 
@@ -149,7 +153,7 @@ function resolveNodeIntrinsicHeight(pdf: Pdf, node: Node, contentW: number): num
 }
 
 function layoutNode(pdf: Pdf, node: Node, x: number, y: number, w: number): Box {
-  const style = node.kind === "box" ? node.style ?? {} : node.style ?? {};
+  const style = node.style ?? {};
   const [pt, pr, pb, pl] = edges(style.padding);
   const gap = style.gap ?? 0;
   const layout = style.layout ?? "column";
@@ -169,7 +173,7 @@ function layoutNode(pdf: Pdf, node: Node, x: number, y: number, w: number): Box 
     children: [],
   };
 
-  if (node.kind === "text") return box;
+  if (node.kind !== "box") return box;
   const children = node.children ?? [];
   if (children.length === 0) return box;
 
@@ -187,7 +191,6 @@ function layoutNode(pdf: Pdf, node: Node, x: number, y: number, w: number): Box 
     let cx = box.contentX;
     for (let i = 0; i < children.length; i++) {
       const cb = layoutNode(pdf, children[i], cx, box.contentY, each);
-      // stretch child height to row height
       cb.h = box.contentH;
       box.children.push(cb);
       cx += each + gap;
@@ -248,16 +251,41 @@ function renderBox(pdf: Pdf, box: Box) {
     return;
   }
 
+  if (node.kind === "image") {
+    try {
+      pdf.addImage(node.src, "PNG", box.x, box.y, node.imgW, node.imgH, undefined, "FAST");
+    } catch {
+      /* silent */
+    }
+    return;
+  }
+
+  if (node.kind === "icon") {
+    const color = node.color ?? "#1f5f3a";
+    const strokeWidth = node.strokeWidth ?? 0.35;
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    node.draw(pdf, cx, cy, node.size, color, strokeWidth);
+    return;
+  }
+
+  if (node.kind === "rule") {
+    const [r, g, b] = hexToRgb(node.color);
+    pdf.setDrawColor(r, g, b);
+    pdf.setLineWidth(node.thickness);
+    pdf.line(box.x, box.y + node.thickness / 2, box.x + box.w, box.y + node.thickness / 2);
+    return;
+  }
+
   // text
   applyFont(pdf, style.font);
   const size = style.font?.size ?? 10;
   const lhMm = (style.font?.lineHeight ?? 1.35) * ptToMm(size);
-  const ascentMm = ptToMm(size) * 0.78; // approx baseline offset
+  const ascentMm = ptToMm(size) * 0.78;
   const align = style.font?.align ?? style.textAlign ?? "left";
   const t = transformText(node.text, style.font);
   const lines: string[] = pdf.splitTextToSize(t, Math.max(1, box.contentW));
 
-  // vertical centering within box
   const textBlockH = lines.length * lhMm;
   const yStart = box.contentY + Math.max(0, (box.contentH - textBlockH) / 2) + ascentMm;
 
@@ -266,23 +294,77 @@ function renderBox(pdf: Pdf, box: Box) {
   else if (align === "right") xAnchor = box.contentX + box.contentW;
 
   lines.forEach((line, i) => {
-    pdf.text(line, round(xAnchor), round(yStart + i * lhMm), { align });
+    pdf.text(line, round(xAnchor), round(yStart + i * lhMm), { align, baseline: "alphabetic" });
   });
+}
+
+/** Re-layout & render a subtree with its top-left translated to (targetX, targetY). */
+function renderTranslated(pdf: Pdf, node: Node, targetX: number, targetY: number, width: number) {
+  const box = layoutNode(pdf, node, targetX, targetY, width);
+  renderBox(pdf, box);
+  return box.h;
 }
 
 // ── public API ───────────────────────────────────────────────────────────────
 export interface RenderOptions {
-  format?: "a4";
-  pageMargin?: number; // mm
+  pageMargin?: number;               // mm — lateral + top/bottom base margin
+  headerHeight?: number;             // mm — reserved area at top for header
+  footerHeight?: number;             // mm — reserved area at bottom for footer
+  renderHeader?: (pdf: Pdf, pageNumber: number, totalPages: number) => void;
+  renderFooter?: (pdf: Pdf, pageNumber: number, totalPages: number) => void;
+  /** Called after each page's content is placed. Useful for QA overlays. */
+  onPage?: (pdf: Pdf, pageNumber: number) => void;
 }
 
 export function renderDocument(pdf: Pdf, root: Node, opts: RenderOptions = {}) {
-  const margin = opts.pageMargin ?? 12;
+  const margin = opts.pageMargin ?? 14;
+  const headerH = opts.headerHeight ?? 0;
+  const footerH = opts.footerHeight ?? 0;
   const pageW = 210;
-  const contentW = pageW - margin * 2;
-  const box = layoutNode(pdf, root, margin, margin, contentW);
-  renderBox(pdf, box);
-  return box;
+  const pageH = 297;
+  const contentTop = margin + headerH;
+  const contentBottom = pageH - margin - footerH;
+  const contentWidth = pageW - margin * 2;
+  const contentHeight = contentBottom - contentTop;
+
+  // Root must be a box; treat its direct children as the paginatable sections.
+  const isCol = root.kind === "box" && (root.style?.layout ?? "column") === "column";
+  const sections: Node[] = isCol ? (root.children ?? []) : [root];
+  const gap = (root.kind === "box" && root.style?.gap) || 0;
+
+  let currentY = contentTop;
+  let pageNumber = 1;
+
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    const intrinsic = resolveNodeIntrinsicHeight(pdf, section, contentWidth);
+    const nextGap = i < sections.length - 1 ? gap : 0;
+
+    const fitsCurrent = currentY + intrinsic <= contentBottom + 0.5;
+    if (!fitsCurrent && currentY > contentTop) {
+      pdf.addPage();
+      pageNumber += 1;
+      currentY = contentTop;
+    }
+    // Bleed guard: if section still doesn't fit on a fresh page, we let it
+    // render anyway (blueprint responsibility to keep sections ≤ contentHeight).
+    const rendered = renderTranslated(pdf, section, margin, currentY, contentWidth);
+    currentY += rendered + nextGap;
+    if (intrinsic > contentHeight && currentY < contentBottom) {
+      /* bled: keep going */
+    }
+  }
+
+  const totalPages = pageNumber;
+  for (let p = 1; p <= totalPages; p++) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (pdf as any).setPage?.(p);
+    if (opts.renderHeader) opts.renderHeader(pdf, p, totalPages);
+    if (opts.renderFooter) opts.renderFooter(pdf, p, totalPages);
+    if (opts.onPage) opts.onPage(pdf, p);
+  }
+
+  return { totalPages };
 }
 
 // ── convenience builders ─────────────────────────────────────────────────────
@@ -296,3 +378,8 @@ export const grid = (cols: number[], style: Style, children: Node[]): Node => ({
 });
 export const text = (t: string, style?: Style): Node => ({ kind: "text", text: t ?? "", style });
 export const spacer = (h: number): Node => ({ kind: "box", style: { minHeight: h } });
+export const image = (src: string, w: number, h: number, style?: Style): Node => ({ kind: "image", src, imgW: w, imgH: h, style });
+export const icon = (draw: IconDraw, size: number, color?: string, strokeWidth?: number, style?: Style): Node => ({
+  kind: "icon", draw, size, color, strokeWidth, style,
+});
+export const rule = (color: string, thickness: number, style?: Style): Node => ({ kind: "rule", color, thickness, style });

@@ -5,10 +5,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plane, Hotel, Download, Pencil, Package, Sparkles } from "lucide-react";
+import { Loader2, Plane, Hotel, Download, Pencil, Package, FileCode2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { HotelVoucher, AereoVoucher, GenericVoucher, GENERIC_PRESETS, type HotelVoucherData, type AereoVoucherData, type GenericVoucherData, type GenericServiceSlug } from "./ConfirmationVoucher";
-import { exportAereoVoucherBeta } from "@/lib/pdf-engine/aereoVoucher";
+import { exportAereoVoucherPdf } from "@/lib/pdf-engine/aereoVoucher";
+import { exportHotelVoucherPdf } from "@/lib/pdf-engine/hotelVoucher";
+import { exportGenericVoucherPdf } from "@/lib/pdf-engine/genericVoucher";
 import { NATLEVA_FOOTER_LINE } from "@/lib/pdf-engine/theme/institutional";
 import { iataToLabel } from "@/lib/iataUtils";
 import { ALL_AIRLINES } from "@/lib/airlinesData";
@@ -487,6 +489,29 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
     setDraftVouchers((items) => items.map((item) => (item.id === current.id ? updater(item) : item)));
   };
 
+  const handleExportEngine = async () => {
+    if (!current) return;
+    setExporting(true);
+    try {
+      const prefix = current.type === "aereo" ? "Voucher-Aereo" : current.type === "hotel" ? "Voucher-Hotel" : `Voucher-${(current.data as GenericVoucherData).slug || "Servico"}`;
+      const fileName = `${prefix}_${testMode ? "Teste-A4" : clientFileName}.pdf`;
+      if (current.type === "aereo") {
+        await exportAereoVoucherPdf(current.data, fileName);
+      } else if (current.type === "hotel") {
+        await exportHotelVoucherPdf(current.data, fileName);
+      } else {
+        await exportGenericVoucherPdf(current.data, fileName);
+      }
+      toast({ title: "PDF gerado", description: fileName });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao gerar PDF pela engine.";
+      toast({ title: "Erro ao gerar PDF", description: msg, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
   const handleExport = async () => {
     if (!current || !exportRef.current) return;
     setExporting(true);
@@ -663,27 +688,17 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
                 ))}
               </div>
               {editMode && current && !testMode && <EditPanel voucher={current} onChange={updateCurrent} onReset={resetDraft} />}
-              <Button onClick={handleExport} disabled={!current || exporting} className="mt-auto min-h-11">
+              <Button onClick={handleExportEngine} disabled={!current || exporting} className="mt-auto min-h-11">
                 {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Baixar PDF
               </Button>
-              {current?.type === "aereo" && (
-                <Button
-                  variant="outline"
-                  className="min-h-11 border-dashed"
-                  onClick={() => {
-                    try {
-                      const prefix = testMode ? "Teste-A4" : clientFileName;
-                      exportAereoVoucherBeta(current.data, `Voucher-Aereo-BETA_${prefix}.pdf`);
-                      toast({ title: "PDF beta gerado", description: "Compare com o export normal (nitidez em zoom 400%)." });
-                    } catch (e) {
-                      const msg = e instanceof Error ? e.message : "Falha na engine beta";
-                      toast({ title: "Erro no PDF beta", description: msg, variant: "destructive" });
-                    }
-                  }}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" /> Exportar (beta engine)
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                className="min-h-11 border-dashed text-xs"
+                onClick={handleExport}
+                disabled={!current || exporting}
+              >
+                <FileCode2 className="w-4 h-4 mr-2" /> Exportar (modo legado)
+              </Button>
             </div>
 
             <ScrollArea className="min-h-0 border rounded-lg bg-muted/30 overflow-hidden">
