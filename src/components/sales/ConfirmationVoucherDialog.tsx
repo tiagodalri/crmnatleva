@@ -17,7 +17,11 @@ import { cn } from "@/lib/utils";
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
 const PREVIEW_SCALE = 0.78;
-const PDF_CONTINUATION_MARGIN_PX = 56;
+// Margens físicas reais no PDF (em mm) — o conteúdo é renderizado DENTRO dessa área útil.
+const PDF_SIDE_MARGIN_MM = 10;
+const PDF_TOP_MARGIN_MM = 10;
+const PDF_BOTTOM_MARGIN_MM = 12;
+const PDF_CONTINUATION_TOP_PAD_PX = 24; // respiro no topo de páginas 2+
 
 type DbRecord = Record<string, unknown>;
 
@@ -293,30 +297,31 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         scrollY: 0,
       });
 
-      const canvasScaleY = canvas.height / rootHeight;
-      const pdfPageHeightPx = Math.round(A4_HEIGHT_PX * canvasScaleY);
-      const continuationMarginPx = Math.round(PDF_CONTINUATION_MARGIN_PX * canvasScaleY);
+      // Mapeia px do canvas para a ÁREA ÚTIL do PDF (não a folha inteira).
+      const innerWidthMm = 210 - 2 * PDF_SIDE_MARGIN_MM;
+      const innerHeightMm = 297 - PDF_TOP_MARGIN_MM - PDF_BOTTOM_MARGIN_MM;
+      const pxPerMm = canvas.width / innerWidthMm;
+      const pdfPageHeightPx = Math.round(innerHeightMm * pxPerMm);
 
       // 2) Mapeia pontos de quebra naturais = topo de cada [data-pdf-section]
       const rootRect = root.getBoundingClientRect();
       const sectionTops = Array.from(
         root.querySelectorAll<HTMLElement>("[data-pdf-section]"),
       )
-        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * canvasScaleY))
+        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * (canvas.height / rootHeight)))
         .filter((y) => y > 0);
       const breaks = Array.from(new Set([0, ...sectionTops, canvas.height])).sort((a, b) => a - b);
 
-      // 3) Cada página do PDF é um canvas A4 completo. Isso elimina margem dupla,
-      // reescala variável e qualquer desalinhamento entre preview e arquivo final.
+      // 3) Cada página do PDF respeita margens físicas reais. O conteúdo é
+      // desenhado apenas na área útil (innerWidthMm × innerHeightMm).
       const pdf = new jsPDF("p", "mm", "a4", true);
       let pageStart = 0;
       let firstPage = true;
       let pageIndex = 0;
 
       while (pageStart < canvas.height - 1) {
-        const topPad = pageIndex === 0 ? 0 : continuationMarginPx;
-        const bottomPad = continuationMarginPx;
-        const pageCapacityPx = pdfPageHeightPx - topPad - bottomPad;
+        const topPad = pageIndex === 0 ? 0 : PDF_CONTINUATION_TOP_PAD_PX;
+        const pageCapacityPx = pdfPageHeightPx - topPad;
         const idealEnd = pageStart + pageCapacityPx;
         let pageEnd: number;
 
@@ -330,7 +335,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
           if (candidate) {
             pageEnd = candidate;
           } else {
-            // Fallback duro: corta no ideal (seção é maior que página inteira)
+            // Fallback duro: corta no ideal (seção maior que a página inteira)
             pageEnd = Math.floor(idealEnd);
           }
         }
@@ -346,7 +351,16 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         const pageData = pageCanvas.toDataURL("image/png");
 
         if (!firstPage) pdf.addPage();
-        pdf.addImage(pageData, "PNG", 0, 0, 210, 297, undefined, "SLOW");
+        pdf.addImage(
+          pageData,
+          "PNG",
+          PDF_SIDE_MARGIN_MM,
+          PDF_TOP_MARGIN_MM,
+          innerWidthMm,
+          innerHeightMm,
+          undefined,
+          "SLOW",
+        );
         firstPage = false;
         pageStart = pageEnd;
         pageIndex += 1;
