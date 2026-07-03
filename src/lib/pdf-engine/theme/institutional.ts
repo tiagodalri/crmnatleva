@@ -140,19 +140,18 @@ export function drawInstitutionalFooter(pdf: Pdf, pageNumber: number, totalPages
   pdf.setLineWidth(0.2);
   pdf.line(leftX, dividerY, rightX, dividerY);
 
-  // Texto central (fonte única de verdade)
-  const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
+  // Footer 3 colunas: telefone à esquerda · handle ao centro · página à direita
+  const [sr, sg, sb] = hexToRgbLocal(BRAND.textSoft);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
+  pdf.setFontSize(7.5);
+  pdf.setCharSpace(0.15);
+  pdf.setTextColor(sr, sg, sb);
+  pdf.text(NATLEVA_FOOTER.phone, leftX, baselineY, { align: "left", baseline: "alphabetic" });
+  pdf.setFont("helvetica", "bold");
+  pdf.text(NATLEVA_FOOTER.instagram, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
+  pdf.setFont("helvetica", "normal");
   pdf.setCharSpace(0);
-  pdf.setTextColor(dr, dg, db);
-  pdf.text(NATLEVA_FOOTER_LINE, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
-
-  // Paginação discreta à direita (só se >1 página)
   if (totalPages > 1) {
-    const [mr, mg, mb] = hexToRgbLocal(BRAND.muted);
-    pdf.setFontSize(7);
-    pdf.setTextColor(mr, mg, mb);
     pdf.text(`${pageNumber} / ${totalPages}`, rightX, baselineY, { align: "right", baseline: "alphabetic" });
   }
 }
