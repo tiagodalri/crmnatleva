@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetchAll";
 import { formatDateBR } from "@/lib/dateFormat";
-import { smartCapitalizeName } from "@/lib/nameUtils";
+import { normalizePassengerName } from "@/lib/nameUtils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,8 +29,7 @@ import { copyPassengersToClipboard } from "@/lib/passengerCopy";
 import AddressMapCard from "@/components/passenger/AddressMapCard";
 
 function titleCase(s: string | null | undefined): string {
-  if (!s) return "";
-  return s.toLowerCase().replace(/(^|[\s\-/])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+  return normalizePassengerName(s);
 }
 
 interface Passenger {
@@ -241,7 +240,7 @@ export default function PassengerProfile() {
   const handleSave = async () => {
     if (!passenger) return;
     setSaving(true);
-    const capitalizedName = smartCapitalizeName(editForm.full_name || "");
+    const capitalizedName = normalizePassengerName(editForm.full_name || "");
     if (!capitalizedName || capitalizedName.length < 2) {
       toast.error("Nome inválido");
       setSaving(false);
@@ -601,7 +600,7 @@ export default function PassengerProfile() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Nome Completo *</Label>
-                  <Input value={editForm.full_name || ""} onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))} />
+                  <Input value={editForm.full_name || ""} onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))} onBlur={e => setEditForm(f => ({ ...f, full_name: normalizePassengerName(e.target.value) }))} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
