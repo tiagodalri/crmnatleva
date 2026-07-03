@@ -276,7 +276,6 @@ function drawPdfHeader(pdf: any, logo: LogoAsset | null, meta: HeaderMeta) {
   pdf.setTextColor(BRAND_MUTED);
   const line2Parts: string[] = [];
   if (meta.reservationCode) line2Parts.push(`Reserva ${meta.reservationCode}`);
-  if (meta.emissionDate) line2Parts.push(`Emitido em ${meta.emissionDate}`);
   if (line2Parts.length > 0) {
     pdf.text(line2Parts.join("  ·  "), rightX, PDF_HEADER_TOP_MM + 9, { align: "right" });
   }
