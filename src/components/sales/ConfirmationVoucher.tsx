@@ -157,11 +157,13 @@ function renderPassengerName(name?: string | null): string {
   return normalizePassengerName(name) || "—";
 }
 
-const logoBlock = (
-  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
-    <img src={logoNatleva} alt="NatLeva" style={{ height: 38, objectFit: "contain" }} crossOrigin="anonymous" />
-  </div>
-);
+const renderLogoBlock = (exportMode?: boolean) =>
+  exportMode ? null : (
+    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
+      <img src={logoNatleva} alt="NatLeva" style={{ height: 38, objectFit: "contain" }} crossOrigin="anonymous" />
+    </div>
+  );
+
 
 const fmtDateBR = (s?: string | null) => {
   if (!s) return "—";
