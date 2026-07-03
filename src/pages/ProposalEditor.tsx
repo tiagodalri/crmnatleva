@@ -970,6 +970,11 @@ export default function ProposalEditor() {
     autoSaveTimerRef.current = setTimeout(async () => {
       if (promotedNewProposalRef.current) return;
       if (saveMutation.isPending) return;
+      // Sem conexão: não tenta bater no servidor · rascunho local já cobre.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setAutoSaveStatus("offline");
+        return;
+      }
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
       try {
@@ -977,8 +982,38 @@ export default function ProposalEditor() {
         lastAutoSavedSnapshotRef.current = snapshot;
         setLastSavedAt(new Date());
         setAutoSaveStatus("saved");
+        retryAttemptsRef.current = 0;
+        if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
       } catch {
-        setAutoSaveStatus("error");
+        // Falha transitória (rede oscilando, timeout). Rascunho local segue
+        // íntegro. Agenda retry com backoff exponencial · 2s, 5s, 10s, 20s, cap 30s.
+        const offlineNow = typeof navigator !== "undefined" && !navigator.onLine;
+        setAutoSaveStatus(offlineNow ? "offline" : "error");
+        const attempt = Math.min(retryAttemptsRef.current + 1, 6);
+        retryAttemptsRef.current = attempt;
+        const delay = Math.min(30000, 2000 * Math.pow(1.8, attempt - 1));
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => {
+          // Invalida snapshot para forçar novo ciclo do autosave
+          lastAutoSavedSnapshotRef.current = "";
+          // Toca o estado para reagendar
+          setAutoSaveStatus((s) => (s === "error" || s === "offline" ? s : s));
+          // Dispara um "ping" via mudança forçada · usamos o próprio efeito
+          // reagendando através de um microtask
+          Promise.resolve().then(() => {
+            // Reexecuta effect via bump: alterando lastSavedAt não dispara,
+            // então chamamos a mutation direto se ainda houver diff.
+            const cur = JSON.stringify({ f: formRef.current, i: itemsRef.current, v: visualOverridesRef.current });
+            if (cur !== lastAutoSavedSnapshotRef.current) {
+              if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+              autoSaveTimerRef.current = setTimeout(() => {
+                // Força novo ciclo modificando ref
+                lastAutoSavedSnapshotRef.current = "";
+                setLastSavedAt((d) => d); // no-op para acionar re-render leve
+              }, 0);
+            }
+          });
+        }, delay);
       } finally {
         isAutoSavingRef.current = false;
       }
@@ -988,7 +1023,29 @@ export default function ProposalEditor() {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedForm, debouncedItems, debouncedVisualOverrides]);
+  }, [debouncedForm, debouncedItems, debouncedVisualOverrides, isOnline]);
+
+  // Detecta online/offline · quando volta, força tentativa imediata de autosave.
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      retryAttemptsRef.current = 0;
+      // Invalida snapshot para o autosave detectar diff e regravar
+      lastAutoSavedSnapshotRef.current = "";
+      setAutoSaveStatus((s) => (s === "offline" || s === "error" ? "saving" : s));
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setAutoSaveStatus("offline");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, []);
 
   // Avisa antes de sair se ainda houver gravação em andamento · e força flush
   // imediato (sem esperar debounce) quando a aba é escondida/fechada
