@@ -389,7 +389,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
                   key={t}
                   style={{
                     ...cellHead,
-                    padding: "0 10px",
+                    padding: "12px 10px",
                     textAlign: i === 0 ? "left" : "center",
                     whiteSpace: "nowrap",
                     fontSize: 11,
