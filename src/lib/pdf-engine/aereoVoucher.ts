@@ -59,7 +59,6 @@ function labelValueRow(label: string, value: string, alt: boolean, isLast: boole
 export function buildAereoVoucherTree(data: AereoVoucherData): Node {
   const basics: Array<[string, string]> = [
     ["Classe:", data.flight_class || "Econômica"],
-    ["Data da emissão:", fmtDateBR(data.emission_date)],
     ["Código Reserva:", data.reservation_code || "—"],
   ];
 
