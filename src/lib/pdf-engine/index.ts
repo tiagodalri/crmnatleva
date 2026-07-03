@@ -112,7 +112,8 @@ function applyTracking(s: string, spacing?: number): string {
 }
 
 function transformText(t: string, f?: FontSpec) {
-  return f?.transform === "uppercase" ? t.toUpperCase() : t;
+  const cased = f?.transform === "uppercase" ? t.toUpperCase() : t;
+  return applyTracking(cased, f?.letterSpacing);
 }
 
 // ── measure ──────────────────────────────────────────────────────────────────
