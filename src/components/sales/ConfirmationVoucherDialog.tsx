@@ -13,6 +13,7 @@ import { iataToLabel } from "@/lib/iataUtils";
 import { ALL_AIRLINES } from "@/lib/airlinesData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { normalizePassengerName } from "@/lib/nameUtils";
 
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
@@ -90,6 +91,10 @@ function prettyClass(c?: string | null): string {
   return map[c.toLowerCase()] || c;
 }
 
+function normalizePaxName(value: unknown): string {
+  return normalizePassengerName(asString(value)) || "—";
+}
+
 function normalizeGenericSlug(productType?: string | null, category?: string | null, description?: string | null): GenericServiceSlug {
   const pt = (productType || "").toLowerCase().trim();
   const cat = (category || "").toLowerCase().trim();
@@ -119,8 +124,8 @@ function normalizeGenericSlug(productType?: string | null, category?: string | n
 
 function createLongTestVouchers(): VoucherKind[] {
   const passengers = [
-    { name: "Maria Carolina Albuquerque Vasconcellos de Andrade", type: "Adulto", doc: "12345678900" },
-    { name: "João Pedro Albuquerque Vasconcellos de Andrade Neto", type: "Adulto", doc: "98765432100" },
+    { name: normalizePassengerName("MARIA CAROLINA ALBUQUERQUE VASCONCELLOS DE ANDRADE"), type: "Adulto", doc: "12345678900" },
+    { name: normalizePassengerName("joão pedro albuquerque vasconcellos de andrade neto"), type: "Adulto", doc: "98765432100" },
   ];
 
   return [
@@ -216,7 +221,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
       if (segments.length > 0) {
         const aereoCost = costItems.find((c) => asString(c.category) === "aereo");
         const passengers = passengersRaw.map((p) => ({
-          name: asString(p.full_name) || "—",
+          name: normalizePaxName(p.full_name),
           type: inferPaxType(asString(p.birth_date)),
           doc: asString(p.passport_number) || asString(p.cpf) || asString(p.rg),
         }));
@@ -244,7 +249,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         });
       }
 
-      const guests = passengersRaw.map((p) => ({ name: asString(p.full_name) || "—", doc: asString(p.cpf) || asString(p.passport_number) || asString(p.rg) }));
+      const guests = passengersRaw.map((p) => ({ name: normalizePaxName(p.full_name), doc: asString(p.cpf) || asString(p.passport_number) || asString(p.rg) }));
       const hotelCosts = costItems.filter((c) => asString(c.category) === "hotel");
       const hotelSources = hotelCosts.length > 0
         ? hotelCosts.map((h) => ({
@@ -278,7 +283,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
       // Vouchers genéricos: qualquer cost_item que não seja aéreo nem hospedagem
       // (seguro, passeio, transfer, cruzeiro, aluguel de carro, ingressos, etc.)
       const paxForGeneric = passengersRaw.map((p) => ({
-        name: asString(p.full_name) || "—",
+        name: normalizePaxName(p.full_name),
         type: inferPaxType(asString(p.birth_date)),
         doc: asString(p.passport_number) || asString(p.cpf) || asString(p.rg),
       }));
@@ -577,7 +582,7 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
                 <p className="text-xs font-semibold text-foreground">Passageiro {i + 1}</p>
                 <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removePax(i)}>Remover</Button>
               </div>
-              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: e.target.value })} /></Field>
+              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: normalizePassengerName(e.target.value) })} /></Field>
               <Field label="Tipo de passageiro"><Input value={p.type || ""} placeholder="Adulto / Criança / Bebê" onChange={(e) => updatePax(i, { type: e.target.value })} /></Field>
               <Field label="Documento"><Input value={p.doc || ""} onChange={(e) => updatePax(i, { doc: e.target.value })} /></Field>
             </div>
@@ -643,7 +648,7 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
                 <p className="text-xs font-semibold text-foreground">Beneficiário {i + 1}</p>
                 <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removePax(i)}>Remover</Button>
               </div>
-              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: e.target.value })} /></Field>
+              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: normalizePassengerName(e.target.value) })} /></Field>
               <Field label="Documento"><Input value={p.doc || ""} onChange={(e) => updatePax(i, { doc: e.target.value })} /></Field>
             </div>
           ))}
@@ -680,7 +685,7 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
               <p className="text-xs font-semibold text-foreground">Hóspede {i + 1}</p>
               <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removeGuest(i)}>Remover</Button>
             </div>
-            <Field label="Nome completo"><Input value={g.name || ""} onChange={(e) => updateGuest(i, { name: e.target.value })} /></Field>
+            <Field label="Nome completo"><Input value={g.name || ""} onChange={(e) => updateGuest(i, { name: normalizePassengerName(e.target.value) })} /></Field>
             <Field label="Documento"><Input value={g.doc || ""} onChange={(e) => updateGuest(i, { doc: e.target.value })} /></Field>
           </div>
         ))}
