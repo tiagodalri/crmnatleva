@@ -15,23 +15,37 @@ export const NATLEVA_FOOTER = {
 export const NATLEVA_FOOTER_LINE = `${NATLEVA_FOOTER.phone}   ·   ${NATLEVA_FOOTER.instagram}`;
 
 // ── Paleta institucional (espelha ConfirmationVoucher.tsx) ──────────────────
+// Nota: `rowAlt` propositalmente branco — decisão de design: eliminar zebra
+// em tabelas para linguagem visual mais editorial/premium (Stripe/Airbnb style).
 export const BRAND = {
   green: "#1f5f3a",
-  greenDark: "#0f3d24",
-  textDark: "#1f2937",
+  greenDark: "#0b2f1c",
+  textDark: "#111827",
+  textSoft: "#4b5563",
   muted: "#6b7280",
-  rowAlt: "#f3f5f1",
-  border: "#e2e6df",
-  borderLight: "#d8dfd5",
+  hairline: "#e5e7eb",
+  rowAlt: "#ffffff",
+  border: "#e5e7eb",
+  borderLight: "#eef1ec",
   white: "#ffffff",
+} as const;
+
+// ── Grid 4pt (≈1.41mm). Todos os spacings da engine devem sair daqui. ───────
+export const SPACING = {
+  xs: 1.5,   // ~4pt
+  sm: 3,     // ~8pt
+  md: 4.5,   // ~12pt
+  lg: 6,     // ~16pt
+  xl: 9,     // ~24pt
+  xxl: 12,   // ~32pt
 } as const;
 
 // ── Dimensões reservadas por página ─────────────────────────────────────────
 export const PAGE = {
   widthMm: 210,
   heightMm: 297,
-  marginMm: 14,       // lateral
-  headerMm: 22,       // altura reservada para o header institucional
+  marginMm: 18,       // lateral (18mm = ritmo editorial premium)
+  headerMm: 20,       // altura reservada para o header institucional
   footerMm: 16,       // altura reservada para o footer institucional
 } as const;
 
@@ -96,53 +110,48 @@ export function drawInstitutionalHeader(pdf: Pdf, logo: LogoAsset | null, meta: 
   // Label do voucher — canto direito, uppercase, verde escuro
   const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
-  pdf.setCharSpace(0.3);
+  pdf.setFontSize(8.5);
+  pdf.setCharSpace(0.4);
   pdf.setTextColor(dr, dg, db);
   pdf.text(meta.label.toUpperCase(), rightX, topY + 4, { align: "right", baseline: "alphabetic" });
   pdf.setCharSpace(0);
 
-  // Segunda linha: código de reserva (opcional)
+  // Segunda linha: código de reserva (opcional) em números tabulares
   if (meta.reservationCode) {
-    const [mr, mg, mb] = hexToRgbLocal(BRAND.muted);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
+    const [mr, mg, mb] = hexToRgbLocal(BRAND.textSoft);
+    pdf.setFont("courier", "normal");
+    pdf.setFontSize(8.5);
     pdf.setTextColor(mr, mg, mb);
-    pdf.text(`Reserva ${meta.reservationCode}`, rightX, topY + 9, { align: "right", baseline: "alphabetic" });
+    pdf.text(meta.reservationCode.toUpperCase(), rightX, topY + 8.8, { align: "right", baseline: "alphabetic" });
   }
-
-  // Divisória sutil (verde da marca)
-  const [gr, gg, gb] = hexToRgbLocal(BRAND.green);
-  pdf.setDrawColor(gr, gg, gb);
-  pdf.setLineWidth(0.35);
-  pdf.line(PAGE.marginMm, topY + 12, rightX, topY + 12);
+  // → Sem linha divisória verde. Peso visual do header vem só da tipografia.
 }
 
 // ── Footer institucional ────────────────────────────────────────────────────
 export function drawInstitutionalFooter(pdf: Pdf, pageNumber: number, totalPages: number) {
   const rightX = PAGE.widthMm - PAGE.marginMm;
+  const leftX = PAGE.marginMm;
   const dividerY = PAGE.heightMm - PAGE.footerMm + 2;
   const baselineY = PAGE.heightMm - 6;
 
-  // Divisória
-  const [bl_r, bl_g, bl_b] = hexToRgbLocal(BRAND.borderLight);
+  // Hairline suave
+  const [bl_r, bl_g, bl_b] = hexToRgbLocal(BRAND.hairline);
   pdf.setDrawColor(bl_r, bl_g, bl_b);
-  pdf.setLineWidth(0.25);
-  pdf.line(PAGE.marginMm, dividerY, rightX, dividerY);
+  pdf.setLineWidth(0.2);
+  pdf.line(leftX, dividerY, rightX, dividerY);
 
-  // Texto central (fonte única de verdade)
-  const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
+  // Footer 3 colunas: telefone à esquerda · handle ao centro · página à direita
+  const [sr, sg, sb] = hexToRgbLocal(BRAND.textSoft);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
+  pdf.setFontSize(7.5);
+  pdf.setCharSpace(0.15);
+  pdf.setTextColor(sr, sg, sb);
+  pdf.text(NATLEVA_FOOTER.phone, leftX, baselineY, { align: "left", baseline: "alphabetic" });
+  pdf.setFont("helvetica", "bold");
+  pdf.text(NATLEVA_FOOTER.instagram, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
+  pdf.setFont("helvetica", "normal");
   pdf.setCharSpace(0);
-  pdf.setTextColor(dr, dg, db);
-  pdf.text(NATLEVA_FOOTER_LINE, PAGE.widthMm / 2, baselineY, { align: "center", baseline: "alphabetic" });
-
-  // Paginação discreta à direita (só se >1 página)
   if (totalPages > 1) {
-    const [mr, mg, mb] = hexToRgbLocal(BRAND.muted);
-    pdf.setFontSize(7);
-    pdf.setTextColor(mr, mg, mb);
     pdf.text(`${pageNumber} / ${totalPages}`, rightX, baselineY, { align: "right", baseline: "alphabetic" });
   }
 }
