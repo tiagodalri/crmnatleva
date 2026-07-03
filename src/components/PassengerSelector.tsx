@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Search, X, User, AlertTriangle, Plus, Loader2 } from "lucide-react";
 import { formatDateBR } from "@/lib/dateFormat";
-import { smartCapitalizeName } from "@/lib/nameUtils";
+import { normalizePassengerName } from "@/lib/nameUtils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -91,7 +91,7 @@ export default function PassengerSelector({ selected, onChange }: Props) {
   };
 
   const handleCreate = async () => {
-    const name = smartCapitalizeName(newName);
+    const name = normalizePassengerName(newName);
     if (!name || name.length < 2) {
       toast({ title: "Nome inválido", variant: "destructive" });
       return;
@@ -150,7 +150,7 @@ export default function PassengerSelector({ selected, onChange }: Props) {
                   className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex items-center justify-between gap-2 disabled:opacity-40"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{p.full_name}</p>
+                    <p className="text-sm font-medium truncate">{normalizePassengerName(p.full_name)}</p>
                     <p className="text-[10px] text-muted-foreground">
                       {[p.cpf, p.phone ? formatPhoneDisplay(p.phone) : null, p.passport_number].filter(Boolean).join(" · ") || "Sem documentos"}
                     </p>
@@ -172,7 +172,7 @@ export default function PassengerSelector({ selected, onChange }: Props) {
                 <User className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{p.full_name}</p>
+                <p className="text-sm font-medium truncate">{normalizePassengerName(p.full_name)}</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   {p.cpf && <span className="text-[10px] text-muted-foreground font-mono">{p.cpf}</span>}
                   {p.birth_date && <span className="text-[10px] text-muted-foreground">{formatDateBR(p.birth_date)}</span>}
@@ -207,7 +207,7 @@ export default function PassengerSelector({ selected, onChange }: Props) {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Nome Completo *</Label>
-              <Input value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} onBlur={(e) => setNewName(normalizePassengerName(e.target.value))} />
             </div>
             <div className="space-y-1">
               <Label>CPF</Label>
