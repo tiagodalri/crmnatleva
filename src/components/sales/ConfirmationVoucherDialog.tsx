@@ -688,16 +688,16 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
                 ))}
               </div>
               {editMode && current && !testMode && <EditPanel voucher={current} onChange={updateCurrent} onReset={resetDraft} />}
-              <Button onClick={handleExportEngine} disabled={!current || exporting} className="mt-auto min-h-11">
+              <Button onClick={handleExport} disabled={!current || exporting} className="mt-auto min-h-11">
                 {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Baixar PDF
               </Button>
               <Button
                 variant="outline"
                 className="min-h-11 border-dashed text-xs"
-                onClick={handleExport}
+                onClick={handleExportEngine}
                 disabled={!current || exporting}
               >
-                <FileCode2 className="w-4 h-4 mr-2" /> Exportar (modo legado)
+                <FileCode2 className="w-4 h-4 mr-2" /> Exportar (engine vetorial · beta)
               </Button>
             </div>
 
