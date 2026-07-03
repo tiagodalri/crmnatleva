@@ -308,7 +308,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
       const sectionTops = Array.from(
         root.querySelectorAll<HTMLElement>("[data-pdf-section]"),
       )
-        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * canvasScaleY))
+        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * (canvas.height / rootHeight)))
         .filter((y) => y > 0);
       const breaks = Array.from(new Set([0, ...sectionTops, canvas.height])).sort((a, b) => a - b);
 
