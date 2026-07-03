@@ -90,9 +90,9 @@ const HEAD_H = 40;
 
 
 const cellHead: CSSProperties = {
-  padding: "12px 16px",
+  padding: "14px 16px",
   fontSize: 11,
-  lineHeight: 1.4,
+  lineHeight: 1.6,
   fontWeight: 700,
   color: GREEN_DARK,
   background: ROW_ALT,
@@ -102,15 +102,17 @@ const cellHead: CSSProperties = {
   textTransform: "uppercase",
   letterSpacing: "0.06em",
   whiteSpace: "nowrap",
+  overflow: "visible",
 };
 const cell: CSSProperties = {
-  padding: "13px 16px",
+  padding: "14px 16px",
   fontSize: 12,
-  lineHeight: 1.45,
+  lineHeight: 1.6,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
   minWidth: 0,
+  overflow: "visible",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
@@ -124,12 +126,10 @@ const tableRow = (background: string, borderBottom: string): CSSProperties => ({
 const cellInner: CSSProperties = {
   display: "block",
   minWidth: 0,
-  lineHeight: 1.45,
+  lineHeight: 1.6,
   whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
-  overflow: "hidden",
   width: "100%",
-
+  overflow: "visible",
 };
 
 const centeredCellInner: CSSProperties = {
