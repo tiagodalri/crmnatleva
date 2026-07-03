@@ -186,31 +186,37 @@ export interface BoardingPassSegment {
 
 // bloco IATA + cidade + hora (usado nas duas pontas do card)
 function endpoint(iata: string, city: string, time: string, align: "left" | "right"): Node {
-  return col({ gap: SPACING.xs }, [
+  return col({ gap: 1 }, [
     text(iata || "—", {
       textAlign: align,
-      font: { size: 22, weight: "bold", color: BRAND.greenDark, letterSpacing: -0.5, align },
+      minHeight: 9,
+      font: { size: 26, weight: "bold", color: BRAND.greenDark, letterSpacing: -0.4, align, lineHeight: 1.05 },
     }),
     text(city || "", {
       textAlign: align,
-      font: { size: 8, color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.4, align },
+      font: { size: 7.5, color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.4, align },
     }),
+    spacer(SPACING.xs),
     text(time || "—:—", {
       textAlign: align,
-      // Helvetica bold em 12pt tem larguras próximas de tabular para dígitos
-      font: { size: 13, weight: "bold", color: BRAND.textDark, align, letterSpacing: 0.1 },
+      font: { size: 14, weight: "bold", color: BRAND.textDark, align, letterSpacing: 0.2 },
     }),
   ]);
 }
 
-// linha central: hairline com bullet + duration
+// linha central: hairline com plane vetorial + duration em pill sutil
 function connector(duration: string): Node {
-  return col({ gap: SPACING.xs, padding: [SPACING.sm, 0, 0, 0] }, [
-    // hairline horizontal
-    { kind: "rule", color: BRAND.hairline, thickness: 0.3, style: { minHeight: 0.3 } } as Node,
-    text(duration || "—", {
+  return col({ gap: SPACING.xs, padding: [4, 0, 0, 0] }, [
+    // avião centralizado (a hairline "atravessa" visualmente pelas margens dele)
+    row({ gap: 0 }, [
+      { kind: "rule", color: BRAND.hairline, thickness: 0.3, style: { minHeight: 0.3 } } as Node,
+      icon(iconPlaneRight, 6.5, BRAND.green, 0.1, { minHeight: 6, width: 8 }),
+      { kind: "rule", color: BRAND.hairline, thickness: 0.3, style: { minHeight: 0.3 } } as Node,
+    ]),
+    spacer(1),
+    text(duration || "", {
       textAlign: "center",
-      font: { size: 8, color: BRAND.textSoft, align: "center", letterSpacing: 0.2 },
+      font: { size: 8, weight: "bold", color: BRAND.green, align: "center", letterSpacing: 0.2, transform: "uppercase" },
     }),
   ]);
 }
@@ -224,18 +230,18 @@ export function boardingPassCard(seg: BoardingPassSegment): Node {
 
   return col({
     border: { color: BRAND.hairline, width: 0.2 },
-    radius: 1.5,
+    radius: 2,
     padding: [SPACING.md, SPACING.lg],
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   }, [
     // topo: meta esquerda / data direita
     grid([60, 40], {}, [
       text(meta || "—", {
-        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.55 },
+        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.5 },
       }),
       text(seg.dateLabel || "—", {
         textAlign: "right",
-        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.55, align: "right" },
+        font: { size: 7.5, weight: "bold", color: BRAND.textSoft, transform: "uppercase", letterSpacing: 0.5, align: "right" },
       }),
     ]),
     spacer(SPACING.xs),
@@ -247,3 +253,4 @@ export function boardingPassCard(seg: BoardingPassSegment): Node {
     ]),
   ]);
 }
+
