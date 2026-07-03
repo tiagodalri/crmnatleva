@@ -43,20 +43,20 @@ export function sectionTitle(label: string): Node {
   ]);
 }
 
-// ── Card "chave: valor" (Informações Básicas) — sem zebra ──────────────────
+// ── Card "chave: valor" (Informações Básicas) com zebra sutil ──────────────
 export function labelValueCard(rows: Array<[string, string]>): Node {
   return col({
-    border: { color: BRAND.hairline, width: 0.15 },
-    radius: 1,
+    border: { color: BRAND.hairline, width: 0.2 },
+    radius: 1.5,
   }, rows.map(([k, v], i) => grid([38, 62], {
-    border: i === rows.length - 1 ? undefined : { color: BRAND.hairline, width: 0.1, sides: ["bottom"] },
+    bg: i % 2 === 1 ? BRAND.rowAlt : undefined,
   }, [
-    text(k, { ...style.CELL, font: { ...style.CELL.font, color: BRAND.textSoft } }),
-    text(v, { ...style.CELL, font: { ...style.CELL.font, weight: "bold", color: BRAND.textDark } }),
+    text(k, { ...style.CELL, font: { ...style.CELL.font, weight: "bold", color: BRAND.textDark } }),
+    text(v, { ...style.CELL, font: { ...style.CELL.font, color: BRAND.textSoft } }),
   ])));
 }
 
-// ── Tabela genérica (header + linhas, ZERO zebra) ──────────────────────────
+// ── Tabela genérica (header + linhas com zebra sutil) ──────────────────────
 export interface TableSpec {
   cols: number[];
   headers: string[];
@@ -87,9 +87,8 @@ export function dataTable(spec: TableSpec): Node {
     );
   } else {
     spec.rows.forEach((cells, i) => {
-      const isLast = i === spec.rows.length - 1;
       children.push(grid(spec.cols, {
-        border: isLast ? undefined : { color: BRAND.hairline, width: 0.1, sides: ["bottom"] },
+        bg: i % 2 === 1 ? BRAND.rowAlt : undefined,
       }, cells.map((v, j) => text(v, {
         ...style.CELL,
         textAlign: align[j],
@@ -98,7 +97,7 @@ export function dataTable(spec: TableSpec): Node {
     });
   }
 
-  return col({}, children);
+  return col({ border: { color: BRAND.hairline, width: 0.2 }, radius: 1.5 }, children);
 }
 
 // ── InfoLine: ícone em círculo + título + subtítulo ────────────────────────
