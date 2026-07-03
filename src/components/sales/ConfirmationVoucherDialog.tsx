@@ -485,7 +485,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
             <div className="min-h-0 flex flex-col gap-3">
-              {testMode && <Badge variant="outline" className="w-fit"><FlaskConical className="w-3.5 h-3.5 mr-1.5" /> Validação com dados longos</Badge>}
+              
               <div className="grid gap-2">
                 {visibleVouchers.map((v) => (
                   <button key={v.id} onClick={() => setSelectedId(v.id)} className={cn("min-h-11 text-left px-3 py-2.5 rounded-lg border text-sm flex items-start gap-2 transition-colors", selectedId === v.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted")}> 
