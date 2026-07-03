@@ -126,7 +126,6 @@ const cellInner: CSSProperties = {
   minWidth: 0,
   overflow: "hidden",
   textOverflow: "ellipsis",
-  transform: "translateY(var(--pdf-cell-y, 0px))",
 };
 
 
@@ -137,19 +136,17 @@ const centeredCellInner: CSSProperties = {
 
 const headerCellInner: CSSProperties = {
   ...cellInner,
-  transform: "none",
 };
 
 const centeredHeaderCellInner: CSSProperties = {
   ...centeredCellInner,
-  transform: "none",
 };
 
 
-const voucherPageStyle = (exportMode?: boolean): CSSProperties => ({
+const voucherPageStyle = (_exportMode?: boolean): CSSProperties => ({
   ...page,
-  ...(exportMode ? ({ "--pdf-cell-y": "-6px" } as unknown as CSSProperties) : {}),
 });
+
 
 function renderPassengerName(name?: string | null): string {
   return normalizePassengerName(name) || "—";
