@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import AIExtractButton from "@/components/AIExtractButton";
 import { useNavigate } from "react-router-dom";
-import { smartCapitalizeName } from "@/lib/nameUtils";
+import { normalizePassengerName } from "@/lib/nameUtils";
 import { DatePartsInput } from "@/components/ui/date-parts-input";
 
 interface Passenger {
@@ -199,7 +199,7 @@ export default function Passengers() {
     };
     setForm(f => ({
       ...f,
-      full_name: get("passenger_names") || f.full_name,
+      full_name: normalizePassengerName(get("passenger_names")) || f.full_name,
       cpf: get("cpf") || f.cpf,
       phone: get("phone") || f.phone,
       passport_number: get("passport") || f.passport_number,
@@ -208,7 +208,7 @@ export default function Passengers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const capitalizedName = smartCapitalizeName(form.full_name);
+    const capitalizedName = normalizePassengerName(form.full_name);
     if (!capitalizedName || capitalizedName.length < 2) {
       toast({ title: "Nome inválido", description: "O nome deve ter pelo menos 2 caracteres.", variant: "destructive" });
       return;
@@ -253,7 +253,7 @@ export default function Passengers() {
   const handleSaveEdit = async () => {
     if (!detailPax) return;
     setSavingEdit(true);
-    const capitalizedName = smartCapitalizeName(editForm.full_name || "");
+    const capitalizedName = normalizePassengerName(editForm.full_name || "");
     if (!capitalizedName || capitalizedName.length < 2) {
       toast({ title: "Nome inválido", variant: "destructive" });
       setSavingEdit(false);
@@ -411,7 +411,7 @@ export default function Passengers() {
               <form onSubmit={handleSubmit} className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label>Nome Completo *</Label>
-                  <Input value={form.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))} onBlur={(e) => setForm(f => ({ ...f, full_name: smartCapitalizeName(e.target.value) }))} required />
+                  <Input value={form.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))} onBlur={(e) => setForm(f => ({ ...f, full_name: normalizePassengerName(e.target.value) }))} required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
@@ -572,7 +572,7 @@ export default function Passengers() {
                                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                   <User className="w-4 h-4 text-primary" />
                                 </div>
-                                <span className="font-medium text-foreground">{p.full_name}</span>
+                                <span className="font-medium text-foreground">{normalizePassengerName(p.full_name)}</span>
                               </div>
                             </TableCell>
                             <TableCell className="font-mono text-xs text-muted-foreground">{p.cpf || "—"}</TableCell>
@@ -644,7 +644,7 @@ export default function Passengers() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
-              {editingDetail ? "Editar Passageiro" : detailPax?.full_name}
+              {editingDetail ? "Editar Passageiro" : normalizePassengerName(detailPax?.full_name)}
             </DialogTitle>
           </DialogHeader>
           {detailPax && !editingDetail && (
@@ -698,7 +698,7 @@ export default function Passengers() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome Completo *</Label>
-                <Input value={editForm.full_name || ""} onChange={(e) => setEditForm(f => ({ ...f, full_name: e.target.value }))} />
+                <Input value={editForm.full_name || ""} onChange={(e) => setEditForm(f => ({ ...f, full_name: e.target.value }))} onBlur={(e) => setEditForm(f => ({ ...f, full_name: normalizePassengerName(e.target.value) }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">

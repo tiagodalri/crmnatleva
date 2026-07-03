@@ -14,6 +14,7 @@ import PassengerFormCard, {
   type PassengerFormState,
 } from "@/components/passenger-signup/PassengerFormCard";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { normalizePassengerName } from "@/lib/nameUtils";
 
 type Step = "form" | "review";
 
@@ -73,7 +74,11 @@ export default function PassengerSelfSignup() {
   };
 
   const savePassenger = (idx: number) => {
-    const err = validatePassenger(passengers[idx], idx);
+    const normalized = normalizePassengerName(passengers[idx].full_name);
+    if (normalized !== passengers[idx].full_name) {
+      setPassengers((arr) => arr.map((p, i) => (i === idx ? { ...p, full_name: normalized } : p)));
+    }
+    const err = validatePassenger({ ...passengers[idx], full_name: normalized }, idx);
     if (err) {
       toast({ title: "Verifique os dados", description: err, variant: "destructive" });
       return false;
@@ -138,7 +143,7 @@ export default function PassengerSelfSignup() {
           method: "POST",
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, payload: passengers[i] }),
+          body: JSON.stringify({ slug, payload: { ...passengers[i], full_name: normalizePassengerName(passengers[i].full_name) } }),
         });
         const j = await r.json();
         if (!r.ok || j.error) {
@@ -240,7 +245,7 @@ export default function PassengerSelfSignup() {
                 </div>
                 <h3 className="font-display text-base">Passageiro {idx + 1}</h3>
               </div>
-              <ReviewRow label="Nome completo" value={p.full_name} />
+              <ReviewRow label="Nome completo" value={normalizePassengerName(p.full_name)} />
               <ReviewRow label="CPF" value={p.cpf} />
               <ReviewRow label="Data de nascimento" value={formatIsoBr(p.birth_date)} />
               <ReviewRow label="RG" value={p.rg} />
@@ -339,7 +344,7 @@ export default function PassengerSelfSignup() {
                     <div className="min-w-0">
                       <p className="text-sm font-display truncate">
                         Passageiro {idx + 1}
-                        {p.full_name ? ` · ${p.full_name}` : ""}
+                        {p.full_name ? ` · ${normalizePassengerName(p.full_name)}` : ""}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {saved

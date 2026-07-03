@@ -11,6 +11,7 @@ import { forwardRef, type CSSProperties, type ReactNode } from "react";
 import { Backpack, Briefcase, Luggage, Clock, MessageCircle, AlertCircle, ShieldCheck, Shield, MapPin, Ticket, Car, Ship, Train, Bus, Package, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import logoNatleva from "@/assets/logo-natleva.png";
+import { normalizePassengerName } from "@/lib/nameUtils";
 
 // Brand palette extracted from the original PDF
 const GREEN = "#1f5f3a";
@@ -85,7 +86,8 @@ const oneLine: CSSProperties = {
   whiteSpace: "nowrap",
 };
 const cellHead: CSSProperties = {
-  padding: "11px 16px",
+  padding: "0 16px",
+  minHeight: 40,
   fontSize: 11,
   fontWeight: 700,
   color: GREEN_DARK,
@@ -95,20 +97,62 @@ const cellHead: CSSProperties = {
   boxSizing: "border-box",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
-  display: "flex",
-  alignItems: "center",
+  display: "table-cell",
+  verticalAlign: "middle",
+  lineHeight: 1.25,
 };
 const cell: CSSProperties = {
-  padding: "13px 16px",
+  padding: "0 16px",
+  minHeight: 44,
   fontSize: 12.5,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
-  lineHeight: 1.5,
-  display: "flex",
-  alignItems: "center",
+  lineHeight: 1.35,
+  display: "table-cell",
+  verticalAlign: "middle",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
+
+const tableRow = (background: string, borderBottom: string): CSSProperties => ({
+  display: "grid",
+  alignItems: "stretch",
+  background,
+  borderBottom,
+});
+
+const cellInner: CSSProperties = {
+  minHeight: "inherit",
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  transform: "translateY(var(--pdf-cell-y, 0px))",
+};
+
+const centeredCellInner: CSSProperties = {
+  ...cellInner,
+  justifyContent: "center",
+  textAlign: "center",
+};
+
+const headerCellInner: CSSProperties = {
+  ...cellInner,
+  transform: "none",
+};
+
+const centeredHeaderCellInner: CSSProperties = {
+  ...centeredCellInner,
+  transform: "none",
+};
+
+const voucherPageStyle = (exportMode?: boolean): CSSProperties => ({
+  ...page,
+  ...(exportMode ? ({ "--pdf-cell-y": "-6px" } as unknown as CSSProperties) : {}),
+});
+
+function renderPassengerName(name?: string | null): string {
+  return normalizePassengerName(name) || "—";
+}
 
 const logoBlock = (
   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
@@ -143,8 +187,8 @@ export interface HotelVoucherData {
   doc_note?: string;
 }
 
-export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData }>(
-  ({ data }, ref) => {
+export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData; exportMode?: boolean }>(
+  ({ data, exportMode }, ref) => {
     const rows: Array<[string, string]> = [
       ["Hotel:", data.hotel_name || "—"],
       ["Alimentação:", data.meal_plan || "—"],
@@ -153,7 +197,7 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
       ["Código pin:", data.pin_code || "—"],
     ];
     return (
-      <div ref={ref} data-voucher-page="true" style={page}>
+      <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
           <div style={sub}>Voucher de Hospedagem</div>
@@ -169,13 +213,12 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
               <div
                 key={k}
                 style={{
-                  display: "flex",
-                  background: i % 2 === 0 ? "transparent" : ROW_ALT,
-                  borderBottom: i === rows.length - 1 ? "none" : `1px solid ${BORDER}`,
+                  ...tableRow(i % 2 === 0 ? "transparent" : ROW_ALT, i === rows.length - 1 ? "none" : `1px solid ${BORDER}`),
+                  gridTemplateColumns: "38% 62%",
                 }}
               >
-                <div style={{ ...labelCell, borderBottom: "none" }} title={k}>{k}</div>
-                <div style={{ ...cell, ...oneLine, borderBottom: "none", fontWeight: 600 }} title={v}>{v}</div>
+                <div style={{ ...labelCell, width: "auto", borderBottom: "none" }} title={k}><div style={cellInner}>{k}</div></div>
+                <div style={{ ...cell, ...oneLine, borderBottom: "none", fontWeight: 600 }} title={v}><div style={cellInner}>{v}</div></div>
               </div>
             ))}
           </div>
@@ -184,9 +227,9 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Informações do Hóspede</h2>
           <div style={card}>
-            <div style={{ display: "flex" }}>
-              <div style={{ ...cellHead, flex: 1 }}>Nome completo:</div>
-              <div style={{ ...cellHead, flex: 1 }}>Documento:</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+              <div style={cellHead}><div style={headerCellInner}>Nome completo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Documento:</div></div>
             </div>
             {data.guests.length === 0 ? (
               <div style={{ ...cell, borderBottom: "none", color: "#6b7280" }}>
@@ -197,13 +240,12 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
                 <div
                   key={i}
                   style={{
-                    display: "flex",
-                    background: i % 2 === 0 ? "transparent" : ROW_ALT,
-                    borderBottom: i === data.guests.length - 1 ? "none" : `1px solid ${BORDER}`,
+                    ...tableRow(i % 2 === 0 ? "transparent" : ROW_ALT, i === data.guests.length - 1 ? "none" : `1px solid ${BORDER}`),
+                    gridTemplateColumns: "1fr 1fr",
                   }}
                 >
-                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }} title={g.name}>{g.name}</div>
-                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }} title={g.doc || "—"}>{g.doc || "—"}</div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={renderPassengerName(g.name)}><div style={cellInner}>{renderPassengerName(g.name)}</div></div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={g.doc || "—"}><div style={cellInner}>{g.doc || "—"}</div></div>
                 </div>
               ))
             )}
@@ -213,15 +255,15 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Detalhes da Hospedagem</h2>
           <div style={card}>
-            <div style={{ display: "flex" }}>
-              <div style={{ ...cellHead, ...oneLine, flex: 2.4 }}>Endereço:</div>
-              <div style={{ ...cellHead, ...oneLine, flex: 1 }}>Data de Chegada:</div>
-              <div style={{ ...cellHead, ...oneLine, flex: 1 }}>Data de Saída:</div>
+            <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr 1fr" }}>
+              <div style={{ ...cellHead, ...oneLine }}><div style={headerCellInner}>Endereço:</div></div>
+              <div style={{ ...cellHead, ...oneLine }}><div style={headerCellInner}>Data de Chegada:</div></div>
+              <div style={{ ...cellHead, ...oneLine }}><div style={headerCellInner}>Data de Saída:</div></div>
             </div>
-            <div style={{ display: "flex" }}>
-              <div style={{ ...cell, ...oneLine, flex: 2.4, borderBottom: "none" }} title={data.address || "—"}>{data.address || "—"}</div>
-              <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }}>{fmtDateBR(data.checkin_date)}</div>
-              <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }}>{fmtDateBR(data.checkout_date)}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1fr 1fr" }}>
+              <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={data.address || "—"}><div style={cellInner}>{data.address || "—"}</div></div>
+              <div style={{ ...cell, ...oneLine, borderBottom: "none" }}><div style={cellInner}>{fmtDateBR(data.checkin_date)}</div></div>
+              <div style={{ ...cell, ...oneLine, borderBottom: "none" }}><div style={cellInner}>{fmtDateBR(data.checkout_date)}</div></div>
             </div>
           </div>
         </div>
@@ -271,15 +313,15 @@ export interface AereoVoucherData {
   }>;
 }
 
-export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData }>(
-  ({ data }, ref) => {
+export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData; exportMode?: boolean }>(
+  ({ data, exportMode }, ref) => {
     const basics: Array<[string, string]> = [
       ["Classe:", data.flight_class || "Econômica"],
       ["Data da emissão:", fmtDateBR(data.emission_date)],
       ["Código Reserva :", data.reservation_code || "—"],
     ];
     return (
-      <div ref={ref} data-voucher-page="true" style={page}>
+      <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
           <div style={sub}>Voucher de Viagem</div>
@@ -295,13 +337,12 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
               <div
                 key={k}
                 style={{
-                  display: "flex",
-                  background: i % 2 === 0 ? "transparent" : ROW_ALT,
-                  borderBottom: i === basics.length - 1 ? "none" : `1px solid ${BORDER}`,
+                  ...tableRow(i % 2 === 0 ? "transparent" : ROW_ALT, i === basics.length - 1 ? "none" : `1px solid ${BORDER}`),
+                  gridTemplateColumns: "38% 62%",
                 }}
               >
-                <div style={{ ...labelCell, borderBottom: "none" }} title={k}>{k}</div>
-                <div style={{ ...cell, ...oneLine, borderBottom: "none", fontWeight: 600 }} title={v}>{v}</div>
+                <div style={{ ...labelCell, width: "auto", borderBottom: "none" }} title={k}><div style={cellInner}>{k}</div></div>
+                <div style={{ ...cell, ...oneLine, borderBottom: "none", fontWeight: 600 }} title={v}><div style={cellInner}>{v}</div></div>
               </div>
             ))}
           </div>
@@ -310,10 +351,10 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Informações dos Passageiros</h2>
           <div style={card}>
-            <div style={{ display: "flex" }}>
-              <div style={{ ...cellHead, flex: 2 }}>Nome completo:</div>
-              <div style={{ ...cellHead, flex: 1 }}>Tipo de passageiro:</div>
-              <div style={{ ...cellHead, flex: 1 }}>Documento:</div>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr" }}>
+              <div style={cellHead}><div style={headerCellInner}>Nome completo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Tipo de passageiro:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Documento:</div></div>
             </div>
             {data.passengers.length === 0 ? (
               <div style={{ ...cell, borderBottom: "none", color: "#6b7280" }}>
@@ -324,14 +365,13 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
                 <div
                   key={i}
                   style={{
-                    display: "flex",
-                    background: i % 2 === 0 ? "transparent" : ROW_ALT,
-                    borderBottom: i === data.passengers.length - 1 ? "none" : `1px solid ${BORDER}`,
+                    ...tableRow(i % 2 === 0 ? "transparent" : ROW_ALT, i === data.passengers.length - 1 ? "none" : `1px solid ${BORDER}`),
+                    gridTemplateColumns: "2fr 1fr 1fr",
                   }}
                 >
-                  <div style={{ ...cell, ...oneLine, flex: 2, borderBottom: "none" }} title={p.name}>{p.name}</div>
-                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }}>{p.type || "Adulto"}</div>
-                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }} title={p.doc || "—"}>{p.doc || "—"}</div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={renderPassengerName(p.name)}><div style={cellInner}>{renderPassengerName(p.name)}</div></div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }}><div style={cellInner}>{p.type || "Adulto"}</div></div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={p.doc || "—"}><div style={cellInner}>{p.doc || "—"}</div></div>
                 </div>
               ))
             )}
@@ -341,20 +381,19 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Detalhes da Viagem</h2>
           <div style={card}>
-            <div style={{ display: "flex" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 2fr 1fr 1fr 1fr 1fr" }}>
               {["Voo:", "De:", "Para:", "Cia:", "Data:", "Partida:", "Chegada:"].map((t, i) => (
                 <div
                   key={t}
                   style={{
                     ...cellHead,
-                    flex: i === 1 || i === 2 ? 2 : 1,
                     textAlign: i === 0 ? "left" : "center",
                     justifyContent: i === 0 ? "flex-start" : "center",
                     whiteSpace: "nowrap",
                     fontSize: 12,
                   }}
                 >
-                  {t}
+                  <div style={i === 0 ? headerCellInner : centeredHeaderCellInner}>{t}</div>
                 </div>
               ))}
             </div>
@@ -377,9 +416,8 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
                   <div
                     key={i}
                     style={{
-                      display: "flex",
-                      background: i % 2 === 0 ? "transparent" : ROW_ALT,
-                      borderBottom: i === data.segments.length - 1 ? "none" : `1px solid ${BORDER}`,
+                      ...tableRow(i % 2 === 0 ? "transparent" : ROW_ALT, i === data.segments.length - 1 ? "none" : `1px solid ${BORDER}`),
+                      gridTemplateColumns: "1fr 2fr 2fr 1fr 1fr 1fr 1fr",
                     }}
                   >
                     {cells.map((c, j) => (
@@ -387,19 +425,18 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
                         key={j}
                         style={{
                           ...cell,
-                          flex: j === 1 || j === 2 ? 2 : 1,
                           borderBottom: "none",
                           textAlign: j === 0 ? "left" : "center",
-                          justifyContent: j === 0 ? "flex-start" : "center",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           fontSize: 11.5,
-                          padding: "12px 8px",
+                          padding: "0 8px",
+                          minHeight: 42,
                         }}
                         title={String(c)}
                       >
-                        {c}
+                        <div style={j === 0 ? cellInner : centeredCellInner}>{c}</div>
                       </div>
                     ))}
                   </div>
@@ -640,8 +677,8 @@ export interface GenericVoucherData {
   notes?: string | null;
 }
 
-export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherData }>(
-  ({ data }, ref) => {
+export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherData; exportMode?: boolean }>(
+  ({ data, exportMode }, ref) => {
     const preset = GENERIC_PRESETS[data.slug] || GENERIC_PRESETS["generico"];
     const Icon = preset.icon;
 
@@ -674,7 +711,7 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
     ];
 
     return (
-      <div ref={ref} data-voucher-page="true" style={page}>
+      <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           {logoBlock}
           <div style={sub}>{preset.headerLabel}</div>
@@ -689,13 +726,12 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
               <div
                 key={`${k}-${i}`}
                 style={{
-                  display: "flex",
-                  background: i % 2 === 0 ? "transparent" : ROW_ALT,
-                  borderBottom: i === basics.length - 1 ? "none" : `1px solid ${BORDER}`,
+                  ...tableRow(i % 2 === 0 ? "transparent" : ROW_ALT, i === basics.length - 1 ? "none" : `1px solid ${BORDER}`),
+                  gridTemplateColumns: "38% 62%",
                 }}
               >
-                <div style={{ ...labelCell, borderBottom: "none" }} title={k}>{k}</div>
-                <div style={{ ...cell, borderBottom: "none", fontWeight: 600, wordBreak: "break-word" }} title={v}>{v}</div>
+                <div style={{ ...labelCell, width: "auto", borderBottom: "none" }} title={k}><div style={cellInner}>{k}</div></div>
+                <div style={{ ...cell, borderBottom: "none", fontWeight: 600, wordBreak: "break-word" }} title={v}><div style={cellInner}>{v}</div></div>
               </div>
             ))}
           </div>
@@ -715,10 +751,10 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Beneficiários</h2>
           <div style={card}>
-            <div style={{ display: "flex" }}>
-              <div style={{ ...cellHead, flex: 2 }}>Nome completo:</div>
-              <div style={{ ...cellHead, flex: 1 }}>Tipo:</div>
-              <div style={{ ...cellHead, flex: 1 }}>Documento:</div>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr" }}>
+              <div style={cellHead}><div style={headerCellInner}>Nome completo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Tipo:</div></div>
+              <div style={cellHead}><div style={headerCellInner}>Documento:</div></div>
             </div>
             {data.passengers.length === 0 ? (
               <div style={{ ...cell, borderBottom: "none", color: "#6b7280" }}>
@@ -729,14 +765,13 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
                 <div
                   key={i}
                   style={{
-                    display: "flex",
-                    background: i % 2 === 0 ? "transparent" : ROW_ALT,
-                    borderBottom: i === data.passengers.length - 1 ? "none" : `1px solid ${BORDER}`,
+                    ...tableRow(i % 2 === 0 ? "transparent" : ROW_ALT, i === data.passengers.length - 1 ? "none" : `1px solid ${BORDER}`),
+                    gridTemplateColumns: "2fr 1fr 1fr",
                   }}
                 >
-                  <div style={{ ...cell, ...oneLine, flex: 2, borderBottom: "none" }} title={p.name}>{p.name}</div>
-                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }}>{p.type || "Adulto"}</div>
-                  <div style={{ ...cell, ...oneLine, flex: 1, borderBottom: "none" }} title={p.doc || "—"}>{p.doc || "—"}</div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={renderPassengerName(p.name)}><div style={cellInner}>{renderPassengerName(p.name)}</div></div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }}><div style={cellInner}>{p.type || "Adulto"}</div></div>
+                  <div style={{ ...cell, ...oneLine, borderBottom: "none" }} title={p.doc || "—"}><div style={cellInner}>{p.doc || "—"}</div></div>
                 </div>
               ))
             )}
