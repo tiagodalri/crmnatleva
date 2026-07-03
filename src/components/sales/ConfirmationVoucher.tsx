@@ -68,14 +68,14 @@ const h2: CSSProperties = {
   fontWeight: 700,
   lineHeight: 1.25,
   color: GREEN_DARK,
-  marginTop: 40,
-  marginBottom: 22,
+  marginTop: 32,
+  marginBottom: 16,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
 };
 const card: CSSProperties = {
   border: `1px solid ${BORDER}`,
-  borderRadius: 10,
+  borderRadius: 12,
   overflow: "hidden",
   background: SOFT_BG,
 };
@@ -87,6 +87,7 @@ const oneLine: CSSProperties = {
 };
 const ROW_H = 44;
 const HEAD_H = 40;
+
 
 const cellHead: CSSProperties = {
   padding: "0 16px",
@@ -156,11 +157,13 @@ function renderPassengerName(name?: string | null): string {
   return normalizePassengerName(name) || "—";
 }
 
-const logoBlock = (
-  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
-    <img src={logoNatleva} alt="NatLeva" style={{ height: 38, objectFit: "contain" }} crossOrigin="anonymous" />
-  </div>
-);
+const renderLogoBlock = (exportMode?: boolean) =>
+  exportMode ? null : (
+    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 36 }}>
+      <img src={logoNatleva} alt="NatLeva" style={{ height: 38, objectFit: "contain" }} crossOrigin="anonymous" />
+    </div>
+  );
+
 
 const fmtDateBR = (s?: string | null) => {
   if (!s) return "—";
@@ -201,7 +204,7 @@ export const HotelVoucher = forwardRef<HTMLDivElement, { data: HotelVoucherData;
     return (
       <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
-          {logoBlock}
+          {renderLogoBlock(exportMode)}
           <div style={sub}>Voucher de Hospedagem</div>
           <h1 style={{ ...h1, marginTop: 6 }}>Confirmação de Reserva</h1>
           <div style={headerRule} />
@@ -325,7 +328,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData;
     return (
       <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
-          {logoBlock}
+          {renderLogoBlock(exportMode)}
           <div style={sub}>Voucher de Viagem</div>
           <h1 style={{ ...h1, marginTop: 6 }}>Confirmação de Reserva</h1>
           <div style={headerRule} />
@@ -750,7 +753,7 @@ export const GenericVoucher = forwardRef<HTMLDivElement, { data: GenericVoucherD
     return (
       <div ref={ref} data-voucher-page="true" style={voucherPageStyle(exportMode)}>
         <div data-pdf-section style={{ breakInside: "avoid" }}>
-          {logoBlock}
+          {renderLogoBlock(exportMode)}
           <div style={sub}>{preset.headerLabel}</div>
           <h1 style={{ ...h1, marginTop: 6 }}>{preset.title}</h1>
           <div style={headerRule} />

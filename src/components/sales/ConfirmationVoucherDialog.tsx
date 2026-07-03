@@ -13,15 +13,32 @@ import { ALL_AIRLINES } from "@/lib/airlinesData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { normalizePassengerName } from "@/lib/nameUtils";
+import logoNatleva from "@/assets/logo-natleva.png";
 
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
 const PREVIEW_SCALE = 0.78;
-// Margens físicas reais no PDF (em mm) — o conteúdo é renderizado DENTRO dessa área útil.
-const PDF_SIDE_MARGIN_MM = 10;
-const PDF_TOP_MARGIN_MM = 10;
-const PDF_BOTTOM_MARGIN_MM = 12;
+
+// ── Sistema de página do PDF (todas medidas em mm; A4 = 210 × 297) ───────────
+// O conteúdo do voucher é renderizado apenas dentro da BODY zone. HEADER e
+// FOOTER são desenhados como camada VETORIAL selecionável em toda página.
+const PDF_SIDE_MARGIN_MM = 10;         // margem lateral (esquerda/direita)
+const PDF_HEADER_TOP_MM = 10;          // topo do header (onde o logo começa)
+const PDF_HEADER_LINE_MM = 24;         // linha divisória horizontal do header
+const PDF_BODY_TOP_MM = 28;            // início da área de conteúdo
+const PDF_FOOTER_LINE_MM = 280;        // linha divisória horizontal do footer
+const PDF_FOOTER_TEXT_MM = 286;        // baseline dos textos do footer
+const PDF_BODY_BOTTOM_MM = 277;        // fim da área de conteúdo (antes do footer)
 const PDF_CONTINUATION_TOP_PAD_PX = 24; // respiro no topo de páginas 2+
+
+// Paleta oficial da marca (espelha ConfirmationVoucher.tsx)
+// BRAND_GREEN reservado para futura customização vetorial; hoje usamos BRAND_DIVIDER.
+const BRAND_GREEN_DARK = "#0f3d24";
+const BRAND_MUTED = "#6b7280";
+const BRAND_DIVIDER: [number, number, number] = [0x1f, 0x5f, 0x3a];
+const BRAND_DIVIDER_LIGHT: [number, number, number] = [0xd8, 0xdf, 0xd5];
+
+
 
 type DbRecord = Record<string, unknown>;
 
@@ -165,6 +182,133 @@ function createLongTestVouchers(): VoucherKind[] {
     },
   ];
 }
+
+// ── PDF header/footer vetorial ────────────────────────────────────────────────
+// Estas helpers desenham o cabeçalho e rodapé institucionais em CAMADA
+// VETORIAL (texto selecionável) sobre cada página do PDF, sem interferir na
+// identidade visual da marca — apenas usam o logo oficial e a paleta atual.
+
+type LogoAsset = { dataUrl: string; widthMm: number; heightMm: number };
+
+async function loadLogoAsset(): Promise<LogoAsset | null> {
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = logoNatleva;
+    await new Promise<void>((resolve, reject) => {
+      if (img.complete && img.naturalWidth > 0) return resolve();
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("logo load failed"));
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0);
+    const dataUrl = canvas.toDataURL("image/png");
+    const heightMm = 9; // altura fixa do logo no header
+    const widthMm = (img.naturalWidth / img.naturalHeight) * heightMm;
+    return { dataUrl, widthMm, heightMm };
+  } catch {
+    return null;
+  }
+}
+
+interface HeaderMeta {
+  label: string;               // "Voucher Aéreo" / "Voucher Hospedagem" / "Voucher de Passeio" etc.
+  reservationCode: string | null;
+  emissionDate: string | null; // formato pt-BR já legível
+}
+
+function buildHeaderMeta(voucher: VoucherKind): HeaderMeta {
+  const today = new Date().toLocaleDateString("pt-BR");
+  if (voucher.type === "aereo") {
+    return {
+      label: "Voucher Aéreo",
+      reservationCode: voucher.data.reservation_code || null,
+      emissionDate: voucher.data.emission_date
+        ? new Date(voucher.data.emission_date).toLocaleDateString("pt-BR")
+        : today,
+    };
+  }
+  if (voucher.type === "hotel") {
+    return {
+      label: "Voucher Hospedagem",
+      reservationCode: voucher.data.reservation_code || null,
+      emissionDate: today,
+    };
+  }
+  const preset = GENERIC_PRESETS[voucher.data.slug] || GENERIC_PRESETS["generico"];
+  return {
+    label: preset.headerLabel,
+    reservationCode: voucher.data.reservation_code || null,
+    emissionDate: today,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drawPdfHeader(pdf: any, logo: LogoAsset | null, meta: HeaderMeta) {
+  const pageWidth = 210;
+  const rightX = pageWidth - PDF_SIDE_MARGIN_MM;
+
+  // Logo à esquerda (identidade da marca preservada)
+  if (logo) {
+    try {
+      pdf.addImage(logo.dataUrl, "PNG", PDF_SIDE_MARGIN_MM, PDF_HEADER_TOP_MM + 1, logo.widthMm, logo.heightMm);
+    } catch {
+      /* fallback silencioso */
+    }
+  }
+
+  // Meta institucional à direita: label do voucher · código · data de emissão
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(BRAND_GREEN_DARK);
+  pdf.text(meta.label.toUpperCase(), rightX, PDF_HEADER_TOP_MM + 4, { align: "right" });
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.setTextColor(BRAND_MUTED);
+  const line2Parts: string[] = [];
+  if (meta.reservationCode) line2Parts.push(`Reserva ${meta.reservationCode}`);
+  if (meta.emissionDate) line2Parts.push(`Emitido em ${meta.emissionDate}`);
+  if (line2Parts.length > 0) {
+    pdf.text(line2Parts.join("  ·  "), rightX, PDF_HEADER_TOP_MM + 9, { align: "right" });
+  }
+
+  // Divisória sutil (paleta da marca) separando header do body
+  pdf.setDrawColor(BRAND_DIVIDER[0], BRAND_DIVIDER[1], BRAND_DIVIDER[2]);
+  pdf.setLineWidth(0.35);
+  pdf.line(PDF_SIDE_MARGIN_MM, PDF_HEADER_LINE_MM, rightX, PDF_HEADER_LINE_MM);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function drawPdfFooter(pdf: any, pageNumber: number, totalPages: number) {
+  const pageWidth = 210;
+  const rightX = pageWidth - PDF_SIDE_MARGIN_MM;
+
+  // Divisória sutil separando footer do body
+  pdf.setDrawColor(BRAND_DIVIDER_LIGHT[0], BRAND_DIVIDER_LIGHT[1], BRAND_DIVIDER_LIGHT[2]);
+  pdf.setLineWidth(0.25);
+  pdf.line(PDF_SIDE_MARGIN_MM, PDF_FOOTER_LINE_MM, rightX, PDF_FOOTER_LINE_MM);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(BRAND_GREEN_DARK);
+  pdf.text("NatLeva Viagens", PDF_SIDE_MARGIN_MM, PDF_FOOTER_TEXT_MM);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(BRAND_MUTED);
+  pdf.text("natleva.com  ·  @natleva  ·  Atendimento pelo WhatsApp", PDF_SIDE_MARGIN_MM + 30, PDF_FOOTER_TEXT_MM);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(BRAND_GREEN_DARK);
+  pdf.text(`Página ${pageNumber} de ${totalPages}`, rightX, PDF_FOOTER_TEXT_MM, { align: "right" });
+}
+
+
 
 export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }: Props) {
   const { toast } = useToast();
@@ -357,11 +501,12 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
 
       const rootWidth = Math.round(root.getBoundingClientRect().width || A4_WIDTH_PX);
       const rootHeight = Math.ceil(root.scrollHeight || root.getBoundingClientRect().height || A4_HEIGHT_PX);
-      const captureScale = 2;
+      // Captura em 3x → ~300 DPI equivalente, texto muito mais nítido no PDF final.
+      const captureScale = 3;
       const minSlicePx = Math.round(160 * captureScale);
 
       // 1) Captura única do voucher inteiro no mesmo grid de pixels do preview.
-      const canvas = await html2canvas(root, {
+      const bodyCanvas = await html2canvas(root, {
         scale: captureScale,
         useCORS: true,
         backgroundColor: "#ffffff",
@@ -374,73 +519,94 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         scrollY: 0,
       });
 
-      // Mapeia px do canvas para a ÁREA ÚTIL do PDF (não a folha inteira).
+      // 2) Zonas físicas da folha A4 (mm). O body do voucher só desenha entre
+      // PDF_BODY_TOP_MM e PDF_BODY_BOTTOM_MM; header e footer vetoriais ocupam
+      // as áreas reservadas em toda página.
       const innerWidthMm = 210 - 2 * PDF_SIDE_MARGIN_MM;
-      const innerHeightMm = 297 - PDF_TOP_MARGIN_MM - PDF_BOTTOM_MARGIN_MM;
-      const pxPerMm = canvas.width / innerWidthMm;
-      const pdfPageHeightPx = Math.round(innerHeightMm * pxPerMm);
+      const bodyHeightMm = PDF_BODY_BOTTOM_MM - PDF_BODY_TOP_MM;
+      const pxPerMm = bodyCanvas.width / innerWidthMm;
+      const pdfBodyPxCapacity = Math.round(bodyHeightMm * pxPerMm);
 
-      // 2) Mapeia pontos de quebra naturais = topo de cada [data-pdf-section]
+      // 3) Pontos de quebra naturais = topo de cada [data-pdf-section] no canvas.
       const rootRect = root.getBoundingClientRect();
       const sectionTops = Array.from(
         root.querySelectorAll<HTMLElement>("[data-pdf-section]"),
       )
-        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * (canvas.height / rootHeight)))
+        .map((el) => Math.round((el.getBoundingClientRect().top - rootRect.top) * (bodyCanvas.height / rootHeight)))
         .filter((y) => y > 0);
-      const breaks = Array.from(new Set([0, ...sectionTops, canvas.height])).sort((a, b) => a - b);
+      const breaks = Array.from(new Set([0, ...sectionTops, bodyCanvas.height])).sort((a, b) => a - b);
 
-      // 3) Cada página do PDF respeita margens físicas reais. O conteúdo é
-      // desenhado apenas na área útil (innerWidthMm × innerHeightMm).
-      const pdf = new jsPDF("p", "mm", "a4", true);
+      // 4) Fatia o canvas em N buffers (um por página), respeitando quebras.
+      type PageBuffer = { dataUrl: string; heightMm: number };
+      const pageBuffers: PageBuffer[] = [];
       let pageStart = 0;
-      let firstPage = true;
       let pageIndex = 0;
 
-      while (pageStart < canvas.height - 1) {
+      while (pageStart < bodyCanvas.height - 1) {
         const topPad = pageIndex === 0 ? 0 : PDF_CONTINUATION_TOP_PAD_PX;
-        const pageCapacityPx = pdfPageHeightPx - topPad;
+        const pageCapacityPx = pdfBodyPxCapacity - topPad;
         const idealEnd = pageStart + pageCapacityPx;
         let pageEnd: number;
 
-        if (idealEnd >= canvas.height) {
-          pageEnd = canvas.height;
+        if (idealEnd >= bodyCanvas.height) {
+          pageEnd = bodyCanvas.height;
         } else {
           // Maior ponto de quebra que cabe na página atual
           const candidate = [...breaks]
             .reverse()
             .find((bp) => bp > pageStart + minSlicePx && bp <= idealEnd);
-          if (candidate) {
-            pageEnd = candidate;
-          } else {
-            // Fallback duro: corta no ideal (seção maior que a página inteira)
-            pageEnd = Math.floor(idealEnd);
-          }
+          pageEnd = candidate ?? Math.floor(idealEnd);
         }
 
         const sliceH = pageEnd - pageStart;
         const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = pdfPageHeightPx;
+        pageCanvas.width = bodyCanvas.width;
+        // Buffer apenas com o conteúdo real (sem padding) — o topPad vira
+        // margem no momento de posicionar no PDF, sem inflar o buffer.
+        pageCanvas.height = sliceH + topPad;
         const ctx = pageCanvas.getContext("2d")!;
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, pageStart, canvas.width, sliceH, 0, topPad, canvas.width, sliceH);
-        const pageData = pageCanvas.toDataURL("image/png");
+        ctx.drawImage(bodyCanvas, 0, pageStart, bodyCanvas.width, sliceH, 0, topPad, bodyCanvas.width, sliceH);
 
-        if (!firstPage) pdf.addPage();
+        pageBuffers.push({
+          dataUrl: pageCanvas.toDataURL("image/png"),
+          heightMm: (sliceH + topPad) / pxPerMm,
+        });
+        pageStart = pageEnd;
+        pageIndex += 1;
+      }
+
+      // 5) Carrega logo como dataURL para o header vetorial de cada página.
+      const logoAsset = await loadLogoAsset();
+
+      // 6) Metadados do voucher para o header institucional.
+      const headerMeta = buildHeaderMeta(current);
+      const totalPages = Math.max(1, pageBuffers.length);
+
+      // 7) Monta o PDF: em cada página desenha header vetorial → body (imagem) → footer vetorial.
+      const pdf = new jsPDF("p", "mm", "a4", true);
+      pdf.setProperties({
+        title: `${headerMeta.label} · NatLeva Viagens`,
+        subject: headerMeta.label,
+        author: "NatLeva Viagens",
+        creator: "NatLeva Viagens",
+      });
+
+      for (let i = 0; i < pageBuffers.length; i++) {
+        if (i > 0) pdf.addPage();
+        drawPdfHeader(pdf, logoAsset, headerMeta);
         pdf.addImage(
-          pageData,
+          pageBuffers[i].dataUrl,
           "PNG",
           PDF_SIDE_MARGIN_MM,
-          PDF_TOP_MARGIN_MM,
+          PDF_BODY_TOP_MM,
           innerWidthMm,
-          innerHeightMm,
+          Math.min(bodyHeightMm, pageBuffers[i].heightMm),
           undefined,
           "SLOW",
         );
-        firstPage = false;
-        pageStart = pageEnd;
-        pageIndex += 1;
+        drawPdfFooter(pdf, i + 1, totalPages);
       }
 
       const prefix = current.type === "aereo" ? "Voucher-Aereo" : current.type === "hotel" ? "Voucher-Hotel" : `Voucher-${(current.data as GenericVoucherData).slug || "Servico"}`;
@@ -454,6 +620,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
       setExporting(false);
     }
   };
+
 
   const resetDraft = () => {
     setDraftVouchers(realVouchers);
