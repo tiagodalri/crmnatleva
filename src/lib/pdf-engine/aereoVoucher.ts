@@ -86,7 +86,7 @@ export function buildAereoVoucherTree(data: AereoVoucherData): Node {
   ];
 
   return col({ gap: SPACING.md }, [
-    voucherIntro("Voucher de Viagem", "Confirmação de Reserva"),
+    // (Intro removida — header já rotula o documento)
 
     // Informações Básicas
     col({ gap: SPACING.sm }, [
