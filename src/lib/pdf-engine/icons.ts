@@ -232,6 +232,31 @@ export const iconSparkles: IconDraw = (pdf, cx, cy, size, color, sw) => {
   pdf.line(cx - 5 * s, cy + 5 * s, cx + 5 * s, cy - 5 * s);
 };
 
+/**
+ * Airplane pointing right — silhueta preenchida, leitura clara em tamanhos pequenos.
+ * Estilo boarding-pass moderno (asa central + estabilizador traseiro).
+ */
+export const iconPlaneRight: IconDraw = (pdf, cx, cy, size, color) => {
+  const [r, g, b] = hexToRgb(color);
+  pdf.setFillColor(r, g, b);
+  pdf.setDrawColor(r, g, b);
+  pdf.setLineWidth(0.1);
+  pdf.setLineJoin("round");
+  const s = size / 24;
+  const p = (x: number, y: number): [number, number] => [cx + x * s, cy + y * s];
+  // Fuselagem + nariz + asa dianteira + cauda + estabilizador (contorno horário)
+  const pts: Array<[number, number]> = [
+    p(-11, -1.2), p(-2, -1.2), p(-6, -6),   p(-3, -6),
+    p(3, -1.2),   p(11, -1.2), p(12.5, 0),  p(11, 1.2),
+    p(3, 1.2),    p(-3, 6),    p(-6, 6),    p(-2, 1.2),
+    p(-11, 1.2),  p(-12.5, 0),
+  ];
+  const [sx, sy] = pts[0];
+  const rest = pts.slice(1).map(([x, y], i) => [x - pts[i][0], y - pts[i][1]] as [number, number]);
+  pdf.lines(rest, sx, sy, [1, 1], "F", true);
+};
+
+
 /** Round badge (thin outline) — use as icon frame in InfoLine components. */
 export function drawIconBadge(pdf: Pdf, cx: number, cy: number, radiusMm: number, color: string, strokeWidth: number) {
   const [r, g, b] = hexToRgb(color);
