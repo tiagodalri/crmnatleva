@@ -448,7 +448,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
 
         <div data-pdf-section style={{ breakInside: "avoid" }}>
           <h2 style={h2}>Check-in Automático</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 4 }}>
             <InfoLine
               icon={<Clock size={18} color={GREEN} strokeWidth={1.8} />}
               title="24 Horas Antes"
