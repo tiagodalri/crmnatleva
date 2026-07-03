@@ -84,6 +84,7 @@ export function loadLogoAsset(): Promise<LogoAsset | null> {
 export interface HeaderMeta {
   label: string;                // "Voucher Aéreo" / "Voucher Hospedagem" / ...
   reservationCode?: string | null;
+  issueDate?: string | null;    // "DD/MM/YYYY"
 }
 
 const hexToRgbLocal = (hex: string): [number, number, number] => {
@@ -96,52 +97,37 @@ export function drawInstitutionalHeader(pdf: Pdf, logo: LogoAsset | null, meta: 
   const rightX = PAGE.widthMm - PAGE.marginMm;
   const leftX = PAGE.marginMm;
   const topY = 10;
-  const baselineY = topY + 6;   // baseline compartilhada entre logo e label
 
-  // Logo (identidade da marca), alinhado à baseline
-  let logoRightEdge = leftX;
+  // Logo à esquerda
   if (logo) {
     try {
       pdf.addImage(logo.dataUrl, "PNG", leftX, topY, logo.widthMm, logo.heightMm, undefined, "FAST");
-      logoRightEdge = leftX + logo.widthMm;
     } catch { /* silent */ }
   }
 
-  // ── Label do voucher, à direita do logo, integrado por separador vertical ─
+  // Label + "Emitido em" à direita
   const [dr, dg, db] = hexToRgbLocal(BRAND.greenDark);
   const [sr, sg, sb] = hexToRgbLocal(BRAND.textSoft);
   const [hr, hg, hb] = hexToRgbLocal(BRAND.hairline);
 
-  const sepX = logoRightEdge + 3.5;
-  pdf.setDrawColor(hr, hg, hb);
-  pdf.setLineWidth(0.25);
-  pdf.line(sepX, topY + 0.5, sepX, topY + (logo?.heightMm ?? 9) - 0.5);
-
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(9);
-  pdf.setCharSpace(0.35);
+  pdf.setFontSize(10);
+  pdf.setCharSpace(0.5);
   pdf.setTextColor(dr, dg, db);
-  pdf.text(meta.label.toUpperCase(), sepX + 3, baselineY - 1.4, { align: "left", baseline: "alphabetic" });
+  pdf.text(meta.label.toUpperCase(), rightX, topY + 4, { align: "right", baseline: "alphabetic" });
   pdf.setCharSpace(0);
 
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(7.5);
-  pdf.setTextColor(sr, sg, sb);
-  pdf.text("Confirmação de reserva", sepX + 3, baselineY + 3.2, { align: "left", baseline: "alphabetic" });
-
-  // ── Bloco direito: código de reserva (se houver) em courier ──────────────
-  if (meta.reservationCode) {
+  if (meta.issueDate) {
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(6.5);
-    pdf.setCharSpace(0.4);
+    pdf.setFontSize(8);
     pdf.setTextColor(sr, sg, sb);
-    pdf.text("LOCALIZADOR", rightX, baselineY - 1.4, { align: "right", baseline: "alphabetic" });
-    pdf.setCharSpace(0);
-    pdf.setFont("courier", "bold");
-    pdf.setFontSize(10);
-    pdf.setTextColor(dr, dg, db);
-    pdf.text(meta.reservationCode.toUpperCase(), rightX, baselineY + 3.2, { align: "right", baseline: "alphabetic" });
+    pdf.text(`Emitido em ${meta.issueDate}`, rightX, topY + 8.5, { align: "right", baseline: "alphabetic" });
   }
+
+  // Divisor horizontal sob o header
+  pdf.setDrawColor(hr, hg, hb);
+  pdf.setLineWidth(0.25);
+  pdf.line(leftX, PAGE.headerMm - 1, rightX, PAGE.headerMm - 1);
 }
 
 // ── Footer institucional ────────────────────────────────────────────────────
