@@ -109,7 +109,9 @@ const cellHead: CSSProperties = {
 const cell: CSSProperties = {
   padding: "0 16px",
   height: ROW_H,
-  lineHeight: `${ROW_H}px`,
+  display: "flex",
+  alignItems: "center",
+  lineHeight: 1.2,
   fontSize: 12,
   color: "#1f2937",
   borderBottom: `1px solid ${BORDER}`,
