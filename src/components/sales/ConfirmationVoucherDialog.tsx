@@ -533,6 +533,52 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
     );
   }
 
+  if (voucher.type === "generic") {
+    const data = voucher.data;
+    const setGeneric = (patch: Partial<GenericVoucherData>) =>
+      onChange((v) => (v.type === "generic" ? { ...v, data: { ...v.data, ...patch } } : v));
+    const updatePax = (i: number, patch: Partial<GenericVoucherData["passengers"][number]>) =>
+      setGeneric({ passengers: data.passengers.map((p, idx) => (idx === i ? { ...p, ...patch } : p)) });
+    const addPax = () => setGeneric({ passengers: [...data.passengers, { name: "", doc: "", type: "Adulto" }] });
+    const removePax = (i: number) => setGeneric({ passengers: data.passengers.filter((_, idx) => idx !== i) });
+
+    return (
+      <ScrollArea className="border rounded-lg p-3 max-h-[52vh] bg-muted/20">
+        <div className="space-y-4 pr-2">
+          <SectionTitle>Informações Básicas</SectionTitle>
+          <Field label="Nome do serviço"><Input value={data.service_name || ""} onChange={(e) => setGeneric({ service_name: e.target.value })} /></Field>
+          <Field label="Fornecedor"><Input value={data.supplier || ""} onChange={(e) => setGeneric({ supplier: e.target.value })} /></Field>
+          <Field label="Código de reserva"><Input value={data.reservation_code || ""} onChange={(e) => setGeneric({ reservation_code: e.target.value })} /></Field>
+          <Field label="Local"><Input value={data.location || ""} onChange={(e) => setGeneric({ location: e.target.value })} /></Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Data início"><Input value={data.start_date || ""} placeholder="AAAA-MM-DD" onChange={(e) => setGeneric({ start_date: e.target.value })} /></Field>
+            <Field label="Data fim"><Input value={data.end_date || ""} placeholder="AAAA-MM-DD" onChange={(e) => setGeneric({ end_date: e.target.value })} /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Hora início"><Input value={data.start_time || ""} placeholder="HH:MM" onChange={(e) => setGeneric({ start_time: e.target.value })} /></Field>
+            <Field label="Hora fim"><Input value={data.end_time || ""} placeholder="HH:MM" onChange={(e) => setGeneric({ end_time: e.target.value })} /></Field>
+          </div>
+          <Field label="Descrição"><Textarea rows={4} value={data.description || ""} onChange={(e) => setGeneric({ description: e.target.value })} /></Field>
+          <Field label="Observações importantes"><Textarea rows={3} value={data.notes || ""} onChange={(e) => setGeneric({ notes: e.target.value })} /></Field>
+
+          <SectionTitle action={<Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={addPax}>+ Adicionar</Button>}>Beneficiários</SectionTitle>
+          {data.passengers.map((p, i) => (
+            <div key={i} className="rounded-lg border border-border/50 p-3 space-y-2 bg-background/40">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-foreground">Beneficiário {i + 1}</p>
+                <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removePax(i)}>Remover</Button>
+              </div>
+              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: e.target.value })} /></Field>
+              <Field label="Documento"><Input value={p.doc || ""} onChange={(e) => updatePax(i, { doc: e.target.value })} /></Field>
+            </div>
+          ))}
+
+          <Button type="button" variant="outline" size="sm" onClick={onReset} className="w-full">Restaurar dados originais</Button>
+        </div>
+      </ScrollArea>
+    );
+  }
+
   const data = voucher.data;
   const setHotel = (patch: Partial<HotelVoucherData>) =>
     onChange((v) => (v.type === "hotel" ? { ...v, data: { ...v.data, ...patch } } : v));
