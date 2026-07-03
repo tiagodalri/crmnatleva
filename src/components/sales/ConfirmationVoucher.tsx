@@ -95,6 +95,8 @@ const cellHead: CSSProperties = {
   boxSizing: "border-box",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
+  display: "flex",
+  alignItems: "center",
 };
 const cell: CSSProperties = {
   padding: "13px 16px",
@@ -103,6 +105,8 @@ const cell: CSSProperties = {
   borderBottom: `1px solid ${BORDER}`,
   boxSizing: "border-box",
   lineHeight: 1.5,
+  display: "flex",
+  alignItems: "center",
 };
 const labelCell: CSSProperties = { ...cell, ...oneLine, fontWeight: 700, color: GREEN_DARK, width: "38%" };
 
@@ -345,6 +349,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
                     ...cellHead,
                     flex: i === 1 || i === 2 ? 2 : 1,
                     textAlign: i === 0 ? "left" : "center",
+                    justifyContent: i === 0 ? "flex-start" : "center",
                     whiteSpace: "nowrap",
                     fontSize: 12,
                   }}
@@ -385,6 +390,7 @@ export const AereoVoucher = forwardRef<HTMLDivElement, { data: AereoVoucherData 
                           flex: j === 1 || j === 2 ? 2 : 1,
                           borderBottom: "none",
                           textAlign: j === 0 ? "left" : "center",
+                          justifyContent: j === 0 ? "flex-start" : "center",
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
