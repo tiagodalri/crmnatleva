@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plane, Hotel, Download, Pencil, FlaskConical, Database } from "lucide-react";
+import { Loader2, Plane, Hotel, Download, Pencil, FlaskConical, Database, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { HotelVoucher, AereoVoucher, type HotelVoucherData, type AereoVoucherData } from "./ConfirmationVoucher";
+import { HotelVoucher, AereoVoucher, GenericVoucher, GENERIC_PRESETS, type HotelVoucherData, type AereoVoucherData, type GenericVoucherData, type GenericServiceSlug } from "./ConfirmationVoucher";
 import { iataToLabel } from "@/lib/iataUtils";
 import { ALL_AIRLINES } from "@/lib/airlinesData";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,7 +33,8 @@ interface Props {
 
 type VoucherKind =
   | { type: "aereo"; id: "aereo"; label: string; data: AereoVoucherData }
-  | { type: "hotel"; id: string; label: string; data: HotelVoucherData };
+  | { type: "hotel"; id: string; label: string; data: HotelVoucherData }
+  | { type: "generic"; id: string; label: string; data: GenericVoucherData };
 
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -87,6 +88,33 @@ function prettyClass(c?: string | null): string {
     primeira: "Primeira Classe",
   };
   return map[c.toLowerCase()] || c;
+}
+
+function normalizeGenericSlug(productType?: string | null, category?: string | null, description?: string | null): GenericServiceSlug {
+  const pt = (productType || "").toLowerCase().trim();
+  const cat = (category || "").toLowerCase().trim();
+  const desc = (description || "").toLowerCase();
+
+  const knownSlugs: GenericServiceSlug[] = [
+    "seguro-viagem", "passeios", "ingressos", "transfer", "aluguel-carro",
+    "cruzeiro", "trem", "onibus", "bagagem", "assento-conforto",
+    "roteiro-personalizado", "servicos-extras", "pacote", "outros",
+  ];
+  if (knownSlugs.includes(pt as GenericServiceSlug)) return pt as GenericServiceSlug;
+
+  if (pt === "insurance" || /seguro/.test(desc)) return "seguro-viagem";
+  if (pt === "cruise" || /cruzeiro|msc|costa cruzeiros/.test(desc)) return "cruzeiro";
+  if (/transfer|traslado/.test(desc)) return "transfer";
+  if (/aluguel.*(carro|ve[ií]culo)|rent.*a.*car|locadora/.test(desc)) return "aluguel-carro";
+  if (/passeio|city.?tour|tour|excurs[aã]o/.test(desc)) return "passeios";
+  if (/ingresso|ticket|entrada/.test(desc)) return "ingressos";
+  if (/trem|train/.test(desc)) return "trem";
+  if (/[oô]nibus|bus/.test(desc)) return "onibus";
+  if (/bagagem|luggage/.test(desc)) return "bagagem";
+  if (/assento/.test(desc)) return "assento-conforto";
+  if (/roteiro|itiner[aá]rio/.test(desc)) return "roteiro-personalizado";
+  if (cat === "outro" || cat === "outros") return "servicos-extras";
+  return "generico";
 }
 
 function createLongTestVouchers(): VoucherKind[] {
@@ -247,6 +275,51 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         });
       });
 
+      // Vouchers genéricos: qualquer cost_item que não seja aéreo nem hospedagem
+      // (seguro, passeio, transfer, cruzeiro, aluguel de carro, ingressos, etc.)
+      const paxForGeneric = passengersRaw.map((p) => ({
+        name: asString(p.full_name) || "—",
+        type: inferPaxType(asString(p.birth_date)),
+        doc: asString(p.passport_number) || asString(p.cpf) || asString(p.rg),
+      }));
+
+      const genericItems = costItems.filter((c) => {
+        const cat = asString(c.category);
+        const pt = asString(c.product_type);
+        // exclui aéreo e hotel (já geraram vouchers dedicados)
+        if (cat === "aereo") return false;
+        if (cat === "hotel" || pt === "hotel" || pt === "hospedagem") return false;
+        return true;
+      });
+
+      genericItems.forEach((item, i) => {
+        const rawDesc = asString(item.description) || "";
+        const [firstLine, ...rest] = rawDesc.split("·").map((s) => s.trim()).filter(Boolean);
+        const serviceName = firstLine || "Serviço";
+        const detail = rest.join(" · ");
+        const slug = normalizeGenericSlug(asString(item.product_type), asString(item.category), rawDesc);
+        const preset = GENERIC_PRESETS[slug];
+
+        out.push({
+          type: "generic",
+          id: `generic-${asString(item.id) || i}`,
+          label: `${preset.headerLabel} · ${serviceName}`,
+          data: {
+            slug,
+            service_name: serviceName,
+            supplier: null,
+            reservation_code: asString(item.reservation_code),
+            description: detail || (rawDesc && rawDesc !== serviceName ? rawDesc : null),
+            location: null,
+            start_date: asString(sale.departure_date) || asString(sale.hotel_checkin_date) || null,
+            end_date: asString(sale.return_date) || asString(sale.hotel_checkout_date) || null,
+            passengers: paxForGeneric,
+            notes: null,
+          },
+        });
+      });
+
+
       setRealVouchers(out);
       setDraftVouchers(out);
       setSelectedId(out[0]?.id || null);
@@ -366,7 +439,8 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         pageIndex += 1;
       }
 
-      const fileName = `${current.type === "aereo" ? "Voucher-Aereo" : "Voucher-Hotel"}_${testMode ? "Teste-A4" : clientFileName}.pdf`;
+      const prefix = current.type === "aereo" ? "Voucher-Aereo" : current.type === "hotel" ? "Voucher-Hotel" : `Voucher-${(current.data as GenericVoucherData).slug || "Servico"}`;
+      const fileName = `${prefix}_${testMode ? "Teste-A4" : clientFileName}.pdf`;
       pdf.save(fileName);
       toast({ title: "PDF gerado", description: fileName });
     } catch (e) {
@@ -406,7 +480,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
         ) : visibleVouchers.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">Esta venda ainda não tem trechos aéreos nem hospedagem cadastrados.</div>
+          <div className="py-10 text-center text-sm text-muted-foreground">Esta venda ainda não tem produtos cadastrados para gerar voucher.</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-4 flex-1 min-h-0">
             <div className="min-h-0 flex flex-col gap-3">
@@ -414,7 +488,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
               <div className="grid gap-2">
                 {visibleVouchers.map((v) => (
                   <button key={v.id} onClick={() => setSelectedId(v.id)} className={cn("min-h-11 text-left px-3 py-2.5 rounded-lg border text-sm flex items-start gap-2 transition-colors", selectedId === v.id ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted")}> 
-                    {v.type === "aereo" ? <Plane className="w-4 h-4 mt-0.5 shrink-0" /> : <Hotel className="w-4 h-4 mt-0.5 shrink-0" />}
+                    {v.type === "aereo" ? <Plane className="w-4 h-4 mt-0.5 shrink-0" /> : v.type === "hotel" ? <Hotel className="w-4 h-4 mt-0.5 shrink-0" /> : <Package className="w-4 h-4 mt-0.5 shrink-0" />}
                     <span className="flex-1 leading-snug">{v.label}</span>
                   </button>
                 ))}
@@ -431,6 +505,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
                   <div style={{ width: A4_WIDTH_PX, transform: `scale(${PREVIEW_SCALE})`, transformOrigin: "top left", pointerEvents: "none" }}>
                     {current?.type === "aereo" && <AereoVoucher ref={previewRef} data={current.data} />}
                     {current?.type === "hotel" && <HotelVoucher ref={previewRef} data={current.data} />}
+                    {current?.type === "generic" && <GenericVoucher ref={previewRef} data={current.data} />}
                   </div>
                 </div>
               </div>
@@ -439,6 +514,7 @@ export default function ConfirmationVoucherDialog({ open, onOpenChange, saleId }
               <div aria-hidden="true" style={{ position: "absolute", left: -10000, top: 0, width: A4_WIDTH_PX, background: "#ffffff", overflow: "visible", pointerEvents: "none" }}>
                 {current?.type === "aereo" && <AereoVoucher ref={exportRef} data={current.data} />}
                 {current?.type === "hotel" && <HotelVoucher ref={exportRef} data={current.data} />}
+                {current?.type === "generic" && <GenericVoucher ref={exportRef} data={current.data} />}
               </div>,
               document.body,
             )}
@@ -523,6 +599,52 @@ function EditPanel({ voucher, onChange, onReset }: { voucher: VoucherKind; onCha
                 <Field label="Partida"><Input value={s.departure_time || ""} placeholder="HH:MM" onChange={(e) => updateSeg(i, { departure_time: e.target.value })} /></Field>
                 <Field label="Chegada"><Input value={s.arrival_time || ""} placeholder="HH:MM" onChange={(e) => updateSeg(i, { arrival_time: e.target.value })} /></Field>
               </div>
+            </div>
+          ))}
+
+          <Button type="button" variant="outline" size="sm" onClick={onReset} className="w-full">Restaurar dados originais</Button>
+        </div>
+      </ScrollArea>
+    );
+  }
+
+  if (voucher.type === "generic") {
+    const data = voucher.data;
+    const setGeneric = (patch: Partial<GenericVoucherData>) =>
+      onChange((v) => (v.type === "generic" ? { ...v, data: { ...v.data, ...patch } } : v));
+    const updatePax = (i: number, patch: Partial<GenericVoucherData["passengers"][number]>) =>
+      setGeneric({ passengers: data.passengers.map((p, idx) => (idx === i ? { ...p, ...patch } : p)) });
+    const addPax = () => setGeneric({ passengers: [...data.passengers, { name: "", doc: "", type: "Adulto" }] });
+    const removePax = (i: number) => setGeneric({ passengers: data.passengers.filter((_, idx) => idx !== i) });
+
+    return (
+      <ScrollArea className="border rounded-lg p-3 max-h-[52vh] bg-muted/20">
+        <div className="space-y-4 pr-2">
+          <SectionTitle>Informações Básicas</SectionTitle>
+          <Field label="Nome do serviço"><Input value={data.service_name || ""} onChange={(e) => setGeneric({ service_name: e.target.value })} /></Field>
+          <Field label="Fornecedor"><Input value={data.supplier || ""} onChange={(e) => setGeneric({ supplier: e.target.value })} /></Field>
+          <Field label="Código de reserva"><Input value={data.reservation_code || ""} onChange={(e) => setGeneric({ reservation_code: e.target.value })} /></Field>
+          <Field label="Local"><Input value={data.location || ""} onChange={(e) => setGeneric({ location: e.target.value })} /></Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Data início"><Input value={data.start_date || ""} placeholder="AAAA-MM-DD" onChange={(e) => setGeneric({ start_date: e.target.value })} /></Field>
+            <Field label="Data fim"><Input value={data.end_date || ""} placeholder="AAAA-MM-DD" onChange={(e) => setGeneric({ end_date: e.target.value })} /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Hora início"><Input value={data.start_time || ""} placeholder="HH:MM" onChange={(e) => setGeneric({ start_time: e.target.value })} /></Field>
+            <Field label="Hora fim"><Input value={data.end_time || ""} placeholder="HH:MM" onChange={(e) => setGeneric({ end_time: e.target.value })} /></Field>
+          </div>
+          <Field label="Descrição"><Textarea rows={4} value={data.description || ""} onChange={(e) => setGeneric({ description: e.target.value })} /></Field>
+          <Field label="Observações importantes"><Textarea rows={3} value={data.notes || ""} onChange={(e) => setGeneric({ notes: e.target.value })} /></Field>
+
+          <SectionTitle action={<Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={addPax}>+ Adicionar</Button>}>Beneficiários</SectionTitle>
+          {data.passengers.map((p, i) => (
+            <div key={i} className="rounded-lg border border-border/50 p-3 space-y-2 bg-background/40">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-foreground">Beneficiário {i + 1}</p>
+                <Button type="button" size="sm" variant="ghost" className="h-6 text-xs text-destructive" onClick={() => removePax(i)}>Remover</Button>
+              </div>
+              <Field label="Nome completo"><Input value={p.name || ""} onChange={(e) => updatePax(i, { name: e.target.value })} /></Field>
+              <Field label="Documento"><Input value={p.doc || ""} onChange={(e) => updatePax(i, { doc: e.target.value })} /></Field>
             </div>
           ))}
 
