@@ -52,9 +52,22 @@ export function DelegateConversationDialog({
   useEffect(() => {
     if (!open) return;
     (async () => {
+      // Apenas usuários do sistema (que possuem role em user_roles).
+      // Evita listar clientes que porventura tenham registro em profiles.
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("user_id");
+      const userIds = Array.from(
+        new Set((roleRows || []).map((r: { user_id: string }) => r.user_id)),
+      );
+      if (userIds.length === 0) {
+        setMembers([]);
+        return;
+      }
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, email, avatar_url")
+        .in("id", userIds)
         .order("full_name");
       setMembers((data as Member[]) || []);
     })();
