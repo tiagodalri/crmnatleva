@@ -205,10 +205,6 @@ function ConversationItemInner({ conv, isSelected, profilePic, presence, onSelec
                 )}
                 <span className="truncate max-w-[60px]">{(owner.full_name?.split(" ")[0] || owner.email?.split("@")[0] || "·")}</span>
               </span>
-            ) : !conv.assigned_to ? (
-              <span className="shrink-0 inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium border border-amber-500/30">
-                ⚠ Sem dono
-              </span>
             ) : null}
             {isUrgent && (
               <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-medium flex items-center gap-0.5">
