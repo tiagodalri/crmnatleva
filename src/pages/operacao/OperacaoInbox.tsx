@@ -254,6 +254,9 @@ function OperacaoInboxInner() {
   const [dateFilter, setDateFilter] = useState<import("@/components/inbox/DateFilterPopover").DateFilterValue>({ field: "last_message_at", preset: "all" });
   const [assigneeSearch, setAssigneeSearch] = useState("");
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
 
   // ─── Extracted hooks: messages + realtime ───
   const {
