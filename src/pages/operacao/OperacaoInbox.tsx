@@ -1103,6 +1103,8 @@ function OperacaoInboxInner() {
       }
       // Filtro por responsável específico (vendedor)
       if (assigneeFilter && c.assigned_to !== assigneeFilter) return false;
+      // Filtro por tag
+      if (tagFilter && !(c.tags || []).includes(tagFilter)) return false;
       // Filtro por data (última mensagem ou criação da conversa)
       if (dateFilter.preset !== "all") {
         const raw = dateFilter.field === "created_at" ? (c as any).created_at : c.last_message_at;
