@@ -254,6 +254,9 @@ function OperacaoInboxInner() {
   const [dateFilter, setDateFilter] = useState<import("@/components/inbox/DateFilterPopover").DateFilterValue>({ field: "last_message_at", preset: "all" });
   const [assigneeSearch, setAssigneeSearch] = useState("");
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
 
   // ─── Extracted hooks: messages + realtime ───
   const {
@@ -1100,6 +1103,8 @@ function OperacaoInboxInner() {
       }
       // Filtro por responsável específico (vendedor)
       if (assigneeFilter && c.assigned_to !== assigneeFilter) return false;
+      // Filtro por tag
+      if (tagFilter && !(c.tags || []).includes(tagFilter)) return false;
       // Filtro por data (última mensagem ou criação da conversa)
       if (dateFilter.preset !== "all") {
         const raw = dateFilter.field === "created_at" ? (c as any).created_at : c.last_message_at;
@@ -1181,7 +1186,7 @@ function OperacaoInboxInner() {
       return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
     });
     return merged;
-  }, [conversations, searchQuery, activeFilter, ownerFilter, assigneeFilter, dateFilter, user, contentMatchIds]);
+  }, [conversations, searchQuery, activeFilter, ownerFilter, assigneeFilter, tagFilter, dateFilter, user, contentMatchIds]);
 
   // Execute flow engine
   const executeFlow = useCallback(async (conversationId: string, messageText: string) => {
@@ -2803,7 +2808,71 @@ function OperacaoInboxInner() {
                     </div>
                   </PopoverContent>
                 </Popover>
+                <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 md:px-2 md:py-1 rounded-md text-xs md:text-[10px] font-medium transition active:scale-95 border ${
+                        tagFilter
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-background text-muted-foreground border-border/60 hover:bg-muted"
+                      }`}
+                    >
+                      <Tag className="h-3 w-3" />
+                      {tagFilter ? tagFilter : "Filtrar por tag"}
+                      {tagFilter && (
+                        <X
+                          className="h-3 w-3 ml-1 hover:text-foreground"
+                          onClick={(e) => { e.stopPropagation(); setTagFilter(null); }}
+                        />
+                      )}
+                      <ChevronDown className="h-3 w-3 opacity-60" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-72 p-0">
+                    <div className="p-2 border-b">
+                      <Input
+                        placeholder="Buscar tag..."
+                        value={tagSearch}
+                        onChange={(e) => setTagSearch(e.target.value)}
+                        className="h-8 text-xs"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      {(() => {
+                        const counts = new Map<string, number>();
+                        for (const c of conversations) {
+                          if (c.is_archived) continue;
+                          for (const t of (c.tags || [])) {
+                            if (!t) continue;
+                            counts.set(t, (counts.get(t) || 0) + 1);
+                          }
+                        }
+                        const items = Array.from(counts.entries())
+                          .filter(([t]) => !tagSearch || t.toLowerCase().includes(tagSearch.toLowerCase()))
+                          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+                        if (items.length === 0) {
+                          return <div className="px-3 py-4 text-xs text-muted-foreground text-center">Nenhuma tag encontrada</div>;
+                        }
+                        return items.map(([t, count]) => (
+                          <button
+                            key={t}
+                            onClick={() => { setTagFilter(t); setTagPopoverOpen(false); setTagSearch(""); }}
+                            className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-muted text-left ${tagFilter === t ? "bg-primary/10 text-primary" : ""}`}
+                          >
+                            <span className="flex items-center gap-2 min-w-0">
+                              <Tag className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <span className="truncate">{t}</span>
+                            </span>
+                            <span className="text-[10px] text-muted-foreground shrink-0">{count}</span>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
+
               <ScrollArea className="w-full whitespace-nowrap">
                 <div className="flex gap-1 pb-1.5 w-max">
                   {FILTERS.map(f => {
