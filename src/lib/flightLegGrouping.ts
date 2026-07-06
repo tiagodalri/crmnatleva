@@ -1,4 +1,5 @@
 import { assignDirections, classifyItinerary, type FlightSegmentInput, type ItineraryType } from "@/lib/itineraryClassifier";
+import { calcLayoverMinutes } from "@/lib/flightTiming";
 
 export interface FlightLegLike {
   origin_iata?: string | null;
@@ -19,11 +20,32 @@ export interface FlightLegGroup<T extends FlightLegLike> {
   segments: T[];
 }
 
+const MAX_CONNECTION_MINUTES = 24 * 60;
+
+function isPlausibleConnection<T extends FlightLegLike>(prev: T, next: T): boolean {
+  // Mesmo aeroporto de conexão é obrigatório.
+  const prevDest = (prev?.destination_iata || "").toUpperCase();
+  const nextOrigin = (next?.origin_iata || "").toUpperCase();
+  if (!prevDest || prevDest !== nextOrigin) return false;
+
+  const layover = calcLayoverMinutes(prev, next);
+  if (layover !== null) {
+    // Só é conexão se o layover for realista (não negativo e ≤ 24h).
+    return layover >= 0 && layover <= MAX_CONNECTION_MINUTES;
+  }
+
+  // Sem dados suficientes para calcular layover: só considera conexão
+  // se ao menos a data de partida for a mesma (fallback conservador).
+  const prevDate = (prev?.departure_date || "").slice(0, 10);
+  const nextDate = (next?.departure_date || "").slice(0, 10);
+  return Boolean(prevDate) && prevDate === nextDate;
+}
+
 function isForcedRoundTripSplit<T extends FlightLegLike>(segments: T[]): boolean {
   if (segments.length !== 4) return false;
 
   const [first, second, third, fourth] = segments;
-  return Boolean(
+  const shapeMatches = Boolean(
     first?.origin_iata &&
     second?.destination_iata &&
     third?.origin_iata &&
@@ -31,6 +53,13 @@ function isForcedRoundTripSplit<T extends FlightLegLike>(segments: T[]): boolean
     first.origin_iata.toUpperCase() === fourth.destination_iata.toUpperCase() &&
     second.destination_iata.toUpperCase() === third.origin_iata.toUpperCase(),
   );
+  if (!shapeMatches) return false;
+
+  // CRÍTICO: só força round-trip com conexão se as duas "conexões" (ida
+  // e volta) forem realmente conexões — layover curto e mesmo aeroporto.
+  // Caso contrário, são voos independentes (ex.: GRU→AEP, AEP→MDZ com 8
+  // dias entre eles) e devem ser tratados como pernas separadas.
+  return isPlausibleConnection(first, second) && isPlausibleConnection(third, fourth);
 }
 
 export function buildFlightLegGroups<T extends FlightLegLike>(inputSegments: T[]): {
