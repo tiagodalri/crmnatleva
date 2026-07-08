@@ -104,16 +104,8 @@ export function WhatsAppQRCard() {
     }
     toast.success("WhatsApp conectado com sucesso!");
 
-    // Configure webhook automatically (including sent-by-me events)
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (supabaseUrl) {
-      const webhookUrl = `${supabaseUrl}/functions/v1/zapi-webhook`;
-      Promise.allSettled([
-        callZapiProxy("set-webhook", { webhookUrl }),
-        callZapiProxy("set-webhook-sent", { webhookUrl }),
-        callZapiProxy("set-notify-sent-by-me"),
-      ]).catch(() => {});
-    }
+    // Configure webhook automatically with the server-side token.
+    void callZapiProxy("configure-zapi-webhooks").catch(() => {});
   }
 
   function startQRTimer() {
@@ -160,6 +152,7 @@ export function WhatsAppQRCard() {
       if (statusData?.connected) {
         const phoneData = await callZapiProxy("phone-info").catch(() => ({}));
         handleConnectionSuccess(phoneData);
+        void callZapiProxy("configure-zapi-webhooks").catch(() => {});
         setLoading(false);
         return;
       }

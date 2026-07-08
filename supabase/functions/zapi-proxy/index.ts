@@ -159,6 +159,14 @@ function parseChatMessagesPayload(data: any): any[] {
   return [];
 }
 
+function ensureWebhookToken(webhookUrl: string): string {
+  const value = String(webhookUrl || "").trim();
+  if (!value || !WEBHOOK_SHARED_SECRET || value.includes("token=")) return value;
+  if (!value.includes("/functions/v1/zapi-webhook")) return value;
+  const joiner = value.includes("?") ? "&" : "?";
+  return `${value}${joiner}token=${encodeURIComponent(WEBHOOK_SHARED_SECRET)}`;
+}
+
 async function callZapi(path: string, method = "GET", payload?: unknown) {
   const url = `${BASE_URL}${path}`;
   console.log(`[Z-API] ${method} ${url}`);
@@ -707,7 +715,7 @@ serve(async (req) => {
         url = `${BASE_URL}/update-webhook-received`;
         method = "PUT";
         body = JSON.stringify({
-          value: payload.webhookUrl,
+          value: ensureWebhookToken(payload.webhookUrl),
           enabled: true,
         });
         break;
@@ -716,7 +724,7 @@ serve(async (req) => {
         url = `${BASE_URL}/update-every-webhooks`;
         method = "PUT";
         body = JSON.stringify({
-          value: payload.webhookUrl,
+          value: ensureWebhookToken(payload.webhookUrl),
           notifySentByMe: true,
         });
         break;
