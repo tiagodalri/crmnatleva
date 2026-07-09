@@ -1065,25 +1065,10 @@ export default function ProposalEditor() {
         const delay = Math.min(30000, 2000 * Math.pow(1.8, attempt - 1));
         if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
         retryTimerRef.current = setTimeout(() => {
-          // Invalida snapshot para forçar novo ciclo do autosave
+          // Invalida snapshot e força novo ciclo do autosave via resaveNonce
+          // (que está nas deps do effect · única forma confiável de reagendar).
           lastAutoSavedSnapshotRef.current = "";
-          // Toca o estado para reagendar
-          setAutoSaveStatus((s) => (s === "error" || s === "offline" ? s : s));
-          // Dispara um "ping" via mudança forçada · usamos o próprio efeito
-          // reagendando através de um microtask
-          Promise.resolve().then(() => {
-            // Reexecuta effect via bump: alterando lastSavedAt não dispara,
-            // então chamamos a mutation direto se ainda houver diff.
-            const cur = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
-            if (cur !== lastAutoSavedSnapshotRef.current) {
-              if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-              autoSaveTimerRef.current = setTimeout(() => {
-                // Força novo ciclo modificando ref
-                lastAutoSavedSnapshotRef.current = "";
-                setLastSavedAt((d) => d); // no-op para acionar re-render leve
-              }, 0);
-            }
-          });
+          setResaveNonce((n) => n + 1);
         }, delay);
       } finally {
         isAutoSavingRef.current = false;
@@ -1101,8 +1086,11 @@ export default function ProposalEditor() {
     const handleOnline = () => {
       setIsOnline(true);
       retryAttemptsRef.current = 0;
-      // Invalida snapshot para o autosave detectar diff e regravar
+      if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+      // Invalida snapshot e força novo ciclo · sincroniza o rascunho local
+      // pendente assim que a conexão volta.
       lastAutoSavedSnapshotRef.current = "";
+      setResaveNonce((n) => n + 1);
       setAutoSaveStatus((s) => (s === "offline" || s === "error" ? "saving" : s));
     };
     const handleOffline = () => {
