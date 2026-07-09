@@ -1004,9 +1004,14 @@ export default function ProposalEditor() {
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
       try {
-        await saveMutation.mutateAsync();
-        setLastSavedAt(new Date());
-        setAutoSaveStatus("saved");
+        const result = await saveMutation.mutateAsync();
+        const currentSnapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
+        if (currentSnapshot === result.savedSnapshot) {
+          setLastSavedAt(new Date());
+          setAutoSaveStatus("saved");
+        } else {
+          setAutoSaveStatus("saving");
+        }
         retryAttemptsRef.current = 0;
         if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
       } catch {
@@ -1095,9 +1100,14 @@ export default function ProposalEditor() {
       // Promise dispara, navegador pode fechar antes · localStorage cobre o gap
       saveMutation
         .mutateAsync()
-        .then(() => {
-          setLastSavedAt(new Date());
-          setAutoSaveStatus("saved");
+        .then((result) => {
+          const currentSnapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
+          if (currentSnapshot === result.savedSnapshot) {
+            setLastSavedAt(new Date());
+            setAutoSaveStatus("saved");
+          } else {
+            setAutoSaveStatus("saving");
+          }
         })
         .catch(() => setAutoSaveStatus("error"))
         .finally(() => { isAutoSavingRef.current = false; });
@@ -1377,8 +1387,13 @@ export default function ProposalEditor() {
       setAutoSaveStatus("saving");
       try {
         const result = await saveMutation.mutateAsync();
-        setLastSavedAt(new Date());
-        setAutoSaveStatus("saved");
+        const currentSnapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
+        if (currentSnapshot === result.savedSnapshot) {
+          setLastSavedAt(new Date());
+          setAutoSaveStatus("saved");
+        } else {
+          setAutoSaveStatus("saving");
+        }
         return result.proposalId;
       } finally {
         isAutoSavingRef.current = false;
