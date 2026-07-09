@@ -140,6 +140,25 @@ function isEmptyObject(value: unknown) {
   return !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0;
 }
 
+function hasFilledPriceData(data: Record<string, any>) {
+  const priceKeys = [
+    "price",
+    "total_price",
+    "totalPrice",
+    "price_total",
+    "priceTotal",
+    "price_per_person",
+    "pricePerPerson",
+    "value",
+    "total_value",
+    "totalValue",
+  ];
+  return priceKeys.some((key) => {
+    const value = data?.[key];
+    return value !== null && value !== undefined && String(value).trim() !== "";
+  });
+}
+
 function hasMeaningfulItemContent(item: any) {
   if (!item) return false;
   const data = item.data || {};
@@ -147,6 +166,7 @@ function hasMeaningfulItemContent(item: any) {
     String(item.title || "").trim() ||
     String(item.description || "").trim() ||
     String(item.image_url || "").trim() ||
+    hasFilledPriceData(data) ||
     !isEmptyObject(data) ||
     String(item.payment_modality || "").trim() ||
     String(item.payment_label || "").trim() ||
@@ -461,7 +481,7 @@ export default function ProposalEditor() {
   }, [existing]);
 
   useEffect(() => {
-    if (existingItems) setItems(existingItems);
+    if (existingItems && !hydratedRef.current) setItems(existingItems);
   }, [existingItems]);
 
   // Marca hidratação concluída para liberar o autosave (evita gravar
@@ -532,7 +552,7 @@ export default function ProposalEditor() {
       const draftAt = draft?.savedAt ? new Date(draft.savedAt).getTime() : 0;
       const dbAt = (existing as any)?.updated_at ? new Date((existing as any).updated_at).getTime() : 0;
       // Só restaura se o rascunho é mais novo que o último save no banco
-      if (draftAt <= dbAt + 1000) {
+      if (draftAt <= dbAt + 10000) {
         localStorage.removeItem(LOCAL_DRAFT_KEY);
         return;
       }
@@ -879,6 +899,8 @@ export default function ProposalEditor() {
     },
     onSuccess: ({ proposalId, savedItems, savedSnapshot }) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["proposal", proposalId] });
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
       try { localStorage.removeItem(visualDraftKey); } catch { /* ignore */ }
       if (savedItems.length > 0) {
         setItems((prev) => {
