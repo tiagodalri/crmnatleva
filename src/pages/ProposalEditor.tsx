@@ -553,7 +553,7 @@ export default function ProposalEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existing]);
 
-  // Espelha rascunho local em todo keystroke (debounced 250ms) para nunca perder
+  // Espelha rascunho local em todo keystroke para nunca perder
   // — funciona offline, sem internet, com queda de luz. Limpa quando persiste.
   useEffect(() => {
     if (!hydratedRef.current && !isNew) return;
