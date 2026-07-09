@@ -814,7 +814,7 @@ export default function ProposalEditor() {
           (dbHas((existing as any)?.cover_image_url) && isEmpty(payload.cover_image_url)) ||
           (dbHas((existing as any)?.total_value) && isEmpty(payload.total_value)) ||
           (dbHas((existing as any)?.client_name) && isEmpty(payload.client_name));
-        const wouldWipeItems = Array.isArray(existingItems) && existingItems.length > 0 && currentItems.length === 0;
+        const wouldWipeItems = Array.isArray(existingItems) && existingItems.length > 0 && preparedItems.length === 0;
         if (wouldWipe || wouldWipeItems) {
           // Não escreve · força re-hidratação no próximo ciclo
           hydratedRef.current = false;
