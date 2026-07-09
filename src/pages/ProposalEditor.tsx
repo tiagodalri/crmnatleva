@@ -1390,9 +1390,41 @@ export default function ProposalEditor() {
     return id;
   };
 
+  const ensureClientReady = () => {
+    const totalRaw = String(formRef.current.total_value ?? "").trim();
+    const totalNum = parseFloat(totalRaw);
+    const hasTotal = totalRaw && Number.isFinite(totalNum) && totalNum > 0;
+    const hasItems = itemsRef.current.some(hasMeaningfulItemContent);
+
+    if (hasTotal && hasItems) return true;
+
+    if (!hasTotal) {
+      setActiveTab("finance");
+      setTotalMissingHighlight(true);
+      toast.error("Valor total obrigatório", {
+        description: "A proposta não pode ser aberta ou enviada ao cliente sem preço.",
+        duration: 6000,
+      });
+      setTimeout(() => {
+        totalValueInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        totalValueInputRef.current?.focus();
+      }, 200);
+      setTimeout(() => setTotalMissingHighlight(false), 4000);
+      return false;
+    }
+
+    setActiveTab("items");
+    toast.error("Adicione pelo menos um item", {
+      description: "A proposta não pode ser aberta ou enviada ao cliente sem produtos, voos, hospedagens ou serviços.",
+      duration: 6000,
+    });
+    return false;
+  };
+
   const handleViewPublic = async () => {
     const slug = existing?.slug;
     if (!slug) return;
+    if (!ensureClientReady()) return;
     try {
       await ensureLatestSaved();
       window.open(getPublicProposalUrl(slug), "_blank");
@@ -1404,6 +1436,7 @@ export default function ProposalEditor() {
   const copyLink = async () => {
     const slug = existing?.slug;
     if (slug) {
+      if (!ensureClientReady()) return;
       try {
         await ensureLatestSaved();
       } catch (err: any) {
@@ -1421,6 +1454,7 @@ export default function ProposalEditor() {
   const handleShare = async () => {
     const slug = existing?.slug;
     if (!slug) return;
+    if (!ensureClientReady()) return;
     try {
       await ensureLatestSaved();
       const result = await shareProposalLink(slug, form.title || "Proposta");
@@ -1436,6 +1470,7 @@ export default function ProposalEditor() {
       toast.error("Salve a proposta antes de exportar");
       return;
     }
+    if (!ensureClientReady()) return;
     setExportingPdf(true);
     toast.info("Gerando PDF da proposta...", { duration: 4000 });
     try {
