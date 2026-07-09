@@ -162,6 +162,14 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function buildProposalSnapshot(formValue: any, itemsValue: any[], visualValue: VisualOverrides) {
+  return JSON.stringify({
+    f: formValue,
+    i: itemsValue,
+    v: visualValue,
+  });
+}
+
 // Hook: retorna um valor "atrasado" para evitar re-renderizar componentes pesados
 // (como o ProposalPreviewRenderer) a cada keystroke. Mantém a digitação fluida.
 function useDebouncedValue<T>(value: T, delay = 250): T {
@@ -322,6 +330,7 @@ export default function ProposalEditor() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAutoSavedSnapshotRef = useRef<string>("");
   const promotedNewProposalRef = useRef(false);
+  const [resaveNonce, setResaveNonce] = useState(0);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "offline">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   // Retry automático com backoff quando o autosave falha (queda de internet, timeout etc.)
@@ -476,11 +485,11 @@ export default function ProposalEditor() {
     if (currentTitle !== expectedTitle || !itemsMatch) return;
 
     hydratedRef.current = true;
-    lastAutoSavedSnapshotRef.current = JSON.stringify({
-      f: formRef.current,
-      i: itemsRef.current,
-      v: visualOverridesRef.current,
-    });
+    lastAutoSavedSnapshotRef.current = buildProposalSnapshot(
+      formRef.current,
+      itemsRef.current,
+      visualOverridesRef.current,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNew, existing, existingItems, form, items]);
 
@@ -500,7 +509,7 @@ export default function ProposalEditor() {
         if (draft?.form && typeof draft.form === "object") {
           setForm((prev) => ({ ...prev, ...draft.form }));
         }
-        if (Array.isArray(draft?.items) && draft.items.length > 0) {
+        if (Array.isArray(draft?.items)) {
           setItems(draft.items);
         }
         if (draft?.visualOverrides && typeof draft.visualOverrides === "object") {
@@ -530,7 +539,7 @@ export default function ProposalEditor() {
       if (draft?.form && typeof draft.form === "object") {
         setForm((prev) => ({ ...prev, ...draft.form }));
       }
-      if (Array.isArray(draft?.items) && draft.items.length > 0) {
+      if (Array.isArray(draft?.items)) {
         setItems(draft.items);
       }
       if (draft?.visualOverrides && typeof draft.visualOverrides === "object") {
@@ -554,15 +563,15 @@ export default function ProposalEditor() {
       localStorage.setItem(
         LOCAL_DRAFT_KEY,
         JSON.stringify({
-          form: debouncedForm,
-          items: debouncedItems,
-          visualOverrides: debouncedVisualOverrides,
+          form,
+          items,
+          visualOverrides,
           savedAt: now.toISOString(),
         })
       );
       setLocalDraftAt(now);
     } catch { /* ignore quota */ }
-  }, [LOCAL_DRAFT_KEY, isNew, debouncedForm, debouncedItems, debouncedVisualOverrides]);
+  }, [LOCAL_DRAFT_KEY, isNew, form, items, visualOverrides]);
 
   // Auto-populate items from AI proposal_structure
   useEffect(() => {
@@ -706,6 +715,7 @@ export default function ProposalEditor() {
       const currentForm = formRef.current;
       const currentItems = itemsRef.current;
       const currentVisualOverrides = visualOverridesRef.current;
+      const mutationSnapshot = buildProposalSnapshot(currentForm, currentItems, currentVisualOverrides);
       const slug = existing?.slug || generateSlug();
       const preparedItems = currentItems
         .filter(hasMeaningfulItemContent)
@@ -865,9 +875,9 @@ export default function ProposalEditor() {
         throw itemError;
       }
 
-      return { proposalId, savedItems: preparedItems };
+      return { proposalId, savedItems: preparedItems, savedSnapshot: mutationSnapshot };
     },
-    onSuccess: ({ proposalId, savedItems }) => {
+    onSuccess: ({ proposalId, savedItems, savedSnapshot }) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
       try { localStorage.removeItem(visualDraftKey); } catch { /* ignore */ }
       if (savedItems.length > 0) {
@@ -882,16 +892,36 @@ export default function ProposalEditor() {
         });
       }
       try {
+        const currentSnapshot = buildProposalSnapshot(
+          formRef.current,
+          itemsRef.current,
+          visualOverridesRef.current,
+        );
+        const saveStillCurrent = currentSnapshot === savedSnapshot;
+
+        if (saveStillCurrent) {
+          localStorage.removeItem(LOCAL_DRAFT_KEY);
+          if (proposalId) localStorage.removeItem(`proposal-draft-${proposalId}`);
+        } else if (proposalId) {
+          localStorage.setItem(
+            `proposal-draft-${proposalId}`,
+            JSON.stringify({
+              form: formRef.current,
+              items: itemsRef.current,
+              visualOverrides: visualOverridesRef.current,
+              savedAt: new Date().toISOString(),
+            }),
+          );
+          lastAutoSavedSnapshotRef.current = "";
+          setResaveNonce((n) => n + 1);
+        }
+
         if (isNew) {
           promotedNewProposalRef.current = true;
-          localStorage.removeItem(NEW_DRAFT_KEY);
+          if (saveStillCurrent) localStorage.removeItem(NEW_DRAFT_KEY);
         }
       } catch { /* ignore */ }
-      lastAutoSavedSnapshotRef.current = JSON.stringify({
-        f: formRef.current,
-        i: itemsRef.current,
-        v: visualOverridesRef.current,
-      });
+      lastAutoSavedSnapshotRef.current = savedSnapshot;
       if (!isAutoSavingRef.current) {
         toast.success("Proposta salva com sucesso!");
       }
@@ -959,11 +989,7 @@ export default function ProposalEditor() {
       return; // próximo ciclo dispara o autosave já com título
     }
 
-    const snapshot = JSON.stringify({
-      f: debouncedForm,
-      i: debouncedItems,
-      v: debouncedVisualOverrides,
-    });
+    const snapshot = buildProposalSnapshot(debouncedForm, debouncedItems, debouncedVisualOverrides);
     if (snapshot === lastAutoSavedSnapshotRef.current) return;
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -1003,7 +1029,7 @@ export default function ProposalEditor() {
           Promise.resolve().then(() => {
             // Reexecuta effect via bump: alterando lastSavedAt não dispara,
             // então chamamos a mutation direto se ainda houver diff.
-            const cur = JSON.stringify({ f: formRef.current, i: itemsRef.current, v: visualOverridesRef.current });
+            const cur = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
             if (cur !== lastAutoSavedSnapshotRef.current) {
               if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
               autoSaveTimerRef.current = setTimeout(() => {
@@ -1023,7 +1049,7 @@ export default function ProposalEditor() {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedForm, debouncedItems, debouncedVisualOverrides, isOnline]);
+  }, [debouncedForm, debouncedItems, debouncedVisualOverrides, isOnline, resaveNonce]);
 
   // Detecta online/offline · quando volta, força tentativa imediata de autosave.
   useEffect(() => {
@@ -1057,11 +1083,7 @@ export default function ProposalEditor() {
         clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = null;
       }
-      const snapshot = JSON.stringify({
-        f: formRef.current,
-        i: itemsRef.current,
-        v: visualOverridesRef.current,
-      });
+      const snapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
       if (snapshot === lastAutoSavedSnapshotRef.current) return;
       const hasContent =
         (formRef.current.title && formRef.current.title.trim()) ||
@@ -1351,11 +1373,7 @@ export default function ProposalEditor() {
       autoSaveTimerRef.current = null;
     }
     await waitUntilSaveIdle();
-    const snapshot = JSON.stringify({
-      f: formRef.current,
-      i: itemsRef.current,
-      v: visualOverridesRef.current,
-    });
+    const snapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
     if (snapshot !== lastAutoSavedSnapshotRef.current) {
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
