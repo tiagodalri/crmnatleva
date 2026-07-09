@@ -1086,8 +1086,11 @@ export default function ProposalEditor() {
     const handleOnline = () => {
       setIsOnline(true);
       retryAttemptsRef.current = 0;
-      // Invalida snapshot para o autosave detectar diff e regravar
+      if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+      // Invalida snapshot e força novo ciclo · sincroniza o rascunho local
+      // pendente assim que a conexão volta.
       lastAutoSavedSnapshotRef.current = "";
+      setResaveNonce((n) => n + 1);
       setAutoSaveStatus((s) => (s === "offline" || s === "error" ? "saving" : s));
     };
     const handleOffline = () => {
