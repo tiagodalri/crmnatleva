@@ -1005,7 +1005,6 @@ export default function ProposalEditor() {
       setAutoSaveStatus("saving");
       try {
         await saveMutation.mutateAsync();
-        lastAutoSavedSnapshotRef.current = snapshot;
         setLastSavedAt(new Date());
         setAutoSaveStatus("saved");
         retryAttemptsRef.current = 0;
@@ -1097,7 +1096,6 @@ export default function ProposalEditor() {
       saveMutation
         .mutateAsync()
         .then(() => {
-          lastAutoSavedSnapshotRef.current = snapshot;
           setLastSavedAt(new Date());
           setAutoSaveStatus("saved");
         })
@@ -1379,7 +1377,6 @@ export default function ProposalEditor() {
       setAutoSaveStatus("saving");
       try {
         const result = await saveMutation.mutateAsync();
-        lastAutoSavedSnapshotRef.current = snapshot;
         setLastSavedAt(new Date());
         setAutoSaveStatus("saved");
         return result.proposalId;
