@@ -140,6 +140,25 @@ function isEmptyObject(value: unknown) {
   return !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0;
 }
 
+function hasFilledPriceData(data: Record<string, any>) {
+  const priceKeys = [
+    "price",
+    "total_price",
+    "totalPrice",
+    "price_total",
+    "priceTotal",
+    "price_per_person",
+    "pricePerPerson",
+    "value",
+    "total_value",
+    "totalValue",
+  ];
+  return priceKeys.some((key) => {
+    const value = data?.[key];
+    return value !== null && value !== undefined && String(value).trim() !== "";
+  });
+}
+
 function hasMeaningfulItemContent(item: any) {
   if (!item) return false;
   const data = item.data || {};
@@ -147,6 +166,7 @@ function hasMeaningfulItemContent(item: any) {
     String(item.title || "").trim() ||
     String(item.description || "").trim() ||
     String(item.image_url || "").trim() ||
+    hasFilledPriceData(data) ||
     !isEmptyObject(data) ||
     String(item.payment_modality || "").trim() ||
     String(item.payment_label || "").trim() ||
@@ -160,6 +180,14 @@ function hasMeaningfulItemContent(item: any) {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildProposalSnapshot(formValue: any, itemsValue: any[], visualValue: VisualOverrides) {
+  return JSON.stringify({
+    f: formValue,
+    i: itemsValue,
+    v: visualValue,
+  });
 }
 
 // Hook: retorna um valor "atrasado" para evitar re-renderizar componentes pesados
@@ -322,6 +350,7 @@ export default function ProposalEditor() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAutoSavedSnapshotRef = useRef<string>("");
   const promotedNewProposalRef = useRef(false);
+  const [resaveNonce, setResaveNonce] = useState(0);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error" | "offline">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   // Retry automático com backoff quando o autosave falha (queda de internet, timeout etc.)
@@ -329,6 +358,15 @@ export default function ProposalEditor() {
   const retryAttemptsRef = useRef(0);
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [localDraftAt, setLocalDraftAt] = useState<Date | null>(null);
+  const loadedProposalIdRef = useRef<string | undefined>(id);
+
+  useEffect(() => {
+    if (loadedProposalIdRef.current === id) return;
+    loadedProposalIdRef.current = id;
+    hydratedRef.current = false;
+    lastAutoSavedSnapshotRef.current = "";
+    setAutoSaveStatus("idle");
+  }, [id]);
 
   // ── Debounce para o preview ─────────────────────────────────────────
   // Form e items são atualizados em todo keystroke, mas o preview à direita
@@ -452,7 +490,7 @@ export default function ProposalEditor() {
   }, [existing]);
 
   useEffect(() => {
-    if (existingItems) setItems(existingItems);
+    if (existingItems && !hydratedRef.current) setItems(existingItems);
   }, [existingItems]);
 
   // Marca hidratação concluída para liberar o autosave (evita gravar
@@ -476,11 +514,11 @@ export default function ProposalEditor() {
     if (currentTitle !== expectedTitle || !itemsMatch) return;
 
     hydratedRef.current = true;
-    lastAutoSavedSnapshotRef.current = JSON.stringify({
-      f: formRef.current,
-      i: itemsRef.current,
-      v: visualOverridesRef.current,
-    });
+    lastAutoSavedSnapshotRef.current = buildProposalSnapshot(
+      formRef.current,
+      itemsRef.current,
+      visualOverridesRef.current,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNew, existing, existingItems, form, items]);
 
@@ -500,7 +538,7 @@ export default function ProposalEditor() {
         if (draft?.form && typeof draft.form === "object") {
           setForm((prev) => ({ ...prev, ...draft.form }));
         }
-        if (Array.isArray(draft?.items) && draft.items.length > 0) {
+        if (Array.isArray(draft?.items)) {
           setItems(draft.items);
         }
         if (draft?.visualOverrides && typeof draft.visualOverrides === "object") {
@@ -523,14 +561,14 @@ export default function ProposalEditor() {
       const draftAt = draft?.savedAt ? new Date(draft.savedAt).getTime() : 0;
       const dbAt = (existing as any)?.updated_at ? new Date((existing as any).updated_at).getTime() : 0;
       // Só restaura se o rascunho é mais novo que o último save no banco
-      if (draftAt <= dbAt + 1000) {
+      if (draftAt <= dbAt + 10000) {
         localStorage.removeItem(LOCAL_DRAFT_KEY);
         return;
       }
       if (draft?.form && typeof draft.form === "object") {
         setForm((prev) => ({ ...prev, ...draft.form }));
       }
-      if (Array.isArray(draft?.items) && draft.items.length > 0) {
+      if (Array.isArray(draft?.items)) {
         setItems(draft.items);
       }
       if (draft?.visualOverrides && typeof draft.visualOverrides === "object") {
@@ -544,7 +582,7 @@ export default function ProposalEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existing]);
 
-  // Espelha rascunho local em todo keystroke (debounced 250ms) para nunca perder
+  // Espelha rascunho local em todo keystroke para nunca perder
   // — funciona offline, sem internet, com queda de luz. Limpa quando persiste.
   useEffect(() => {
     if (!hydratedRef.current && !isNew) return;
@@ -554,15 +592,15 @@ export default function ProposalEditor() {
       localStorage.setItem(
         LOCAL_DRAFT_KEY,
         JSON.stringify({
-          form: debouncedForm,
-          items: debouncedItems,
-          visualOverrides: debouncedVisualOverrides,
+          form,
+          items,
+          visualOverrides,
           savedAt: now.toISOString(),
         })
       );
       setLocalDraftAt(now);
     } catch { /* ignore quota */ }
-  }, [LOCAL_DRAFT_KEY, isNew, debouncedForm, debouncedItems, debouncedVisualOverrides]);
+  }, [LOCAL_DRAFT_KEY, isNew, form, items, visualOverrides]);
 
   // Auto-populate items from AI proposal_structure
   useEffect(() => {
@@ -706,6 +744,7 @@ export default function ProposalEditor() {
       const currentForm = formRef.current;
       const currentItems = itemsRef.current;
       const currentVisualOverrides = visualOverridesRef.current;
+      const mutationSnapshot = buildProposalSnapshot(currentForm, currentItems, currentVisualOverrides);
       const slug = existing?.slug || generateSlug();
       const preparedItems = currentItems
         .filter(hasMeaningfulItemContent)
@@ -804,10 +843,12 @@ export default function ProposalEditor() {
           (dbHas((existing as any)?.cover_image_url) && isEmpty(payload.cover_image_url)) ||
           (dbHas((existing as any)?.total_value) && isEmpty(payload.total_value)) ||
           (dbHas((existing as any)?.client_name) && isEmpty(payload.client_name));
-        const wouldWipeItems = Array.isArray(existingItems) && existingItems.length > 0 && currentItems.length === 0;
+        const wouldWipeItems = Array.isArray(existingItems) && existingItems.length > 0 && preparedItems.length === 0;
         if (wouldWipe || wouldWipeItems) {
           // Não escreve · força re-hidratação no próximo ciclo
           hydratedRef.current = false;
+          queryClient.invalidateQueries({ queryKey: ["proposal", id] });
+          queryClient.invalidateQueries({ queryKey: ["proposal-items", id] });
           console.warn("[ProposalEditor] autosave abortado · payload zeraria campos preenchidos", {
             proposalId: id,
             wouldWipeItems,
@@ -820,6 +861,14 @@ export default function ProposalEditor() {
 
 
       try {
+        if (syncExistingItems && currentItems.length > 0 && preparedItems.length === 0) {
+          console.warn("[ProposalEditor] save abortado · itens locais não passaram no filtro de conteúdo", {
+            proposalId,
+            localItems: currentItems.length,
+          });
+          throw new Error("Salvamento abortado para preservar os itens da proposta");
+        }
+
         // Save items sem abrir uma janela pública vazia: primeiro grava/atualiza,
         // depois remove só o que saiu do editor.
         if (preparedItems.length > 0) {
@@ -865,10 +914,12 @@ export default function ProposalEditor() {
         throw itemError;
       }
 
-      return { proposalId, savedItems: preparedItems };
+      return { proposalId, savedItems: preparedItems, savedSnapshot: mutationSnapshot };
     },
-    onSuccess: ({ proposalId, savedItems }) => {
+    onSuccess: ({ proposalId, savedItems, savedSnapshot }) => {
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["proposal", proposalId] });
+      queryClient.invalidateQueries({ queryKey: ["proposal-items", proposalId] });
       try { localStorage.removeItem(visualDraftKey); } catch { /* ignore */ }
       if (savedItems.length > 0) {
         setItems((prev) => {
@@ -882,16 +933,36 @@ export default function ProposalEditor() {
         });
       }
       try {
+        const currentSnapshot = buildProposalSnapshot(
+          formRef.current,
+          itemsRef.current,
+          visualOverridesRef.current,
+        );
+        const saveStillCurrent = currentSnapshot === savedSnapshot;
+
+        if (saveStillCurrent) {
+          localStorage.removeItem(LOCAL_DRAFT_KEY);
+          if (proposalId) localStorage.removeItem(`proposal-draft-${proposalId}`);
+        } else if (proposalId) {
+          localStorage.setItem(
+            `proposal-draft-${proposalId}`,
+            JSON.stringify({
+              form: formRef.current,
+              items: itemsRef.current,
+              visualOverrides: visualOverridesRef.current,
+              savedAt: new Date().toISOString(),
+            }),
+          );
+          lastAutoSavedSnapshotRef.current = "";
+          setResaveNonce((n) => n + 1);
+        }
+
         if (isNew) {
           promotedNewProposalRef.current = true;
           localStorage.removeItem(NEW_DRAFT_KEY);
         }
       } catch { /* ignore */ }
-      lastAutoSavedSnapshotRef.current = JSON.stringify({
-        f: formRef.current,
-        i: itemsRef.current,
-        v: visualOverridesRef.current,
-      });
+      lastAutoSavedSnapshotRef.current = savedSnapshot;
       if (!isAutoSavingRef.current) {
         toast.success("Proposta salva com sucesso!");
       }
@@ -959,11 +1030,7 @@ export default function ProposalEditor() {
       return; // próximo ciclo dispara o autosave já com título
     }
 
-    const snapshot = JSON.stringify({
-      f: debouncedForm,
-      i: debouncedItems,
-      v: debouncedVisualOverrides,
-    });
+    const snapshot = buildProposalSnapshot(debouncedForm, debouncedItems, debouncedVisualOverrides);
     if (snapshot === lastAutoSavedSnapshotRef.current) return;
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -978,10 +1045,14 @@ export default function ProposalEditor() {
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
       try {
-        await saveMutation.mutateAsync();
-        lastAutoSavedSnapshotRef.current = snapshot;
-        setLastSavedAt(new Date());
-        setAutoSaveStatus("saved");
+        const result = await saveMutation.mutateAsync();
+        const currentSnapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
+        if (currentSnapshot === result.savedSnapshot) {
+          setLastSavedAt(new Date());
+          setAutoSaveStatus("saved");
+        } else {
+          setAutoSaveStatus("saving");
+        }
         retryAttemptsRef.current = 0;
         if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
       } catch {
@@ -1003,7 +1074,7 @@ export default function ProposalEditor() {
           Promise.resolve().then(() => {
             // Reexecuta effect via bump: alterando lastSavedAt não dispara,
             // então chamamos a mutation direto se ainda houver diff.
-            const cur = JSON.stringify({ f: formRef.current, i: itemsRef.current, v: visualOverridesRef.current });
+            const cur = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
             if (cur !== lastAutoSavedSnapshotRef.current) {
               if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
               autoSaveTimerRef.current = setTimeout(() => {
@@ -1023,7 +1094,7 @@ export default function ProposalEditor() {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedForm, debouncedItems, debouncedVisualOverrides, isOnline]);
+  }, [debouncedForm, debouncedItems, debouncedVisualOverrides, isOnline, resaveNonce]);
 
   // Detecta online/offline · quando volta, força tentativa imediata de autosave.
   useEffect(() => {
@@ -1057,11 +1128,7 @@ export default function ProposalEditor() {
         clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = null;
       }
-      const snapshot = JSON.stringify({
-        f: formRef.current,
-        i: itemsRef.current,
-        v: visualOverridesRef.current,
-      });
+      const snapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
       if (snapshot === lastAutoSavedSnapshotRef.current) return;
       const hasContent =
         (formRef.current.title && formRef.current.title.trim()) ||
@@ -1074,10 +1141,14 @@ export default function ProposalEditor() {
       // Promise dispara, navegador pode fechar antes · localStorage cobre o gap
       saveMutation
         .mutateAsync()
-        .then(() => {
-          lastAutoSavedSnapshotRef.current = snapshot;
-          setLastSavedAt(new Date());
-          setAutoSaveStatus("saved");
+        .then((result) => {
+          const currentSnapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
+          if (currentSnapshot === result.savedSnapshot) {
+            setLastSavedAt(new Date());
+            setAutoSaveStatus("saved");
+          } else {
+            setAutoSaveStatus("saving");
+          }
         })
         .catch(() => setAutoSaveStatus("error"))
         .finally(() => { isAutoSavingRef.current = false; });
@@ -1351,19 +1422,19 @@ export default function ProposalEditor() {
       autoSaveTimerRef.current = null;
     }
     await waitUntilSaveIdle();
-    const snapshot = JSON.stringify({
-      f: formRef.current,
-      i: itemsRef.current,
-      v: visualOverridesRef.current,
-    });
+    const snapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
     if (snapshot !== lastAutoSavedSnapshotRef.current) {
       isAutoSavingRef.current = true;
       setAutoSaveStatus("saving");
       try {
         const result = await saveMutation.mutateAsync();
-        lastAutoSavedSnapshotRef.current = snapshot;
-        setLastSavedAt(new Date());
-        setAutoSaveStatus("saved");
+        const currentSnapshot = buildProposalSnapshot(formRef.current, itemsRef.current, visualOverridesRef.current);
+        if (currentSnapshot === result.savedSnapshot) {
+          setLastSavedAt(new Date());
+          setAutoSaveStatus("saved");
+        } else {
+          setAutoSaveStatus("saving");
+        }
         return result.proposalId;
       } finally {
         isAutoSavingRef.current = false;
@@ -1372,9 +1443,41 @@ export default function ProposalEditor() {
     return id;
   };
 
+  const ensureClientReady = () => {
+    const totalRaw = String(formRef.current.total_value ?? "").trim();
+    const totalNum = parseFloat(totalRaw);
+    const hasTotal = totalRaw && Number.isFinite(totalNum) && totalNum > 0;
+    const hasItems = itemsRef.current.some(hasMeaningfulItemContent);
+
+    if (hasTotal && hasItems) return true;
+
+    if (!hasTotal) {
+      setActiveTab("finance");
+      setTotalMissingHighlight(true);
+      toast.error("Valor total obrigatório", {
+        description: "A proposta não pode ser aberta ou enviada ao cliente sem preço.",
+        duration: 6000,
+      });
+      setTimeout(() => {
+        totalValueInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        totalValueInputRef.current?.focus();
+      }, 200);
+      setTimeout(() => setTotalMissingHighlight(false), 4000);
+      return false;
+    }
+
+    setActiveTab("items");
+    toast.error("Adicione pelo menos um item", {
+      description: "A proposta não pode ser aberta ou enviada ao cliente sem produtos, voos, hospedagens ou serviços.",
+      duration: 6000,
+    });
+    return false;
+  };
+
   const handleViewPublic = async () => {
     const slug = existing?.slug;
     if (!slug) return;
+    if (!ensureClientReady()) return;
     try {
       await ensureLatestSaved();
       window.open(getPublicProposalUrl(slug), "_blank");
@@ -1386,6 +1489,7 @@ export default function ProposalEditor() {
   const copyLink = async () => {
     const slug = existing?.slug;
     if (slug) {
+      if (!ensureClientReady()) return;
       try {
         await ensureLatestSaved();
       } catch (err: any) {
@@ -1403,6 +1507,7 @@ export default function ProposalEditor() {
   const handleShare = async () => {
     const slug = existing?.slug;
     if (!slug) return;
+    if (!ensureClientReady()) return;
     try {
       await ensureLatestSaved();
       const result = await shareProposalLink(slug, form.title || "Proposta");
@@ -1418,6 +1523,7 @@ export default function ProposalEditor() {
       toast.error("Salve a proposta antes de exportar");
       return;
     }
+    if (!ensureClientReady()) return;
     setExportingPdf(true);
     toast.info("Gerando PDF da proposta...", { duration: 4000 });
     try {

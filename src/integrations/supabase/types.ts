@@ -8057,6 +8057,39 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_change_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          operation: string
+          previous_data: Json
+          proposal_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          operation: string
+          previous_data: Json
+          proposal_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          operation?: string
+          previous_data?: Json
+          proposal_id?: string | null
+        }
+        Relationships: []
+      }
       proposal_clicks: {
         Row: {
           created_at: string
