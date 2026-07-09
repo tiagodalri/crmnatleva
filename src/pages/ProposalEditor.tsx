@@ -918,7 +918,7 @@ export default function ProposalEditor() {
 
         if (isNew) {
           promotedNewProposalRef.current = true;
-          if (saveStillCurrent) localStorage.removeItem(NEW_DRAFT_KEY);
+          localStorage.removeItem(NEW_DRAFT_KEY);
         }
       } catch { /* ignore */ }
       lastAutoSavedSnapshotRef.current = savedSnapshot;
