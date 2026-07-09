@@ -358,6 +358,15 @@ export default function ProposalEditor() {
   const retryAttemptsRef = useRef(0);
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [localDraftAt, setLocalDraftAt] = useState<Date | null>(null);
+  const loadedProposalIdRef = useRef<string | undefined>(id);
+
+  useEffect(() => {
+    if (loadedProposalIdRef.current === id) return;
+    loadedProposalIdRef.current = id;
+    hydratedRef.current = false;
+    lastAutoSavedSnapshotRef.current = "";
+    setAutoSaveStatus("idle");
+  }, [id]);
 
   // ── Debounce para o preview ─────────────────────────────────────────
   // Form e items são atualizados em todo keystroke, mas o preview à direita
@@ -838,6 +847,8 @@ export default function ProposalEditor() {
         if (wouldWipe || wouldWipeItems) {
           // Não escreve · força re-hidratação no próximo ciclo
           hydratedRef.current = false;
+          queryClient.invalidateQueries({ queryKey: ["proposal", id] });
+          queryClient.invalidateQueries({ queryKey: ["proposal-items", id] });
           console.warn("[ProposalEditor] autosave abortado · payload zeraria campos preenchidos", {
             proposalId: id,
             wouldWipeItems,
