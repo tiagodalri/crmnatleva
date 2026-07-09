@@ -850,6 +850,14 @@ export default function ProposalEditor() {
 
 
       try {
+        if (syncExistingItems && currentItems.length > 0 && preparedItems.length === 0) {
+          console.warn("[ProposalEditor] save abortado · itens locais não passaram no filtro de conteúdo", {
+            proposalId,
+            localItems: currentItems.length,
+          });
+          throw new Error("Salvamento abortado para preservar os itens da proposta");
+        }
+
         // Save items sem abrir uma janela pública vazia: primeiro grava/atualiza,
         // depois remove só o que saiu do editor.
         if (preparedItems.length > 0) {
