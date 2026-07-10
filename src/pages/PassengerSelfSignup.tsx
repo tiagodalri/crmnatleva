@@ -313,7 +313,8 @@ export default function PassengerSelfSignup() {
 
         <div className="w-full max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
           {passengers.map((p, idx) => (
-            <Card key={idx} className="p-5 sm:p-6 space-y-3">
+            <Card key={entries[idx]?.id ?? idx} className="p-5 sm:p-6 space-y-3">
+
               <div className="flex items-center gap-2 pb-2 border-b border-border/60">
                 <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                   <User className="w-4 h-4" />
