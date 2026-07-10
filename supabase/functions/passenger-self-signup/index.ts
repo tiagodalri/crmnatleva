@@ -223,25 +223,84 @@ Deno.serve(async (req) => {
     }
 
     // 6) Duplicate detection: só CPF ou passaporte (identidade real).
-    // Famílias compartilham e-mail e telefone com muita frequência (pai cadastra filhos, casal usa mesmo e-mail)
-    // então bloquear por email/phone criava falso positivo no 2º/3º passageiro.
+    // Nova política: NUNCA bloquear o cliente. Se colidir, grava em passenger_pending_submissions
+    // para revisão interna (aprovar/descartar/mesclar). Assim o link nunca falha.
+    let matchedPassengerId: string | null = null;
+    let matchedBy: "cpf" | "passport" | "both" | null = null;
     if (cpf || passportNumber) {
       const orParts: string[] = [];
       if (cpf) orParts.push(`cpf.eq.${cpf}`);
       if (passportNumber) orParts.push(`passport_number.eq.${passportNumber}`);
       const { data: existing } = await sb
         .from("passengers")
-        .select("id")
+        .select("id, cpf, passport_number")
         .or(orParts.join(","))
         .limit(1)
         .maybeSingle();
       if (existing) {
-        await logAttempt(sb, { ip, ua, slug, status: "duplicate", email, cpf, error: "passageiro já cadastrado" });
-        return new Response(JSON.stringify({
-          error: "Já existe um cadastro com este CPF ou passaporte. Se precisar atualizar os dados, fale com a equipe NatLeva.",
-          code: "duplicate",
-        }), { status: 409, headers: jsonHeaders });
+        matchedPassengerId = existing.id;
+        const cpfHit = !!(cpf && existing.cpf === cpf);
+        const passHit = !!(passportNumber && existing.passport_number === passportNumber);
+        matchedBy = cpfHit && passHit ? "both" : cpfHit ? "cpf" : "passport";
       }
+    }
+
+    if (matchedPassengerId && matchedBy) {
+      // Se já registramos essa submission_id como pendente, responde idempotente
+      if (submissionId) {
+        const { data: alreadyPending } = await sb
+          .from("passenger_pending_submissions")
+          .select("id")
+          .eq("submission_id", submissionId)
+          .maybeSingle();
+        if (alreadyPending) {
+          await logAttempt(sb, { ip, ua, slug, status: "ok", email, cpf, error: "idempotent_replay_pending" });
+          return new Response(JSON.stringify({ ok: true, idempotent: true }), { status: 200, headers: jsonHeaders });
+        }
+      }
+
+      const { error: pendErr } = await sb.from("passenger_pending_submissions").insert({
+        matched_passenger_id: matchedPassengerId,
+        matched_by: matchedBy,
+        signup_link_id: link.id,
+        submission_id: submissionId,
+        submitted_data: {
+          full_name: smartCapitalize(fullName),
+          cpf: cpf || null,
+          birth_date: payload.birth_date || null,
+          phone: phone || null,
+          email,
+          rg: payload.rg ? String(payload.rg).trim() : null,
+          passport_number: passportNumber,
+          passport_expiry: passportExpiry,
+          passport_photo_url: passportPhotoUrl,
+          address_cep: digits(payload.address_cep) || null,
+          address_street: payload.address_street || null,
+          address_number: payload.address_number || null,
+          address_complement: payload.address_complement || null,
+          address_neighborhood: payload.address_neighborhood || null,
+          address_city: payload.address_city || null,
+          address_state: payload.address_state || null,
+          address_notes: payload.address_notes || null,
+        },
+        submitter_ip: ip,
+        submitter_user_agent: ua,
+        status: "pending",
+      });
+
+      if (pendErr && (pendErr as any).code !== "23505") {
+        console.error("pending insert error", pendErr);
+        await logAttempt(sb, { ip, ua, slug, status: "error", email, cpf, error: pendErr.message });
+        return new Response(JSON.stringify({ error: "Falha ao salvar cadastro" }), { status: 500, headers: jsonHeaders });
+      }
+
+      await sb.from("passenger_signup_links")
+        .update({ uses_count: (link.uses_count || 0) + 1 })
+        .eq("id", link.id);
+
+      await logAttempt(sb, { ip, ua, slug, status: "ok", email, cpf, error: "queued_for_review" });
+      // Resposta idêntica ao cliente: cadastro recebido com sucesso
+      return new Response(JSON.stringify({ ok: true, queued: true }), { status: 200, headers: jsonHeaders });
     }
 
     const insertPayload: Record<string, unknown> = {
