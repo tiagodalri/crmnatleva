@@ -1,0 +1,2 @@
+alter table public.passengers add column if not exists submission_id text;
+create unique index if not exists passengers_submission_id_uidx on public.passengers (submission_id) where submission_id is not null;

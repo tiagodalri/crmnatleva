@@ -207,10 +207,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5) Duplicate detection (email or cpf or passport)
-    if (email || cpf || passportNumber) {
+    // 5) Idempotência por submission_id (evita duplicidade em retry / clique duplo / rede oscilando)
+    const submissionId = payload.submission_id ? String(payload.submission_id).slice(0, 80) : null;
+    if (submissionId) {
+      const { data: already } = await sb
+        .from("passengers")
+        .select("id")
+        .eq("submission_id", submissionId)
+        .maybeSingle();
+      if (already) {
+        // Mesmo envio já processado, respondemos ok pra não travar o cliente
+        await logAttempt(sb, { ip, ua, slug, status: "ok", email, cpf, error: "idempotent_replay" });
+        return new Response(JSON.stringify({ ok: true, idempotent: true }), { status: 200, headers: jsonHeaders });
+      }
+    }
+
+    // 6) Duplicate detection: só CPF ou passaporte (identidade real).
+    // Famílias compartilham e-mail e telefone com muita frequência (pai cadastra filhos, casal usa mesmo e-mail)
+    // então bloquear por email/phone criava falso positivo no 2º/3º passageiro.
+    if (cpf || passportNumber) {
       const orParts: string[] = [];
-      if (email) orParts.push(`email.eq.${email}`);
       if (cpf) orParts.push(`cpf.eq.${cpf}`);
       if (passportNumber) orParts.push(`passport_number.eq.${passportNumber}`);
       const { data: existing } = await sb
@@ -222,13 +238,13 @@ Deno.serve(async (req) => {
       if (existing) {
         await logAttempt(sb, { ip, ua, slug, status: "duplicate", email, cpf, error: "passageiro já cadastrado" });
         return new Response(JSON.stringify({
-          error: "Já existe um cadastro com este e-mail, CPF ou passaporte. Se precisar atualizar seus dados, fale com a equipe NatLeva.",
+          error: "Já existe um cadastro com este CPF ou passaporte. Se precisar atualizar os dados, fale com a equipe NatLeva.",
           code: "duplicate",
         }), { status: 409, headers: jsonHeaders });
       }
     }
 
-    const insertPayload = {
+    const insertPayload: Record<string, unknown> = {
       full_name: smartCapitalize(fullName),
       cpf: cpf || null,
       birth_date: payload.birth_date || null,
@@ -248,10 +264,16 @@ Deno.serve(async (req) => {
       address_notes: payload.address_notes || null,
       created_via: "self_signup",
       signup_link_id: link.id,
+      submission_id: submissionId,
     };
 
     const { error: insertError } = await sb.from("passengers").insert(insertPayload);
     if (insertError) {
+      // Corrida: submission_id duplicado chegou em paralelo — respondemos ok idempotente
+      if ((insertError as any).code === "23505" && submissionId) {
+        await logAttempt(sb, { ip, ua, slug, status: "ok", email, cpf, error: "idempotent_race" });
+        return new Response(JSON.stringify({ ok: true, idempotent: true }), { status: 200, headers: jsonHeaders });
+      }
       console.error("insert error", insertError);
       await logAttempt(sb, { ip, ua, slug, status: "error", email, cpf, error: insertError.message });
       return new Response(JSON.stringify({ error: "Falha ao salvar cadastro" }), { status: 500, headers: jsonHeaders });

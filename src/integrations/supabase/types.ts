@@ -6351,6 +6351,7 @@ export type Database = {
           phone: string | null
           rg: string | null
           signup_link_id: string | null
+          submission_id: string | null
           updated_at: string
         }
         Insert: {
@@ -6378,6 +6379,7 @@ export type Database = {
           phone?: string | null
           rg?: string | null
           signup_link_id?: string | null
+          submission_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -6405,6 +6407,7 @@ export type Database = {
           phone?: string | null
           rg?: string | null
           signup_link_id?: string | null
+          submission_id?: string | null
           updated_at?: string
         }
         Relationships: [

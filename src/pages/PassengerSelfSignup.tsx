@@ -18,13 +18,60 @@ import { normalizePassengerName } from "@/lib/nameUtils";
 
 type Step = "form" | "review";
 
+type PaxEntry = { id: string; submission_id: string; data: PassengerFormState };
+
+function makeId() {
+  try {
+    if (typeof crypto !== "undefined" && (crypto as any).randomUUID) return (crypto as any).randomUUID();
+  } catch {}
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function draftKey(slug: string | undefined) {
+  return slug ? `natleva:passenger-signup-draft:${slug}` : "";
+}
+
+function loadDraft(slug: string | undefined): { entries: PaxEntry[]; saved: boolean[] } | null {
+  const key = draftKey(slug);
+  if (!key || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.entries) || parsed.entries.length === 0) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+function saveDraft(slug: string | undefined, entries: PaxEntry[], saved: boolean[]) {
+  const key = draftKey(slug);
+  if (!key || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ entries, saved, ts: Date.now() }));
+  } catch {}
+}
+
+function clearDraft(slug: string | undefined) {
+  const key = draftKey(slug);
+  if (!key || typeof window === "undefined") return;
+  try { window.localStorage.removeItem(key); } catch {}
+}
+
 export default function PassengerSelfSignup() {
   const { slug } = useParams();
   const { toast } = useToast();
   const [linkState, setLinkState] = useState<"loading" | "valid" | "invalid">("loading");
   const [reason, setReason] = useState<string>("");
-  const [passengers, setPassengers] = useState<PassengerFormState[]>([{ ...emptyPassenger }]);
-  const [savedFlags, setSavedFlags] = useState<boolean[]>([false]);
+  const [entries, setEntries] = useState<PaxEntry[]>(() => {
+    const restored = loadDraft(slug);
+    if (restored) return restored.entries;
+    return [{ id: makeId(), submission_id: makeId(), data: { ...emptyPassenger } }];
+  });
+  const [savedFlags, setSavedFlags] = useState<boolean[]>(() => {
+    const restored = loadDraft(slug);
+    if (restored) return restored.saved;
+    return [false];
+  });
   const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
   const [step, setStep] = useState<Step>("form");
   const [submitting, setSubmitting] = useState(false);
@@ -32,11 +79,20 @@ export default function PassengerSelfSignup() {
   const [doneCount, setDoneCount] = useState(0);
   const [blockedMsg, setBlockedMsg] = useState<string>("");
 
+  const passengers = entries.map((e) => e.data);
+
   const fnUrl = useMemo(() => {
     const projectId = (import.meta as any).env.VITE_SUPABASE_PROJECT_ID;
     return `https://${projectId}.supabase.co/functions/v1/passenger-self-signup`;
   }, []);
 
+  // Autosave: rascunho local a cada mudança (nunca perde dados por queda de rede/aba fechada)
+  useEffect(() => {
+    if (!slug) return;
+    saveDraft(slug, entries, savedFlags);
+  }, [slug, entries, savedFlags]);
+
+  // Valida link
   useEffect(() => {
     if (!slug) return;
     const bust = Date.now();
@@ -49,8 +105,13 @@ export default function PassengerSelfSignup() {
       .catch(() => setLinkState("valid"));
   }, [slug, fnUrl]);
 
+
+  const setPaxData = (idx: number, next: PassengerFormState) => {
+    setEntries((arr) => arr.map((e, i) => (i === idx ? { ...e, data: next } : e)));
+  };
+
   const updatePassenger = (idx: number, next: PassengerFormState) => {
-    setPassengers((arr) => arr.map((p, i) => (i === idx ? next : p)));
+    setPaxData(idx, next);
     // Editar invalida o "salvo"
     setSavedFlags((arr) => arr.map((s, i) => (i === idx ? false : s)));
   };
@@ -74,11 +135,13 @@ export default function PassengerSelfSignup() {
   };
 
   const savePassenger = (idx: number) => {
-    const normalized = normalizePassengerName(passengers[idx].full_name);
-    if (normalized !== passengers[idx].full_name) {
-      setPassengers((arr) => arr.map((p, i) => (i === idx ? { ...p, full_name: normalized } : p)));
+    const current = entries[idx]?.data;
+    if (!current) return false;
+    const normalized = normalizePassengerName(current.full_name);
+    if (normalized !== current.full_name) {
+      setPaxData(idx, { ...current, full_name: normalized });
     }
-    const err = validatePassenger({ ...passengers[idx], full_name: normalized }, idx);
+    const err = validatePassenger({ ...current, full_name: normalized }, idx);
     if (err) {
       toast({ title: "Verifique os dados", description: err, variant: "destructive" });
       return false;
@@ -92,28 +155,27 @@ export default function PassengerSelfSignup() {
   };
 
   const addPassenger = () => {
-    // Antes de adicionar, exige que o atual aberto esteja salvo
     if (expandedIdx !== null && !savedFlags[expandedIdx]) {
       const ok = savePassenger(expandedIdx);
       if (!ok) return;
     }
-    setPassengers((arr) => [...arr, { ...emptyPassenger }]);
+    const nextIdx = entries.length;
+    setEntries((arr) => [...arr, { id: makeId(), submission_id: makeId(), data: { ...emptyPassenger } }]);
     setSavedFlags((arr) => [...arr, false]);
-    setExpandedIdx(passengers.length);
+    setExpandedIdx(nextIdx);
     requestAnimationFrame(() => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     });
   };
 
   const removePassenger = (idx: number) => {
-    if (passengers.length <= 1) return;
-    setPassengers((arr) => arr.filter((_, i) => i !== idx));
+    if (entries.length <= 1) return;
+    setEntries((arr) => arr.filter((_, i) => i !== idx));
     setSavedFlags((arr) => arr.filter((_, i) => i !== idx));
     setExpandedIdx(null);
   };
 
   const goReview = () => {
-    // Garante que o atual aberto está salvo
     if (expandedIdx !== null && !savedFlags[expandedIdx]) {
       const ok = savePassenger(expandedIdx);
       if (!ok) return;
@@ -137,42 +199,55 @@ export default function PassengerSelfSignup() {
     setBlockedMsg("");
     setSubmitting(true);
     let successCount = 0;
+    const failures: string[] = [];
     try {
-      for (let i = 0; i < passengers.length; i++) {
-        const r = await fetch(fnUrl, {
-          method: "POST",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, payload: { ...passengers[i], full_name: normalizePassengerName(passengers[i].full_name) } }),
-        });
-        const j = await r.json();
-        if (!r.ok || j.error) {
-          if (r.status === 429 || r.status === 409 || j.code) {
-            setBlockedMsg(
-              successCount > 0
-                ? `${successCount} de ${passengers.length} cadastros foram enviados. ${j.error || "Não foi possível concluir o restante."}`
-                : (j.error || "Não foi possível concluir o cadastro agora."),
-            );
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        try {
+          const r = await fetch(fnUrl, {
+            method: "POST",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              slug,
+              payload: {
+                ...entry.data,
+                full_name: normalizePassengerName(entry.data.full_name),
+                submission_id: entry.submission_id,
+              },
+            }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok && !j.error) {
+            successCount++;
           } else {
-            toast({
-              title: `Erro no passageiro ${i + 1}`,
-              description: j.error || "Tente novamente",
-              variant: "destructive",
-            });
+            failures.push(`Passageiro ${i + 1}: ${j.error || `erro ${r.status}`}`);
           }
-          setSubmitting(false);
-          return;
+        } catch (err: any) {
+          failures.push(`Passageiro ${i + 1}: falha de conexão`);
         }
-        successCount++;
       }
       setDoneCount(successCount);
-      setDone(true);
-    } catch {
-      toast({ title: "Erro de conexão", description: "Verifique sua internet e tente novamente.", variant: "destructive" });
+      if (failures.length === 0) {
+        clearDraft(slug);
+        setDone(true);
+      } else if (successCount > 0) {
+        setBlockedMsg(
+          `${successCount} de ${entries.length} cadastros foram enviados. ` +
+          `Ainda precisam ser reenviados: ${failures.join(" · ")}. ` +
+          `Você pode ajustar os dados e clicar em enviar de novo · os que já foram não vão duplicar.`
+        );
+      } else {
+        setBlockedMsg(
+          `Não foi possível concluir o cadastro. ${failures.join(" · ")}. ` +
+          `Verifique os dados e tente novamente · seus dados estão salvos aqui no navegador.`
+        );
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
 
   if (linkState === "loading") {
     return (
@@ -238,7 +313,8 @@ export default function PassengerSelfSignup() {
 
         <div className="w-full max-w-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
           {passengers.map((p, idx) => (
-            <Card key={idx} className="p-5 sm:p-6 space-y-3">
+            <Card key={entries[idx]?.id ?? idx} className="p-5 sm:p-6 space-y-3">
+
               <div className="flex items-center gap-2 pb-2 border-b border-border/60">
                 <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                   <User className="w-4 h-4" />
@@ -327,10 +403,11 @@ export default function PassengerSelfSignup() {
         {passengers.map((p, idx) => {
           const saved = savedFlags[idx];
           const expanded = expandedIdx === idx;
+          const stableKey = entries[idx]?.id ?? String(idx);
 
           if (!expanded) {
             return (
-              <Card key={idx} className="p-4 sm:p-5">
+              <Card key={stableKey} className="p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -376,7 +453,7 @@ export default function PassengerSelfSignup() {
 
           return (
             <PassengerFormCard
-              key={idx}
+              key={stableKey}
               index={idx}
               value={p}
               onChange={(next) => updatePassenger(idx, next)}
@@ -384,6 +461,7 @@ export default function PassengerSelfSignup() {
               canRemove={passengers.length > 1}
             />
           );
+
         })}
 
         {expandedIdx !== null && (
