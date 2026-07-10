@@ -309,6 +309,7 @@ function AppRoutes() {
           <Route path="/prateleira/:slug/editar" element={<ProdutoEditor />} />
           <Route path="/clients/:id" element={<ClientDetail />} />
           <Route path="/passengers" element={<Passengers />} />
+          <Route path="/passengers/pendentes" element={<Suspense fallback={<MinimalLoader />}><PassengerPendingReview /></Suspense>} />
           <Route path="/passengers/:id" element={<PassengerProfile />} />
           <Route path="/inteligencia-clientes" element={<ClientIntelligence />} />
           
