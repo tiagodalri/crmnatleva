@@ -87,14 +87,25 @@ export default function PassengerSelfSignup() {
   }, []);
 
   // Autosave: rascunho local a cada mudança
+  // Valida link
   useEffect(() => {
     if (!slug) return;
-    saveDraft(slug, entries, savedFlags);
-  }, [slug, entries, savedFlags]);
+    const bust = Date.now();
+    fetch(`${fnUrl}?slug=${encodeURIComponent(slug)}&_=${bust}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.valid) setLinkState("valid");
+        else { setLinkState("invalid"); setReason(d.reason || ""); }
+      })
+      .catch(() => setLinkState("valid"));
+  }, [slug, fnUrl]);
 
+  const setPaxData = (idx: number, next: PassengerFormState) => {
+    setEntries((arr) => arr.map((e, i) => (i === idx ? { ...e, data: next } : e)));
+  };
 
   const updatePassenger = (idx: number, next: PassengerFormState) => {
-    setPassengers((arr) => arr.map((p, i) => (i === idx ? next : p)));
+    setPaxData(idx, next);
     // Editar invalida o "salvo"
     setSavedFlags((arr) => arr.map((s, i) => (i === idx ? false : s)));
   };
@@ -118,11 +129,13 @@ export default function PassengerSelfSignup() {
   };
 
   const savePassenger = (idx: number) => {
-    const normalized = normalizePassengerName(passengers[idx].full_name);
-    if (normalized !== passengers[idx].full_name) {
-      setPassengers((arr) => arr.map((p, i) => (i === idx ? { ...p, full_name: normalized } : p)));
+    const current = entries[idx]?.data;
+    if (!current) return false;
+    const normalized = normalizePassengerName(current.full_name);
+    if (normalized !== current.full_name) {
+      setPaxData(idx, { ...current, full_name: normalized });
     }
-    const err = validatePassenger({ ...passengers[idx], full_name: normalized }, idx);
+    const err = validatePassenger({ ...current, full_name: normalized }, idx);
     if (err) {
       toast({ title: "Verifique os dados", description: err, variant: "destructive" });
       return false;
@@ -136,28 +149,27 @@ export default function PassengerSelfSignup() {
   };
 
   const addPassenger = () => {
-    // Antes de adicionar, exige que o atual aberto esteja salvo
     if (expandedIdx !== null && !savedFlags[expandedIdx]) {
       const ok = savePassenger(expandedIdx);
       if (!ok) return;
     }
-    setPassengers((arr) => [...arr, { ...emptyPassenger }]);
+    const nextIdx = entries.length;
+    setEntries((arr) => [...arr, { id: makeId(), submission_id: makeId(), data: { ...emptyPassenger } }]);
     setSavedFlags((arr) => [...arr, false]);
-    setExpandedIdx(passengers.length);
+    setExpandedIdx(nextIdx);
     requestAnimationFrame(() => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     });
   };
 
   const removePassenger = (idx: number) => {
-    if (passengers.length <= 1) return;
-    setPassengers((arr) => arr.filter((_, i) => i !== idx));
+    if (entries.length <= 1) return;
+    setEntries((arr) => arr.filter((_, i) => i !== idx));
     setSavedFlags((arr) => arr.filter((_, i) => i !== idx));
     setExpandedIdx(null);
   };
 
   const goReview = () => {
-    // Garante que o atual aberto está salvo
     if (expandedIdx !== null && !savedFlags[expandedIdx]) {
       const ok = savePassenger(expandedIdx);
       if (!ok) return;
@@ -181,42 +193,55 @@ export default function PassengerSelfSignup() {
     setBlockedMsg("");
     setSubmitting(true);
     let successCount = 0;
+    const failures: string[] = [];
     try {
-      for (let i = 0; i < passengers.length; i++) {
-        const r = await fetch(fnUrl, {
-          method: "POST",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, payload: { ...passengers[i], full_name: normalizePassengerName(passengers[i].full_name) } }),
-        });
-        const j = await r.json();
-        if (!r.ok || j.error) {
-          if (r.status === 429 || r.status === 409 || j.code) {
-            setBlockedMsg(
-              successCount > 0
-                ? `${successCount} de ${passengers.length} cadastros foram enviados. ${j.error || "Não foi possível concluir o restante."}`
-                : (j.error || "Não foi possível concluir o cadastro agora."),
-            );
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        try {
+          const r = await fetch(fnUrl, {
+            method: "POST",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              slug,
+              payload: {
+                ...entry.data,
+                full_name: normalizePassengerName(entry.data.full_name),
+                submission_id: entry.submission_id,
+              },
+            }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (r.ok && !j.error) {
+            successCount++;
           } else {
-            toast({
-              title: `Erro no passageiro ${i + 1}`,
-              description: j.error || "Tente novamente",
-              variant: "destructive",
-            });
+            failures.push(`Passageiro ${i + 1}: ${j.error || `erro ${r.status}`}`);
           }
-          setSubmitting(false);
-          return;
+        } catch (err: any) {
+          failures.push(`Passageiro ${i + 1}: falha de conexão`);
         }
-        successCount++;
       }
       setDoneCount(successCount);
-      setDone(true);
-    } catch {
-      toast({ title: "Erro de conexão", description: "Verifique sua internet e tente novamente.", variant: "destructive" });
+      if (failures.length === 0) {
+        clearDraft(slug);
+        setDone(true);
+      } else if (successCount > 0) {
+        setBlockedMsg(
+          `${successCount} de ${entries.length} cadastros foram enviados. ` +
+          `Ainda precisam ser reenviados: ${failures.join(" · ")}. ` +
+          `Você pode ajustar os dados e clicar em enviar de novo · os que já foram não vão duplicar.`
+        );
+      } else {
+        setBlockedMsg(
+          `Não foi possível concluir o cadastro. ${failures.join(" · ")}. ` +
+          `Verifique os dados e tente novamente · seus dados estão salvos aqui no navegador.`
+        );
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
 
   if (linkState === "loading") {
     return (
