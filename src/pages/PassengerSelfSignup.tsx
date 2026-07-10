@@ -403,10 +403,11 @@ export default function PassengerSelfSignup() {
         {passengers.map((p, idx) => {
           const saved = savedFlags[idx];
           const expanded = expandedIdx === idx;
+          const stableKey = entries[idx]?.id ?? String(idx);
 
           if (!expanded) {
             return (
-              <Card key={idx} className="p-4 sm:p-5">
+              <Card key={stableKey} className="p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -452,7 +453,7 @@ export default function PassengerSelfSignup() {
 
           return (
             <PassengerFormCard
-              key={idx}
+              key={stableKey}
               index={idx}
               value={p}
               onChange={(next) => updatePassenger(idx, next)}
@@ -460,6 +461,7 @@ export default function PassengerSelfSignup() {
               canRemove={passengers.length > 1}
             />
           );
+
         })}
 
         {expandedIdx !== null && (
