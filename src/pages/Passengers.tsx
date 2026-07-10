@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Plus, AlertTriangle, User, RefreshCw, Loader2, Plane, ShoppingCart, CheckSquare, Pencil, Save, X, Link2, ChevronDown, Copy } from "lucide-react";
+import { Search, Plus, AlertTriangle, User, RefreshCw, Loader2, Plane, ShoppingCart, CheckSquare, Pencil, Save, X, Link2, ChevronDown, Copy, ShieldAlert } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from "@/components/ui/context-menu";
 import { copyPassengersToClipboard } from "@/lib/passengerCopy";
@@ -99,9 +99,22 @@ export default function Passengers() {
   const [sortBy, setSortBy] = useState<"created_desc" | "created_asc" | null>("created_desc");
   const [editForm, setEditForm] = useState<Partial<Passenger>>({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { count } = await supabase
+        .from("passenger_pending_submissions" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (mounted) setPendingCount(count || 0);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const [form, setForm] = useState({
     full_name: "", cpf: "", birth_date: "", passport_number: "",
@@ -375,6 +388,12 @@ export default function Passengers() {
               </Button>
             </>
           )}
+          <Button variant="outline" size="sm" onClick={() => navigate("/passengers/pendentes")} className="relative">
+            <ShieldAlert className="w-4 h-4 mr-1" /> Cadastros pendentes
+            {pendingCount > 0 && (
+              <Badge className="ml-2 h-5 min-w-5 px-1.5 text-xs">{pendingCount}</Badge>
+            )}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
             {syncing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
             Sincronizar das Vendas

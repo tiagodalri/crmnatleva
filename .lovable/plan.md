@@ -1,52 +1,100 @@
-## Refatoração Segura · Fase 1 (OperacaoInbox)
 
-### Princípio
-Zero mudança de comportamento. Só vamos **mover pedaços** do arquivo gigante para arquivos menores. Nenhuma regra de negócio é alterada. Se algo quebrar, basta reverter pelo History.
+# Estratégia: passageiro já cadastrado no envio do link
 
-### Por que começar pelo OperacaoInbox
-É o maior do sistema (4.103 linhas) e o que mais pesa para qualquer manutenção futura. Reduzir ele já dá ganho enorme de estabilidade.
+## Princípio
 
-### Como vamos trabalhar (passos pequenos, validados um a um)
+O link de cadastro **nunca bloqueia o cliente**. Toda submissão é aceita e persistida. Quando o CPF/passaporte já existe, o novo envio entra como um **registro pendente** vinculado ao passageiro atual, e vocês decidem internamente o que fazer com ele em uma **fila de revisão dedicada**.
 
-**Passo 1 · Mapeamento (sem mexer em código)**
-- Ler o arquivo inteiro e listar os blocos internos: subcomponentes declarados dentro do arquivo, funções auxiliares, tipos, hooks customizados embutidos.
-- Entregar esse "mapa" antes de mover qualquer coisa.
+Isso elimina o atrito no WhatsApp ("o link deu erro") sem misturar dados sensíveis de forma automática.
 
-**Passo 2 · Extrair tipos e constantes**
-- Mover `interface`/`type` e constantes puras para `src/pages/operacao/inbox/types.ts` e `constants.ts`.
-- Risco: praticamente zero (não há lógica).
-- Validação: abrir a tela /operacao/inbox e conferir que tudo carrega igual.
+## Como fica o fluxo
 
-**Passo 3 · Extrair funções utilitárias puras**
-- Funções que só recebem dados e devolvem dados (formatadores, parsers, filtros) vão para `src/pages/operacao/inbox/utils.ts`.
-- Risco: baixo. São funções isoladas.
-- Validação: mesma tela, ações principais (abrir conversa, filtrar, buscar).
+```text
+Cliente abre link  ──►  Preenche  ──►  Envia
+                                        │
+                                        ▼
+                        CPF/passaporte já existe no sistema?
+                          │                             │
+                         Não                           Sim
+                          │                             │
+                          ▼                             ▼
+                Cria passageiro novo         Cria "cadastro pendente"
+                (como hoje)                  vinculado ao passageiro atual
+                                                        │
+                                                        ▼
+                                        Aparece em "Cadastros pendentes"
+                                        com diff campo a campo
+                                                        │
+                                        ┌───────────────┼───────────────┐
+                                        ▼               ▼               ▼
+                                    Aprovar         Descartar       Mesclar
+                                    (sobrescreve)   (arquiva)       (campo a campo)
+```
 
-**Passo 4 · Extrair subcomponentes visuais**
-- Cada subcomponente declarado dentro do arquivo vira um arquivo próprio em `src/pages/operacao/inbox/components/`.
-- Um por vez, validando a tela entre cada extração.
-- Risco: baixo a médio. Atenção às props passadas.
+Em todos os casos, o cliente vê a mesma tela de sucesso. Zero atrito.
 
-**Passo 5 · Extrair hooks customizados**
-- Blocos de `useState`/`useEffect` relacionados (ex: busca de mensagens, contadores) viram hooks em `src/pages/operacao/inbox/hooks/`.
-- Risco: médio. É onde mais se precisa cuidado, por isso fica por último.
+## O que vai ser construído
 
-### Regras de segurança aplicadas em todo passo
-1. **Um passo por vez.** Eu paro depois de cada extração e te aviso para você testar no preview.
-2. **Sem refatorar lógica.** Só recortar e colar. Nada de "aproveitar para melhorar".
-3. **Imports explícitos.** Cada peça extraída é importada de volta no arquivo original, mantendo o mesmo comportamento.
-4. **Reversível.** Qualquer passo pode ser desfeito pelo History sem afetar os anteriores.
+### 1. Nova tabela `passenger_pending_submissions`
+Armazena cada submissão que colidiu com um passageiro existente:
+- `matched_passenger_id` — passageiro atual encontrado
+- `submitted_data` (jsonb) — tudo que o cliente digitou
+- `signup_link_id` — de qual link veio
+- `status` — `pending`, `approved`, `discarded`, `merged`
+- `reviewed_by`, `reviewed_at`, `review_notes`
+- Idempotência via `submission_id` (mesma proteção contra duplo-clique que já usamos hoje)
 
-### O que NÃO vamos fazer agora
-- Não mexer em `FlowBuilder.tsx` nem em outros arquivos grandes nesta fase.
-- Não criar testes ainda (fica para fase 2, depois que o arquivo estiver menor).
-- Não tocar em backend, edge functions, banco ou regras de negócio.
+RLS: staff autenticado gerencia; anon não vê nada.
 
-### Estimativa
-- Passo 1 (mapa): 1 rodada.
-- Passos 2 a 5: ~4 a 8 rodadas, com você validando entre elas.
+### 2. Edge function `passenger-self-signup` (ajuste)
+- Detecta colisão por CPF **ou** passaporte (regra atual).
+- Em vez de retornar 409, grava em `passenger_pending_submissions` com o `matched_passenger_id` e responde 200 (sucesso) para o cliente.
+- Passageiros sem colisão continuam sendo criados diretamente em `passengers` (fluxo atual, sem mudança).
+- Mantém idempotência: reenvio do mesmo `submission_id` não duplica pendência.
 
-### Como você participa
-Depois de cada passo, eu te aviso "pode testar X, Y, Z no preview". Se algo estranho aparecer, você me fala e eu reverto na hora.
+### 3. Nova tela interna: "Cadastros pendentes de revisão"
+Rota nova dentro da área de passageiros/CRM. Lista os pendentes com:
+- Nome, CPF, quando chegou, de qual link veio
+- Badge de contagem no menu lateral (quantos aguardando)
+- Ao abrir: **diff lado a lado** — cadastro atual vs. dados enviados, campo a campo, com destaque no que mudou.
+- Três ações:
+  - **Aprovar tudo** → sobrescreve o passageiro com os dados novos (mantém histórico via `proposal_change_history`? não — criamos entrada em log próprio).
+  - **Descartar** → arquiva a submissão, cadastro atual não muda.
+  - **Mesclar seletivo** → checkbox por campo, escolhe o que absorver.
+- Após ação, sai da fila e vai para "Histórico de revisões".
 
-Posso começar pelo Passo 1 (mapeamento) agora?
+### 4. Ajustes no formulário público (`PassengerSelfSignup`)
+- Mensagem de sucesso mantém-se genérica: "Cadastro recebido, obrigado!" — o cliente não sabe (nem precisa saber) que caiu em revisão.
+- Mantém: autosave em `localStorage`, `submission_id`, continue-on-error, chaves estáveis (tudo que já foi feito na rodada anterior).
+
+## Escopo do link (resposta 2)
+
+Como o link é **genérico** (não amarrado a uma venda), a colisão é tratada sempre pela regra acima. Não precisamos criar contexto de viagem no link agora. Se no futuro quiser links específicos por venda, dá para adicionar o `sale_id` opcional no link sem quebrar nada.
+
+## O que NÃO muda
+
+- Passageiros novos (sem CPF/passaporte no sistema) → fluxo atual, criação direta.
+- Ordem de submissão, autosave offline, idempotência, chaves de cartão de passageiro.
+- Tabela `passengers` continua como source of truth. Nada é sobrescrito sem ação humana explícita.
+
+## Detalhes técnicos
+
+- **Migração**: cria `passenger_pending_submissions` com GRANT + RLS + policies para authenticated (staff) e nenhuma policy para anon (só a edge function escreve via service_role).
+- **Edge function**: reaproveita a lógica de detecção de duplicado que já existe; em vez de `return 409`, insere em `passenger_pending_submissions`.
+- **Frontend**: nova rota `/passageiros/pendentes` + componente `PendingSubmissionsList` + `PendingSubmissionDiffDialog`. Ícone com badge no menu (usa `lucide-react`, respeitando as diretrizes visuais — zero emojis).
+- **Realtime opcional (fase 2)**: quando chega uma pendência nova, badge atualiza em tempo real via canal Supabase Realtime. Deixo fora da primeira entrega para não inflar escopo.
+
+## Entrega em 2 fases
+
+**Fase 1 (esta rodada)** — Backend + fluxo blindado
+1. Migração da tabela `passenger_pending_submissions`
+2. Ajuste da edge function para nunca falhar por duplicado (grava em pendentes)
+
+**Fase 2 (rodada seguinte, sob aprovação)** — Interface interna
+3. Tela `/passageiros/pendentes` com lista, diff, ações
+4. Badge de contagem no menu
+5. Log de revisões concluídas
+
+Faço as duas fases em sequência dentro da mesma implementação se você aprovar. Se preferir validar backend primeiro em produção antes de mexer no frontend, entrego só a Fase 1 agora.
+
+Confirma que a estratégia está boa e se quer as duas fases juntas ou faseado?

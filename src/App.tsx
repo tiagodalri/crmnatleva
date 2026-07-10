@@ -34,6 +34,7 @@ const Sales = lazy(() => import("@/pages/Sales"));
 const SaleDetail = lazy(() => import("@/pages/SaleDetail"));
 const NewSale = lazy(() => import("@/pages/NewSale"));
 const Passengers = lazy(() => import("@/pages/Passengers"));
+const PassengerPendingReview = lazy(() => import("@/pages/PassengerPendingReview"));
 const PassengerProfile = lazy(() => import("@/pages/PassengerProfile"));
 const Birthdays = lazy(() => import("@/pages/Birthdays"));
 const Leads = lazy(() => import("@/pages/Leads"));
@@ -308,6 +309,7 @@ function AppRoutes() {
           <Route path="/prateleira/:slug/editar" element={<ProdutoEditor />} />
           <Route path="/clients/:id" element={<ClientDetail />} />
           <Route path="/passengers" element={<Passengers />} />
+          <Route path="/passengers/pendentes" element={<Suspense fallback={<MinimalLoader />}><PassengerPendingReview /></Suspense>} />
           <Route path="/passengers/:id" element={<PassengerProfile />} />
           <Route path="/inteligencia-clientes" element={<ClientIntelligence />} />
           
