@@ -6229,6 +6229,75 @@ export type Database = {
           },
         ]
       }
+      passenger_pending_submissions: {
+        Row: {
+          applied_fields: Json | null
+          created_at: string
+          id: string
+          matched_by: string
+          matched_passenger_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signup_link_id: string | null
+          status: string
+          submission_id: string | null
+          submitted_data: Json
+          submitter_ip: string | null
+          submitter_user_agent: string | null
+          updated_at: string
+        }
+        Insert: {
+          applied_fields?: Json | null
+          created_at?: string
+          id?: string
+          matched_by: string
+          matched_passenger_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signup_link_id?: string | null
+          status?: string
+          submission_id?: string | null
+          submitted_data: Json
+          submitter_ip?: string | null
+          submitter_user_agent?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applied_fields?: Json | null
+          created_at?: string
+          id?: string
+          matched_by?: string
+          matched_passenger_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signup_link_id?: string | null
+          status?: string
+          submission_id?: string | null
+          submitted_data?: Json
+          submitter_ip?: string | null
+          submitter_user_agent?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passenger_pending_submissions_matched_passenger_id_fkey"
+            columns: ["matched_passenger_id"]
+            isOneToOne: false
+            referencedRelation: "passengers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "passenger_pending_submissions_signup_link_id_fkey"
+            columns: ["signup_link_id"]
+            isOneToOne: false
+            referencedRelation: "passenger_signup_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       passenger_signup_attempts: {
         Row: {
           created_at: string
