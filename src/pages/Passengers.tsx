@@ -99,9 +99,22 @@ export default function Passengers() {
   const [sortBy, setSortBy] = useState<"created_desc" | "created_asc" | null>("created_desc");
   const [editForm, setEditForm] = useState<Partial<Passenger>>({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { count } = await supabase
+        .from("passenger_pending_submissions" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (mounted) setPendingCount(count || 0);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const [form, setForm] = useState({
     full_name: "", cpf: "", birth_date: "", passport_number: "",
