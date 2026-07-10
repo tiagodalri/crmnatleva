@@ -388,6 +388,12 @@ export default function Passengers() {
               </Button>
             </>
           )}
+          <Button variant="outline" size="sm" onClick={() => navigate("/passengers/pendentes")} className="relative">
+            <ShieldAlert className="w-4 h-4 mr-1" /> Cadastros pendentes
+            {pendingCount > 0 && (
+              <Badge className="ml-2 h-5 min-w-5 px-1.5 text-xs">{pendingCount}</Badge>
+            )}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
             {syncing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
             Sincronizar das Vendas
