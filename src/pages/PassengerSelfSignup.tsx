@@ -18,13 +18,60 @@ import { normalizePassengerName } from "@/lib/nameUtils";
 
 type Step = "form" | "review";
 
+type PaxEntry = { id: string; submission_id: string; data: PassengerFormState };
+
+function makeId() {
+  try {
+    if (typeof crypto !== "undefined" && (crypto as any).randomUUID) return (crypto as any).randomUUID();
+  } catch {}
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function draftKey(slug: string | undefined) {
+  return slug ? `natleva:passenger-signup-draft:${slug}` : "";
+}
+
+function loadDraft(slug: string | undefined): { entries: PaxEntry[]; saved: boolean[] } | null {
+  const key = draftKey(slug);
+  if (!key || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.entries) || parsed.entries.length === 0) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+function saveDraft(slug: string | undefined, entries: PaxEntry[], saved: boolean[]) {
+  const key = draftKey(slug);
+  if (!key || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ entries, saved, ts: Date.now() }));
+  } catch {}
+}
+
+function clearDraft(slug: string | undefined) {
+  const key = draftKey(slug);
+  if (!key || typeof window === "undefined") return;
+  try { window.localStorage.removeItem(key); } catch {}
+}
+
 export default function PassengerSelfSignup() {
   const { slug } = useParams();
   const { toast } = useToast();
   const [linkState, setLinkState] = useState<"loading" | "valid" | "invalid">("loading");
   const [reason, setReason] = useState<string>("");
-  const [passengers, setPassengers] = useState<PassengerFormState[]>([{ ...emptyPassenger }]);
-  const [savedFlags, setSavedFlags] = useState<boolean[]>([false]);
+  const [entries, setEntries] = useState<PaxEntry[]>(() => {
+    const restored = loadDraft(slug);
+    if (restored) return restored.entries;
+    return [{ id: makeId(), submission_id: makeId(), data: { ...emptyPassenger } }];
+  });
+  const [savedFlags, setSavedFlags] = useState<boolean[]>(() => {
+    const restored = loadDraft(slug);
+    if (restored) return restored.saved;
+    return [false];
+  });
   const [expandedIdx, setExpandedIdx] = useState<number | null>(0);
   const [step, setStep] = useState<Step>("form");
   const [submitting, setSubmitting] = useState(false);
@@ -32,22 +79,19 @@ export default function PassengerSelfSignup() {
   const [doneCount, setDoneCount] = useState(0);
   const [blockedMsg, setBlockedMsg] = useState<string>("");
 
+  const passengers = entries.map((e) => e.data);
+
   const fnUrl = useMemo(() => {
     const projectId = (import.meta as any).env.VITE_SUPABASE_PROJECT_ID;
     return `https://${projectId}.supabase.co/functions/v1/passenger-self-signup`;
   }, []);
 
+  // Autosave: rascunho local a cada mudança
   useEffect(() => {
     if (!slug) return;
-    const bust = Date.now();
-    fetch(`${fnUrl}?slug=${encodeURIComponent(slug)}&_=${bust}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.valid) setLinkState("valid");
-        else { setLinkState("invalid"); setReason(d.reason || ""); }
-      })
-      .catch(() => setLinkState("valid"));
-  }, [slug, fnUrl]);
+    saveDraft(slug, entries, savedFlags);
+  }, [slug, entries, savedFlags]);
+
 
   const updatePassenger = (idx: number, next: PassengerFormState) => {
     setPassengers((arr) => arr.map((p, i) => (i === idx ? next : p)));
