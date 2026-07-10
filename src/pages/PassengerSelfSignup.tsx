@@ -86,7 +86,12 @@ export default function PassengerSelfSignup() {
     return `https://${projectId}.supabase.co/functions/v1/passenger-self-signup`;
   }, []);
 
-  // Autosave: rascunho local a cada mudança
+  // Autosave: rascunho local a cada mudança (nunca perde dados por queda de rede/aba fechada)
+  useEffect(() => {
+    if (!slug) return;
+    saveDraft(slug, entries, savedFlags);
+  }, [slug, entries, savedFlags]);
+
   // Valida link
   useEffect(() => {
     if (!slug) return;
@@ -99,6 +104,7 @@ export default function PassengerSelfSignup() {
       })
       .catch(() => setLinkState("valid"));
   }, [slug, fnUrl]);
+
 
   const setPaxData = (idx: number, next: PassengerFormState) => {
     setEntries((arr) => arr.map((e, i) => (i === idx ? { ...e, data: next } : e)));
