@@ -518,8 +518,8 @@ export default function NewSale() {
 
   const autosave = useSaleAutosave({
     saleId: editId,
-    enabled: isEditMode,
-    ready: isEditMode && !editLoading,
+    enabled: isEditMode && !loadError,
+    ready: isEditMode && !editLoading && !loadError,
     patch: autosavePatch,
     delay: 1200,
   });
