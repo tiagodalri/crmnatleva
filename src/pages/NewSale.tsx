@@ -402,7 +402,8 @@ export default function NewSale() {
         }
 
         // Load tariff conditions (aéreo, hotel, e por product_type)
-        const { data: tariffs } = await supabase.from("tariff_conditions").select("*").eq("sale_id", editId);
+        const { data: tariffs, error: tariffsErr } = await supabase.from("tariff_conditions").select("*").eq("sale_id", editId);
+        if (tariffsErr) throw new Error(`Falha ao carregar condições tarifárias: ${tariffsErr.message}`);
         if (tariffs && tariffs.length > 0) {
           const air = tariffs.find((t: any) => t.product_type === "aereo");
           const hot = tariffs.find((t: any) => t.product_type === "hotel");
