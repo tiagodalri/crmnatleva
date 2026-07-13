@@ -732,6 +732,17 @@ export default function NewSale() {
 
   // ─── Save ───────────────────────────────────────────
   const handleSave = async () => {
+    // 🛡️ Trava dura · nunca salva quando o load falhou. Isso evita que
+    // um erro de rede/RLS ao abrir a venda vire uma sobrescrita destrutiva.
+    if (isEditMode && loadError) {
+      toast({
+        title: "Salvamento bloqueado",
+        description: "A venda não foi carregada por completo. Recarregue antes de salvar para não perder dados.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
+    }
     if (!form.name.trim()) {
       toast({ title: "Nome da venda é obrigatório", variant: "destructive" });
       setActiveTab("info");
