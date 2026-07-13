@@ -3603,6 +3603,14 @@ function OperacaoInboxInner() {
                                       </span>
                                     );
                                   })()}
+                                  {msg.sender_type === "atendente" && !msg.sent_by_agent && (
+                                    <span
+                                      className="text-[9px] opacity-50 italic mr-1"
+                                      title="Enviada de fora do CRM (WhatsApp do celular ou Web). O sistema não tem como identificar o autor."
+                                    >
+                                      via WhatsApp
+                                    </span>
+                                  )}
                                   <span className="text-[9px] opacity-60">{formatMsgTime(msg.created_at)}</span>
                                   {msg.sender_type === "atendente" && getStatusIcon(msg.status)}
                                 </div>
