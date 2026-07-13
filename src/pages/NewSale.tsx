@@ -346,7 +346,8 @@ export default function NewSale() {
         }
 
         // Load passengers
-        const { data: paxLinks } = await supabase.from("sale_passengers").select("passenger_id, passengers(id, full_name, cpf, birth_date)").eq("sale_id", editId);
+        const { data: paxLinks, error: paxErr } = await supabase.from("sale_passengers").select("passenger_id, passengers(id, full_name, cpf, birth_date)").eq("sale_id", editId);
+        if (paxErr) throw new Error(`Falha ao carregar passageiros: ${paxErr.message}`);
         if (paxLinks) {
           setSelectedPassengers(paxLinks.map((l: any) => ({
             id: l.passengers.id,
