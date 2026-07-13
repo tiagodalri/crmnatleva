@@ -265,7 +265,8 @@ export default function NewSale() {
         setGroupLocators((sale.locators as string[]) || []);
 
         // Load flight segments
-        const { data: segs } = await supabase.from("flight_segments").select("*").eq("sale_id", editId).order("segment_order");
+        const { data: segs, error: segsErr } = await supabase.from("flight_segments").select("*").eq("sale_id", editId).order("segment_order");
+        if (segsErr) throw new Error(`Falha ao carregar trechos aéreos: ${segsErr.message}`);
         const loadedSegs = (segs && segs.length > 0) ? segs as FlightSegment[] : [];
         if (loadedSegs.length > 0) setSegments(loadedSegs);
 
@@ -273,6 +274,8 @@ export default function NewSale() {
         const validSegs = loadedSegs.filter(s => s.origin_iata && s.destination_iata);
 
         // Load cost items and reconstruct blocks
+        const { data: costs, error: costsErr } = await supabase.from("cost_items").select("*").eq("sale_id", editId);
+        if (costsErr) throw new Error(`Falha ao carregar itens de custo: ${costsErr.message}`);
         const { data: costs } = await supabase.from("cost_items").select("*").eq("sale_id", editId);
         if (costs) {
           const airBlocks: AirCostBlock[] = [];
