@@ -362,7 +362,8 @@ export default function NewSale() {
         }
 
         // Load sale payments
-        const { data: payments } = await supabase.from("sale_payments").select("*").eq("sale_id", editId);
+        const { data: payments, error: paymentsErr } = await supabase.from("sale_payments").select("*").eq("sale_id", editId);
+        if (paymentsErr) throw new Error(`Falha ao carregar pagamentos: ${paymentsErr.message}`);
         if (payments && payments.length > 0) {
           setSalePayments(payments.map((p: any) => ({
             id: p.id,
