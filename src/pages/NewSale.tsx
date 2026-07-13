@@ -1270,6 +1270,41 @@ export default function NewSale() {
     return <WizardSkeleton />;
   }
 
+  // Se o load falhou, mostramos tela de bloqueio + retry · impede sobrescrita destrutiva
+  if (isEditMode && loadError) {
+    return (
+      <div className="p-4 md:p-6 max-w-2xl mx-auto animate-fade-in">
+        <Card className="p-6 border-destructive/40 bg-destructive/5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-3 flex-1">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Não foi possível carregar a venda por completo</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Para proteger os dados desta venda, o formulário e o salvamento foram bloqueados.
+                  Tente recarregar. Se o erro persistir, volte para a lista de vendas.
+                </p>
+              </div>
+              <div className="text-xs font-mono bg-background/50 border border-border rounded p-2 text-muted-foreground break-all">
+                {loadError}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button onClick={() => setLoadAttempt(a => a + 1)}>
+                  <Loader2 className="w-4 h-4 mr-2" /> Tentar novamente
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/sales")}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para vendas
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+
+
   return (
     <div className="p-4 md:p-6 space-y-5 animate-fade-in max-w-5xl mx-auto relative">
       {extracting && <ProgressOverlay label="Extraindo dados com IA..." />}
