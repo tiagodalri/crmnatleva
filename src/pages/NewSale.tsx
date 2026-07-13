@@ -276,7 +276,7 @@ export default function NewSale() {
         // Load cost items and reconstruct blocks
         const { data: costs, error: costsErr } = await supabase.from("cost_items").select("*").eq("sale_id", editId);
         if (costsErr) throw new Error(`Falha ao carregar itens de custo: ${costsErr.message}`);
-        const { data: costs } = await supabase.from("cost_items").select("*").eq("sale_id", editId);
+        
         if (costs) {
           const airBlocks: AirCostBlock[] = [];
           const hotels: HotelEntry[] = [];
