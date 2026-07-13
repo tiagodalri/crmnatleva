@@ -446,13 +446,20 @@ export default function NewSale() {
             } as TariffCondition);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading sale for edit:", err);
+        setLoadError(err?.message || "Erro desconhecido ao carregar a venda");
+        toast({
+          title: "Não foi possível carregar a venda por completo",
+          description: "Para proteger seus dados, o salvamento está bloqueado até o recarregamento funcionar.",
+          variant: "destructive",
+          duration: 8000,
+        });
       } finally {
         setEditLoading(false);
       }
     })();
-  }, [editId]);
+  }, [editId, loadAttempt]);
 
   useEffect(() => {
     if (isEditMode) return;
