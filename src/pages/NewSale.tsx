@@ -232,9 +232,11 @@ export default function NewSale() {
   useEffect(() => {
     if (!editId) return;
     setEditLoading(true);
+    setLoadError(null);
     (async () => {
       try {
-        const { data: sale } = await supabase.from("sales").select("*").eq("id", editId).single();
+        const { data: sale, error: saleErr } = await supabase.from("sales").select("*").eq("id", editId).single();
+        if (saleErr) throw new Error(`Falha ao carregar a venda: ${saleErr.message}`);
         if (!sale) { toast({ title: "Venda não encontrada", variant: "destructive" }); navigate("/sales"); return; }
 
         // Banner: source proposal (best-effort, non-blocking)
