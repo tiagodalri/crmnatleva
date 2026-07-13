@@ -222,6 +222,11 @@ export default function NewSale() {
   });
 
   const [editLoading, setEditLoading] = useState(false);
+  // ⚠️ Trava de segurança · se QUALQUER select do load falhar, sinalizamos aqui
+  // e BLOQUEAMOS autosave + botão Salvar. Assim é impossível o usuário sobrescrever
+  // uma venda com dados ausentes por causa de uma falha temporária de rede/RLS.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   // Load existing sale data in edit mode
   useEffect(() => {
