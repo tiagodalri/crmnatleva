@@ -222,14 +222,21 @@ export default function NewSale() {
   });
 
   const [editLoading, setEditLoading] = useState(false);
+  // ⚠️ Trava de segurança · se QUALQUER select do load falhar, sinalizamos aqui
+  // e BLOQUEAMOS autosave + botão Salvar. Assim é impossível o usuário sobrescrever
+  // uma venda com dados ausentes por causa de uma falha temporária de rede/RLS.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   // Load existing sale data in edit mode
   useEffect(() => {
     if (!editId) return;
     setEditLoading(true);
+    setLoadError(null);
     (async () => {
       try {
-        const { data: sale } = await supabase.from("sales").select("*").eq("id", editId).single();
+        const { data: sale, error: saleErr } = await supabase.from("sales").select("*").eq("id", editId).single();
+        if (saleErr) throw new Error(`Falha ao carregar a venda: ${saleErr.message}`);
         if (!sale) { toast({ title: "Venda não encontrada", variant: "destructive" }); navigate("/sales"); return; }
 
         // Banner: source proposal (best-effort, non-blocking)
@@ -258,7 +265,8 @@ export default function NewSale() {
         setGroupLocators((sale.locators as string[]) || []);
 
         // Load flight segments
-        const { data: segs } = await supabase.from("flight_segments").select("*").eq("sale_id", editId).order("segment_order");
+        const { data: segs, error: segsErr } = await supabase.from("flight_segments").select("*").eq("sale_id", editId).order("segment_order");
+        if (segsErr) throw new Error(`Falha ao carregar trechos aéreos: ${segsErr.message}`);
         const loadedSegs = (segs && segs.length > 0) ? segs as FlightSegment[] : [];
         if (loadedSegs.length > 0) setSegments(loadedSegs);
 
@@ -266,7 +274,9 @@ export default function NewSale() {
         const validSegs = loadedSegs.filter(s => s.origin_iata && s.destination_iata);
 
         // Load cost items and reconstruct blocks
-        const { data: costs } = await supabase.from("cost_items").select("*").eq("sale_id", editId);
+        const { data: costs, error: costsErr } = await supabase.from("cost_items").select("*").eq("sale_id", editId);
+        if (costsErr) throw new Error(`Falha ao carregar itens de custo: ${costsErr.message}`);
+        
         if (costs) {
           const airBlocks: AirCostBlock[] = [];
           const hotels: HotelEntry[] = [];
@@ -336,7 +346,8 @@ export default function NewSale() {
         }
 
         // Load passengers
-        const { data: paxLinks } = await supabase.from("sale_passengers").select("passenger_id, passengers(id, full_name, cpf, birth_date)").eq("sale_id", editId);
+        const { data: paxLinks, error: paxErr } = await supabase.from("sale_passengers").select("passenger_id, passengers(id, full_name, cpf, birth_date)").eq("sale_id", editId);
+        if (paxErr) throw new Error(`Falha ao carregar passageiros: ${paxErr.message}`);
         if (paxLinks) {
           setSelectedPassengers(paxLinks.map((l: any) => ({
             id: l.passengers.id,
@@ -351,7 +362,8 @@ export default function NewSale() {
         }
 
         // Load sale payments
-        const { data: payments } = await supabase.from("sale_payments").select("*").eq("sale_id", editId);
+        const { data: payments, error: paymentsErr } = await supabase.from("sale_payments").select("*").eq("sale_id", editId);
+        if (paymentsErr) throw new Error(`Falha ao carregar pagamentos: ${paymentsErr.message}`);
         if (payments && payments.length > 0) {
           setSalePayments(payments.map((p: any) => ({
             id: p.id,
@@ -390,7 +402,8 @@ export default function NewSale() {
         }
 
         // Load tariff conditions (aéreo, hotel, e por product_type)
-        const { data: tariffs } = await supabase.from("tariff_conditions").select("*").eq("sale_id", editId);
+        const { data: tariffs, error: tariffsErr } = await supabase.from("tariff_conditions").select("*").eq("sale_id", editId);
+        if (tariffsErr) throw new Error(`Falha ao carregar condições tarifárias: ${tariffsErr.message}`);
         if (tariffs && tariffs.length > 0) {
           const air = tariffs.find((t: any) => t.product_type === "aereo");
           const hot = tariffs.find((t: any) => t.product_type === "hotel");
@@ -433,13 +446,20 @@ export default function NewSale() {
             } as TariffCondition);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading sale for edit:", err);
+        setLoadError(err?.message || "Erro desconhecido ao carregar a venda");
+        toast({
+          title: "Não foi possível carregar a venda por completo",
+          description: "Para proteger seus dados, o salvamento está bloqueado até o recarregamento funcionar.",
+          variant: "destructive",
+          duration: 8000,
+        });
       } finally {
         setEditLoading(false);
       }
     })();
-  }, [editId]);
+  }, [editId, loadAttempt]);
 
   useEffect(() => {
     if (isEditMode) return;
@@ -498,8 +518,8 @@ export default function NewSale() {
 
   const autosave = useSaleAutosave({
     saleId: editId,
-    enabled: isEditMode,
-    ready: isEditMode && !editLoading,
+    enabled: isEditMode && !loadError,
+    ready: isEditMode && !editLoading && !loadError,
     patch: autosavePatch,
     delay: 1200,
   });
@@ -712,6 +732,17 @@ export default function NewSale() {
 
   // ─── Save ───────────────────────────────────────────
   const handleSave = async () => {
+    // 🛡️ Trava dura · nunca salva quando o load falhou. Isso evita que
+    // um erro de rede/RLS ao abrir a venda vire uma sobrescrita destrutiva.
+    if (isEditMode && loadError) {
+      toast({
+        title: "Salvamento bloqueado",
+        description: "A venda não foi carregada por completo. Recarregue antes de salvar para não perder dados.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      return;
+    }
     if (!form.name.trim()) {
       toast({ title: "Nome da venda é obrigatório", variant: "destructive" });
       setActiveTab("info");
@@ -1238,6 +1269,41 @@ export default function NewSale() {
     // Lazy import já carregado no topo
     return <WizardSkeleton />;
   }
+
+  // Se o load falhou, mostramos tela de bloqueio + retry · impede sobrescrita destrutiva
+  if (isEditMode && loadError) {
+    return (
+      <div className="p-4 md:p-6 max-w-2xl mx-auto animate-fade-in">
+        <Card className="p-6 border-destructive/40 bg-destructive/5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-3 flex-1">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Não foi possível carregar a venda por completo</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Para proteger os dados desta venda, o formulário e o salvamento foram bloqueados.
+                  Tente recarregar. Se o erro persistir, volte para a lista de vendas.
+                </p>
+              </div>
+              <div className="text-xs font-mono bg-background/50 border border-border rounded p-2 text-muted-foreground break-all">
+                {loadError}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button onClick={() => setLoadAttempt(a => a + 1)}>
+                  <Loader2 className="w-4 h-4 mr-2" /> Tentar novamente
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/sales")}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para vendas
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="p-4 md:p-6 space-y-5 animate-fade-in max-w-5xl mx-auto relative">
