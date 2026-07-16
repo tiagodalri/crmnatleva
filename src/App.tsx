@@ -469,6 +469,10 @@ function AppRoutes() {
         {/* Proposta pública */}
         <Route path="/proposta/:slug" element={<Suspense fallback={<MinimalLoader />}><ProposalPublicView /></Suspense>} />
 
+        {/* Link curto de WhatsApp gerado em Operação > Gerador de Link */}
+        <Route path="/w/:shortCode" element={<Suspense fallback={<MinimalLoader />}><WhatsAppShortRedirect /></Suspense>} />
+
+
         {/* Loja pública NatLeva · qualquer pessoa pode navegar e comprar via WhatsApp da Nath */}
         <Route path="/loja" element={<Suspense fallback={<MinimalLoader />}><PrateleiraVitrine /></Suspense>} />
         <Route path="/loja/:slug" element={<Suspense fallback={<MinimalLoader />}><PrateleiraVendaPublica /></Suspense>} />
