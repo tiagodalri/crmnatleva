@@ -35,6 +35,7 @@ const SaleDetail = lazy(() => import("@/pages/SaleDetail"));
 const NewSale = lazy(() => import("@/pages/NewSale"));
 const Passengers = lazy(() => import("@/pages/Passengers"));
 const PassengerPendingReview = lazy(() => import("@/pages/PassengerPendingReview"));
+const WhatsAppShortRedirect = lazy(() => import("@/pages/WhatsAppShortRedirect"));
 const PassengerProfile = lazy(() => import("@/pages/PassengerProfile"));
 const Birthdays = lazy(() => import("@/pages/Birthdays"));
 const Leads = lazy(() => import("@/pages/Leads"));
