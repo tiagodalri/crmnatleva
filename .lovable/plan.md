@@ -48,48 +48,46 @@ public.whatsapp_short_link_clicks
   clicked_at      timestamptz default now()
   user_agent      text
   referrer        text
-  ip_hash         text     -- hash simples do IP (evita PII crua), opcional
 ```
 
 **GRANTs + RLS** (regra do projeto):
-- `whatsapp_short_links`: `SELECT` liberado a `anon` (o redirect público precisa ler pelo `short_code`); `INSERT/UPDATE/DELETE` só a `authenticated` (com policy `created_by = auth.uid()` ou admin). `service_role` ALL.
+- `whatsapp_short_links`: `SELECT` liberado a `anon` (o redirect público precisa ler pelo `short_code`); `INSERT/UPDATE/DELETE` só a `authenticated` (policy `created_by = auth.uid()` ou admin). `service_role` ALL.
 - `whatsapp_short_link_clicks`: `INSERT` liberado a `anon` (o click público grava direto); `SELECT` só a `authenticated`. `service_role` ALL.
-- Trigger `update_updated_at_column` no `whatsapp_short_links` (função já existe no projeto).
-- Trigger `AFTER INSERT` em `whatsapp_short_link_clicks` que faz `UPDATE whatsapp_short_links SET click_count = click_count + 1 WHERE id = NEW.short_link_id` (mesmo padrão de `update_status_view_count`).
+- Trigger `update_updated_at_column` em `whatsapp_short_links` (função já existe no projeto).
+- Trigger `AFTER INSERT` em `whatsapp_short_link_clicks` que incrementa `click_count` (padrão idêntico ao `update_status_view_count`).
 
 ### 2.3 Rota pública de redirecionamento
 
 Nova página client-side, sem layout do CRM, sem auth:
 
-- Rota: `/w/:shortCode` registrada no `src/App.tsx` fora do `AppLayout` protegido (mesmo nível de `/proposta/:slug`, `/cadastro-passageiro/:slug` etc).
+- Rota: `/w/:shortCode` registrada em `src/App.tsx` fora do `PermissionGuard`/`AppLayout` (mesmo nível de `/proposta/:slug`, `/cadastro-passageiro/:slug`).
 - Componente: `src/pages/WhatsAppShortRedirect.tsx`.
 - Comportamento:
   1. Lê `shortCode` da URL.
-  2. `SELECT full_wa_url, id, is_active FROM whatsapp_short_links WHERE short_code = ?` (com `anon` key, é uma leitura pública).
-  3. Se não achar / inativo → renderiza uma tela simples "Link inválido ou expirado" com botão para o WhatsApp geral da Natleva (mesmo número fixo).
-  4. Se achar: dispara `INSERT` fire-and-forget em `whatsapp_short_link_clicks` (não bloqueia o redirect · usa `void supabase.from(...).insert(...)`) e imediatamente `window.location.replace(full_wa_url)`.
-  5. Mostra fallback "Redirecionando pro WhatsApp..." caso o redirect demore (>500ms).
+  2. `SELECT id, full_wa_url, is_active FROM whatsapp_short_links WHERE short_code = ?` (leitura anon).
+  3. Se não achar / inativo → renderiza uma tela simples "Link inválido ou expirado" com botão para o WhatsApp geral da Natleva.
+  4. Se achar: dispara `INSERT` fire-and-forget em `whatsapp_short_link_clicks` (não bloqueia o redirect) e imediatamente `window.location.replace(full_wa_url)`.
+  5. Mostra fallback "Redirecionando pro WhatsApp..." caso o redirect demore.
 
-Nenhuma edge function precisa ser criada · o redirect é 100% client-side, igual ao padrão do resto do app.
+Nenhuma edge function precisa ser criada · o redirect é 100% client-side.
 
 ### 2.4 Mudanças na tela `OperacaoGeradorLink.tsx`
 
 Reescrita mínima, mantendo o mesmo layout (editor à esquerda + cartão de resultado à direita, botões Copiar / Abrir teste / QR):
 
-- Estado novo: `shortLink` (`{ code, url } | null`), `saving` (bool).
-- Botão novo **"Gerar link curto"** logo abaixo do textarea (ou substituindo a exibição atual do `wa.me` como "auto-gerado"). Fluxo sugerido (mais previsível):
-  - Enquanto o usuário digita, o cartão da direita mostra o preview do `wa.me` completo em cinza claro ("link direto · uso interno").
-  - Ao clicar em "Gerar link curto", o app:
-    1. Monta o `full_wa_url` (mesma lógica atual).
-    2. Gera `short_code` aleatório (7 chars base62), tenta `INSERT` com `ON CONFLICT (short_code)` → retry até 3x se der colisão.
-    3. Ao voltar, `shortLink` recebe `https://adm.natleva.com/w/<code>` (usando `getPublicHost()` de `src/lib/publicUrl.ts`, que já resolve o domínio público correto).
-  - Só depois disso os botões **Copiar link**, **Abrir teste** e **QR Code** passam a operar sobre o `shortLink.url` em vez do `wa.me` longo. Antes de gerar, ficam desabilitados (ou operam sobre o `wa.me` com um aviso "gere o link curto pra rastrear cliques").
-- Um mini-rodapé no cartão da direita mostra "Cliques registrados: N" quando um link curto está ativo (uma consulta simples ao `click_count` da tabela). Sem histórico detalhado nessa iteração.
+- Estado novo: `shortLink` (`{ id, code, url, clickCount } | null`), `saving` (bool), `label` (string).
+- Enquanto o usuário digita, o cartão da direita mostra o preview do `wa.me` completo em cinza claro ("link direto · sem rastreamento").
+- Botão novo **"Gerar link curto"** logo abaixo do textarea. Ao clicar:
+  1. Monta o `full_wa_url` (mesma lógica atual).
+  2. Gera `short_code` aleatório (7 chars base62), tenta `INSERT` → retry até 4x em caso de colisão (unique_violation).
+  3. Ao voltar, `shortLink` recebe `https://adm.natleva.com/w/<code>` (via `getPublicHost()` de `src/lib/publicUrl.ts`, que já resolve o domínio público correto).
+- Depois de gerado, os botões **Copiar link**, **Abrir teste** e **QR Code** passam a operar sobre o `shortLink.url` em vez do `wa.me` longo. Antes de gerar, operam sobre o `wa.me` com aviso "sem rastreamento".
+- Mini-rodapé no cartão da direita mostra "Cliques registrados: N" quando um link curto está ativo, com botão "Atualizar" (consulta `click_count`) e "Novo" (limpa e permite gerar outro).
 - Campo opcional `label` (input pequeno de rótulo interno) pra facilitar identificar depois. Se vazio, salva null.
 
 Nada mais na tela muda: emoji picker, contador de caracteres, limpar, preview da mensagem, tudo permanece.
 
-### 2.5 Fora de escopo (não vou mexer)
+### 2.5 Fora de escopo (não vou mexer agora)
 
 - Listagem/gestão dos links já criados (histórico, edição, desativação) · fica pra uma segunda etapa se você quiser.
 - Dashboard/analytics de cliques · a base fica pronta (`whatsapp_short_link_clicks`), mas nenhuma tela nova é criada.
@@ -102,7 +100,7 @@ Nada mais na tela muda: emoji picker, contador de caracteres, limpar, preview da
 - `src/pages/WhatsAppShortRedirect.tsx` · página pública de redirect `/w/:shortCode`.
 
 **Alterados**
-- `src/App.tsx` · adicionar rota pública `<Route path="/w/:shortCode" element={<WhatsAppShortRedirect />} />` (lazy import), fora do `PermissionGuard`/`AppLayout`.
+- `src/App.tsx` · adicionar lazy import + rota pública `<Route path="/w/:shortCode" element={<WhatsAppShortRedirect />} />` (fora do `PermissionGuard`/`AppLayout`) e incluir `/w/` na lista `isPublicRoute`.
 - `src/pages/operacao/OperacaoGeradorLink.tsx` · nova lógica de geração do código curto, botão "Gerar link curto", cartão da direita passando a exibir a URL curta, campo opcional de label, mini contador de cliques. Reaproveita `getPublicHost()` de `src/lib/publicUrl.ts` (já existe, não precisa alterar).
 
 **Não alterados** (mas dependências que o código passará a usar)
@@ -112,5 +110,5 @@ Nada mais na tela muda: emoji picker, contador de caracteres, limpar, preview da
 ## 4. Decisões pendentes antes de implementar
 
 1. **Prefixo da rota:** confirmo `/w/CODIGO` (recomendado) ou você prefere `/CODIGO` puro com blacklist de rotas reservadas?
-2. **Campo `label`** interno na tela · manter ou descartar?
-3. **Registro de IP hash** nos cliques · ok gravar hash do IP (via header no client não temos; ficaria só `user_agent` + `referrer`, sem IP)? Se quiser IP real precisa de edge function; me confirma se vale a pena esse extra ou fica só UA/referrer.
+2. **Campo `label` interno** na tela · manter ou descartar?
+3. **IP nos cliques:** por ser 100% client-side, só dá pra gravar `user_agent` + `referrer` (sem IP). Se quiser IP real, precisa de uma edge function no meio do caminho · me diz se vale o extra ou fica só UA/referrer.
