@@ -35,6 +35,7 @@ const SaleDetail = lazy(() => import("@/pages/SaleDetail"));
 const NewSale = lazy(() => import("@/pages/NewSale"));
 const Passengers = lazy(() => import("@/pages/Passengers"));
 const PassengerPendingReview = lazy(() => import("@/pages/PassengerPendingReview"));
+const WhatsAppShortRedirect = lazy(() => import("@/pages/WhatsAppShortRedirect"));
 const PassengerProfile = lazy(() => import("@/pages/PassengerProfile"));
 const Birthdays = lazy(() => import("@/pages/Birthdays"));
 const Leads = lazy(() => import("@/pages/Leads"));
@@ -266,6 +267,7 @@ function AppRoutes() {
     location.pathname === "/cadastro-fornecedor" ||
     location.pathname === "/p" ||
     location.pathname.startsWith("/p/") ||
+    location.pathname.startsWith("/w/") ||
     location.pathname.startsWith("/loja") ||
     location.pathname.startsWith("/checkout/") ||
     location.pathname === "/unsubscribe";
@@ -466,6 +468,10 @@ function AppRoutes() {
 
         {/* Proposta pública */}
         <Route path="/proposta/:slug" element={<Suspense fallback={<MinimalLoader />}><ProposalPublicView /></Suspense>} />
+
+        {/* Link curto de WhatsApp gerado em Operação > Gerador de Link */}
+        <Route path="/w/:shortCode" element={<Suspense fallback={<MinimalLoader />}><WhatsAppShortRedirect /></Suspense>} />
+
 
         {/* Loja pública NatLeva · qualquer pessoa pode navegar e comprar via WhatsApp da Nath */}
         <Route path="/loja" element={<Suspense fallback={<MinimalLoader />}><PrateleiraVitrine /></Suspense>} />

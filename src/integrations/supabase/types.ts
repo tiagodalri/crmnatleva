@@ -11082,6 +11082,80 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_short_link_clicks: {
+        Row: {
+          clicked_at: string
+          id: string
+          referrer: string | null
+          short_link_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          id?: string
+          referrer?: string | null
+          short_link_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          id?: string
+          referrer?: string | null
+          short_link_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_short_link_clicks_short_link_id_fkey"
+            columns: ["short_link_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_short_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_short_links: {
+        Row: {
+          click_count: number
+          created_at: string
+          created_by: string | null
+          full_wa_url: string
+          id: string
+          is_active: boolean
+          label: string | null
+          message: string | null
+          short_code: string
+          target_phone: string
+          updated_at: string
+        }
+        Insert: {
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          full_wa_url: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          message?: string | null
+          short_code: string
+          target_phone: string
+          updated_at?: string
+        }
+        Update: {
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          full_wa_url?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          message?: string | null
+          short_code?: string
+          target_phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_status_seen_by_me: {
         Row: {
           seen_at: string

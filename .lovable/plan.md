@@ -1,100 +1,116 @@
+# Plano · Link curto para o Gerador de Link WhatsApp
 
-# Estratégia: passageiro já cadastrado no envio do link
+Escopo restrito à tela **Operação > Gerador de Link** (`/operacao/gerador-link`). Nenhuma outra área do sistema é tocada.
 
-## Princípio
+## 1. Arquivo atual responsável
 
-O link de cadastro **nunca bloqueia o cliente**. Toda submissão é aceita e persistida. Quando o CPF/passaporte já existe, o novo envio entra como um **registro pendente** vinculado ao passageiro atual, e vocês decidem internamente o que fazer com ele em uma **fila de revisão dedicada**.
+- `src/pages/operacao/OperacaoGeradorLink.tsx` — tela que hoje monta `https://wa.me/5511966396692?text=<mensagem encodada>` no `useMemo` e exibe nos botões Copiar / Abrir teste / QR.
+- Rota registrada em `src/App.tsx`: `/operacao/gerador-link` (lazy import).
 
-Isso elimina o atrito no WhatsApp ("o link deu erro") sem misturar dados sensíveis de forma automática.
+Nada mais precisa ser lido/alterado fora desses pontos + a nova rota pública + a nova tabela.
 
-## Como fica o fluxo
+## 2. Desenho técnico
 
-```text
-Cliente abre link  ──►  Preenche  ──►  Envia
-                                        │
-                                        ▼
-                        CPF/passaporte já existe no sistema?
-                          │                             │
-                         Não                           Sim
-                          │                             │
-                          ▼                             ▼
-                Cria passageiro novo         Cria "cadastro pendente"
-                (como hoje)                  vinculado ao passageiro atual
-                                                        │
-                                                        ▼
-                                        Aparece em "Cadastros pendentes"
-                                        com diff campo a campo
-                                                        │
-                                        ┌───────────────┼───────────────┐
-                                        ▼               ▼               ▼
-                                    Aprovar         Descartar       Mesclar
-                                    (sobrescreve)   (arquiva)       (campo a campo)
+### 2.1 Formato do link curto · decisão a validar
+
+O pedido é `https://adm.natleva.com/CODIGO`. Usar a raiz `/` tem um risco real: colide com qualquer rota nova que venha a ser criada em `App.tsx` (basta um dia alguém adicionar `/checkout`, `/parceiros`, etc., e o código curto passa a bater com a rota real). Recomendo uma das duas opções, **você escolhe antes de implementar**:
+
+- **Opção A (mais curta, com risco):** `https://adm.natleva.com/CODIGO` · a rota `path="/:shortCode"` é declarada como **última** no `<Routes>` e o loader consulta a tabela; se não encontrar, cai no `NotFound`. Precisa manter uma blacklist de prefixos reservados (dashboard, admin, proposta, portal, vitrine, cadastro-passageiro, operacao, financeiro, rh, etc.) para nunca gerar um código que colida com uma rota existente.
+- **Opção B (recomendada):** `https://adm.natleva.com/w/CODIGO` · prefixo dedicado, zero risco de colisão futura, 2 caracteres a mais. É o padrão que outros encurtadores usam.
+
+Assumo **Opção B** no restante do plano; se preferir A, só troco a rota e adiciono a blacklist.
+
+Código: 7 caracteres base62 (`[a-zA-Z0-9]`) gerados no cliente com retry em caso de conflito de unique.
+
+### 2.2 Nova tabela no Supabase
+
+Uma tabela nova, exclusiva desse recurso. Segue o padrão de `proposal_shares` + `proposal_clicks`, mas simplificada (não precisa de contexto de proposta).
+
+```
+public.whatsapp_short_links
+  id              uuid pk
+  short_code      text unique not null      -- ex: "a7Xk29Q"
+  target_phone    text not null             -- "5511966396692"
+  message         text                      -- texto pronto (pode ser null/"")
+  full_wa_url     text not null             -- wa.me/... já montado (cache p/ redirect rápido)
+  label           text                      -- rótulo interno opcional (ex: "Campanha instagram set/26")
+  click_count     int  not null default 0   -- contador denormalizado (mesma ideia de proposals)
+  created_by      uuid                      -- auth.uid() no insert
+  created_at      timestamptz default now()
+  updated_at      timestamptz default now()
+  is_active       bool default true         -- permite desativar sem apagar
 ```
 
-Em todos os casos, o cliente vê a mesma tela de sucesso. Zero atrito.
+```
+public.whatsapp_short_link_clicks
+  id              uuid pk
+  short_link_id   uuid fk -> whatsapp_short_links(id) on delete cascade
+  clicked_at      timestamptz default now()
+  user_agent      text
+  referrer        text
+  ip_hash         text     -- hash simples do IP (evita PII crua), opcional
+```
 
-## O que vai ser construído
+**GRANTs + RLS** (regra do projeto):
+- `whatsapp_short_links`: `SELECT` liberado a `anon` (o redirect público precisa ler pelo `short_code`); `INSERT/UPDATE/DELETE` só a `authenticated` (com policy `created_by = auth.uid()` ou admin). `service_role` ALL.
+- `whatsapp_short_link_clicks`: `INSERT` liberado a `anon` (o click público grava direto); `SELECT` só a `authenticated`. `service_role` ALL.
+- Trigger `update_updated_at_column` no `whatsapp_short_links` (função já existe no projeto).
+- Trigger `AFTER INSERT` em `whatsapp_short_link_clicks` que faz `UPDATE whatsapp_short_links SET click_count = click_count + 1 WHERE id = NEW.short_link_id` (mesmo padrão de `update_status_view_count`).
 
-### 1. Nova tabela `passenger_pending_submissions`
-Armazena cada submissão que colidiu com um passageiro existente:
-- `matched_passenger_id` — passageiro atual encontrado
-- `submitted_data` (jsonb) — tudo que o cliente digitou
-- `signup_link_id` — de qual link veio
-- `status` — `pending`, `approved`, `discarded`, `merged`
-- `reviewed_by`, `reviewed_at`, `review_notes`
-- Idempotência via `submission_id` (mesma proteção contra duplo-clique que já usamos hoje)
+### 2.3 Rota pública de redirecionamento
 
-RLS: staff autenticado gerencia; anon não vê nada.
+Nova página client-side, sem layout do CRM, sem auth:
 
-### 2. Edge function `passenger-self-signup` (ajuste)
-- Detecta colisão por CPF **ou** passaporte (regra atual).
-- Em vez de retornar 409, grava em `passenger_pending_submissions` com o `matched_passenger_id` e responde 200 (sucesso) para o cliente.
-- Passageiros sem colisão continuam sendo criados diretamente em `passengers` (fluxo atual, sem mudança).
-- Mantém idempotência: reenvio do mesmo `submission_id` não duplica pendência.
+- Rota: `/w/:shortCode` registrada no `src/App.tsx` fora do `AppLayout` protegido (mesmo nível de `/proposta/:slug`, `/cadastro-passageiro/:slug` etc).
+- Componente: `src/pages/WhatsAppShortRedirect.tsx`.
+- Comportamento:
+  1. Lê `shortCode` da URL.
+  2. `SELECT full_wa_url, id, is_active FROM whatsapp_short_links WHERE short_code = ?` (com `anon` key, é uma leitura pública).
+  3. Se não achar / inativo → renderiza uma tela simples "Link inválido ou expirado" com botão para o WhatsApp geral da Natleva (mesmo número fixo).
+  4. Se achar: dispara `INSERT` fire-and-forget em `whatsapp_short_link_clicks` (não bloqueia o redirect · usa `void supabase.from(...).insert(...)`) e imediatamente `window.location.replace(full_wa_url)`.
+  5. Mostra fallback "Redirecionando pro WhatsApp..." caso o redirect demore (>500ms).
 
-### 3. Nova tela interna: "Cadastros pendentes de revisão"
-Rota nova dentro da área de passageiros/CRM. Lista os pendentes com:
-- Nome, CPF, quando chegou, de qual link veio
-- Badge de contagem no menu lateral (quantos aguardando)
-- Ao abrir: **diff lado a lado** — cadastro atual vs. dados enviados, campo a campo, com destaque no que mudou.
-- Três ações:
-  - **Aprovar tudo** → sobrescreve o passageiro com os dados novos (mantém histórico via `proposal_change_history`? não — criamos entrada em log próprio).
-  - **Descartar** → arquiva a submissão, cadastro atual não muda.
-  - **Mesclar seletivo** → checkbox por campo, escolhe o que absorver.
-- Após ação, sai da fila e vai para "Histórico de revisões".
+Nenhuma edge function precisa ser criada · o redirect é 100% client-side, igual ao padrão do resto do app.
 
-### 4. Ajustes no formulário público (`PassengerSelfSignup`)
-- Mensagem de sucesso mantém-se genérica: "Cadastro recebido, obrigado!" — o cliente não sabe (nem precisa saber) que caiu em revisão.
-- Mantém: autosave em `localStorage`, `submission_id`, continue-on-error, chaves estáveis (tudo que já foi feito na rodada anterior).
+### 2.4 Mudanças na tela `OperacaoGeradorLink.tsx`
 
-## Escopo do link (resposta 2)
+Reescrita mínima, mantendo o mesmo layout (editor à esquerda + cartão de resultado à direita, botões Copiar / Abrir teste / QR):
 
-Como o link é **genérico** (não amarrado a uma venda), a colisão é tratada sempre pela regra acima. Não precisamos criar contexto de viagem no link agora. Se no futuro quiser links específicos por venda, dá para adicionar o `sale_id` opcional no link sem quebrar nada.
+- Estado novo: `shortLink` (`{ code, url } | null`), `saving` (bool).
+- Botão novo **"Gerar link curto"** logo abaixo do textarea (ou substituindo a exibição atual do `wa.me` como "auto-gerado"). Fluxo sugerido (mais previsível):
+  - Enquanto o usuário digita, o cartão da direita mostra o preview do `wa.me` completo em cinza claro ("link direto · uso interno").
+  - Ao clicar em "Gerar link curto", o app:
+    1. Monta o `full_wa_url` (mesma lógica atual).
+    2. Gera `short_code` aleatório (7 chars base62), tenta `INSERT` com `ON CONFLICT (short_code)` → retry até 3x se der colisão.
+    3. Ao voltar, `shortLink` recebe `https://adm.natleva.com/w/<code>` (usando `getPublicHost()` de `src/lib/publicUrl.ts`, que já resolve o domínio público correto).
+  - Só depois disso os botões **Copiar link**, **Abrir teste** e **QR Code** passam a operar sobre o `shortLink.url` em vez do `wa.me` longo. Antes de gerar, ficam desabilitados (ou operam sobre o `wa.me` com um aviso "gere o link curto pra rastrear cliques").
+- Um mini-rodapé no cartão da direita mostra "Cliques registrados: N" quando um link curto está ativo (uma consulta simples ao `click_count` da tabela). Sem histórico detalhado nessa iteração.
+- Campo opcional `label` (input pequeno de rótulo interno) pra facilitar identificar depois. Se vazio, salva null.
 
-## O que NÃO muda
+Nada mais na tela muda: emoji picker, contador de caracteres, limpar, preview da mensagem, tudo permanece.
 
-- Passageiros novos (sem CPF/passaporte no sistema) → fluxo atual, criação direta.
-- Ordem de submissão, autosave offline, idempotência, chaves de cartão de passageiro.
-- Tabela `passengers` continua como source of truth. Nada é sobrescrito sem ação humana explícita.
+### 2.5 Fora de escopo (não vou mexer)
 
-## Detalhes técnicos
+- Listagem/gestão dos links já criados (histórico, edição, desativação) · fica pra uma segunda etapa se você quiser.
+- Dashboard/analytics de cliques · a base fica pronta (`whatsapp_short_link_clicks`), mas nenhuma tela nova é criada.
+- Qualquer alteração em CRM, propostas, financeiro, RH, portal, etc.
 
-- **Migração**: cria `passenger_pending_submissions` com GRANT + RLS + policies para authenticated (staff) e nenhuma policy para anon (só a edge function escreve via service_role).
-- **Edge function**: reaproveita a lógica de detecção de duplicado que já existe; em vez de `return 409`, insere em `passenger_pending_submissions`.
-- **Frontend**: nova rota `/passageiros/pendentes` + componente `PendingSubmissionsList` + `PendingSubmissionDiffDialog`. Ícone com badge no menu (usa `lucide-react`, respeitando as diretrizes visuais — zero emojis).
-- **Realtime opcional (fase 2)**: quando chega uma pendência nova, badge atualiza em tempo real via canal Supabase Realtime. Deixo fora da primeira entrega para não inflar escopo.
+## 3. Arquivos criados / alterados
 
-## Entrega em 2 fases
+**Criados**
+- `supabase/migrations/<timestamp>_whatsapp_short_links.sql` · tabelas, GRANTs, RLS, policies, trigger de `updated_at`, trigger de contador de cliques.
+- `src/pages/WhatsAppShortRedirect.tsx` · página pública de redirect `/w/:shortCode`.
 
-**Fase 1 (esta rodada)** — Backend + fluxo blindado
-1. Migração da tabela `passenger_pending_submissions`
-2. Ajuste da edge function para nunca falhar por duplicado (grava em pendentes)
+**Alterados**
+- `src/App.tsx` · adicionar rota pública `<Route path="/w/:shortCode" element={<WhatsAppShortRedirect />} />` (lazy import), fora do `PermissionGuard`/`AppLayout`.
+- `src/pages/operacao/OperacaoGeradorLink.tsx` · nova lógica de geração do código curto, botão "Gerar link curto", cartão da direita passando a exibir a URL curta, campo opcional de label, mini contador de cliques. Reaproveita `getPublicHost()` de `src/lib/publicUrl.ts` (já existe, não precisa alterar).
 
-**Fase 2 (rodada seguinte, sob aprovação)** — Interface interna
-3. Tela `/passageiros/pendentes` com lista, diff, ações
-4. Badge de contagem no menu
-5. Log de revisões concluídas
+**Não alterados** (mas dependências que o código passará a usar)
+- `src/lib/publicUrl.ts` · usado só como leitor, já retorna `https://adm.natleva.com`.
+- `src/integrations/supabase/types.ts` · será regenerado automaticamente após a migração aprovada.
 
-Faço as duas fases em sequência dentro da mesma implementação se você aprovar. Se preferir validar backend primeiro em produção antes de mexer no frontend, entrego só a Fase 1 agora.
+## 4. Decisões pendentes antes de implementar
 
-Confirma que a estratégia está boa e se quer as duas fases juntas ou faseado?
+1. **Prefixo da rota:** confirmo `/w/CODIGO` (recomendado) ou você prefere `/CODIGO` puro com blacklist de rotas reservadas?
+2. **Campo `label`** interno na tela · manter ou descartar?
+3. **Registro de IP hash** nos cliques · ok gravar hash do IP (via header no client não temos; ficaria só `user_agent` + `referrer`, sem IP)? Se quiser IP real precisa de edge function; me confirma se vale a pena esse extra ou fica só UA/referrer.
