@@ -39,13 +39,20 @@ export default function WhatsAppShortRedirect() {
         return;
       }
 
-      // Fire-and-forget: não bloqueia o redirect
-      void supabase.from("whatsapp_short_link_clicks").insert({
-        short_link_id: data.id,
-        user_agent: navigator.userAgent.slice(0, 500),
-        referrer: (document.referrer || "").slice(0, 500) || null,
-      });
+      // Aguarda o insert completar (com timeout de segurança) antes do redirect,
+      // senão o unload da página aborta a requisição e o clique não é registrado.
+      const insertPromise = supabase
+        .from("whatsapp_short_link_clicks")
+        .insert({
+          short_link_id: data.id,
+          user_agent: navigator.userAgent.slice(0, 500),
+          referrer: (document.referrer || "").slice(0, 500) || null,
+        });
 
+      const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
+      await Promise.race([insertPromise, timeout]);
+
+      if (cancelled) return;
       window.location.replace(data.full_wa_url);
     })();
 
