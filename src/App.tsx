@@ -267,6 +267,7 @@ function AppRoutes() {
     location.pathname === "/cadastro-fornecedor" ||
     location.pathname === "/p" ||
     location.pathname.startsWith("/p/") ||
+    location.pathname.startsWith("/w/") ||
     location.pathname.startsWith("/loja") ||
     location.pathname.startsWith("/checkout/") ||
     location.pathname === "/unsubscribe";
