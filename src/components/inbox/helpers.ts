@@ -130,6 +130,8 @@ export function normalizeDbMessageType(value: string | null | undefined): MsgTyp
   if (raw === "sticker") return "sticker";
   if (raw === "location") return "location";
   if (raw === "image" || raw === "audio" || raw === "video" || raw === "document") return raw as MsgType;
+  if (raw === "vcard" || raw === "contact") return "vcard";
+  if (raw === "multi_vcard" || raw === "contact_list" || raw === "contactlist") return "multi_vcard";
   return "text";
 }
 
