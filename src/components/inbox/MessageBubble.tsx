@@ -1,5 +1,5 @@
 import { memo, Fragment } from "react";
-import { Check, CheckCheck, Bot, ChevronRight, Pencil, Mic, Image, Video, FileText, File, FileSpreadsheet, FileImage, Clock, AlertCircle, RotateCcw, Loader2, Download, Forward, Camera } from "lucide-react";
+import { Check, CheckCheck, Bot, ChevronRight, Pencil, Mic, Image, Video, FileText, File, FileSpreadsheet, FileImage, Clock, AlertCircle, RotateCcw, Loader2, Download, Forward, Camera, UserRound, Users, MessageCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AudioWaveformPlayer } from "@/components/livechat/AudioWaveformPlayer";
 import type { Message, MsgStatus, MsgType } from "./types";
@@ -388,6 +388,48 @@ function MessageBubbleInner({ msg, messages, index, contactName, onReply, onEdit
                   title={msg.metadata.location.title}
                   address={msg.metadata.location.address}
                 />
+              )}
+              {/* Shared contact (vCard) */}
+              {(msg.message_type === "vcard" || msg.message_type === "multi_vcard") && Array.isArray(msg.metadata?.contacts) && msg.metadata.contacts.length > 0 && (
+                <div className="flex flex-col gap-1.5 min-w-[220px] max-w-[320px]">
+                  {msg.metadata.contacts.slice(0, 3).map((c: any, i: number) => {
+                    const digits = String(c?.phones?.[0] || "").replace(/\D/g, "");
+                    const display = String(c?.displayName || "Contato");
+                    return (
+                      <div key={i} className="flex items-center gap-2.5 rounded-lg bg-background/40 border border-border/40 p-2">
+                        <div className="h-9 w-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                          {msg.message_type === "multi_vcard" ? <Users className="h-4 w-4 text-emerald-600" /> : <UserRound className="h-4 w-4 text-emerald-600" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold truncate">{display}</p>
+                          {c?.phones?.length > 0 && (
+                            <p className="text-[11px] opacity-70 truncate">
+                              {c.phones.map((p: string) => {
+                                const d = String(p).replace(/\D/g, "");
+                                return d.length >= 10 ? `+${d}` : p;
+                              }).join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                        {digits.length >= 10 && (
+                          <a
+                            href={`https://wa.me/${digits}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/25 transition-colors"
+                            title="Abrir no WhatsApp"
+                          >
+                            <MessageCircle className="h-3 w-3" />
+                            Conversar
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {msg.metadata.contacts.length > 3 && (
+                    <p className="text-[11px] opacity-70 pl-1">+{msg.metadata.contacts.length - 3} contato(s)</p>
+                  )}
+                </div>
               )}
               {/* Text */}
               {msg.message_type === "text" && <p className="text-sm leading-relaxed whitespace-pre-wrap"><Linkify text={stripQuotes(displayText)} /></p>}

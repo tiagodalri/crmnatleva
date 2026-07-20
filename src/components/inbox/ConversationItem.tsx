@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Mic, Image, Video, FileText, Pin, PinOff, Star, AlertTriangle, MailX, MailOpen, Archive, ArchiveRestore, Users, MapPin } from "lucide-react";
+import { Mic, Image, Video, FileText, Pin, PinOff, Star, AlertTriangle, MailX, MailOpen, Archive, ArchiveRestore, Users, MapPin, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
@@ -69,6 +69,10 @@ function getPreviewContent(raw: string) {
     return { icon: <FileText className="h-3 w-3 text-amber-400 shrink-0" />, text: "Documento", italic: false };
   if (lower === "📎 location" || lower.startsWith("📍"))
     return { icon: <MapPin className="h-3 w-3 text-emerald-500 shrink-0" />, text: raw.replace(/^📍\s*/, "") || "Localização", italic: false };
+  if (lower === "📎 vcard" || raw.startsWith("👤"))
+    return { icon: <UserRound className="h-3 w-3 text-emerald-500 shrink-0" />, text: raw.replace(/^👤\s*/, "") || "Contato", italic: false };
+  if (lower === "📎 multi_vcard" || raw.startsWith("👥"))
+    return { icon: <Users className="h-3 w-3 text-emerald-500 shrink-0" />, text: raw.replace(/^👥\s*/, "") || "Contatos", italic: false };
   return { icon: null, text: raw, italic: false };
 }
 
