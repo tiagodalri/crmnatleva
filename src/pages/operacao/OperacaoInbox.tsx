@@ -106,6 +106,12 @@ import { FAILURE_REASONS, humanizeFailureReason } from "@/lib/zapiFailureClassif
 // Local alias kept for legacy call sites — uses centralized hardened helper.
 const toUnreadCount = safeUnreadCount;
 
+type SharedContactCard = {
+  displayName?: unknown;
+  name?: unknown;
+  phones?: unknown;
+};
+
 // Re-export para compatibilidade com call sites externos.
 export { FAILURE_REASONS };
 
@@ -3578,8 +3584,9 @@ function OperacaoInboxInner() {
                                 })()}
                                 {/* Shared contact (vCard) */}
                                 {(msg.message_type === "vcard" || msg.message_type === "multi_vcard") && (() => {
-                                  const contacts = Array.isArray((msg.metadata as any)?.contacts)
-                                    ? (msg.metadata as any).contacts
+                                  const contactsValue = (msg.metadata as { contacts?: unknown } | null | undefined)?.contacts;
+                                  const contacts: SharedContactCard[] = Array.isArray(contactsValue)
+                                    ? contactsValue as SharedContactCard[]
                                     : [];
 
                                   if (contacts.length === 0) {
@@ -3588,7 +3595,7 @@ function OperacaoInboxInner() {
 
                                   return (
                                     <div className="flex flex-col gap-1.5 min-w-[220px] max-w-[320px]">
-                                      {contacts.slice(0, 3).map((contact: any, contactIndex: number) => {
+                                      {contacts.slice(0, 3).map((contact, contactIndex) => {
                                         const phones = Array.isArray(contact?.phones) ? contact.phones : [];
                                         const digits = String(phones[0] || "").replace(/\D/g, "");
                                         const displayName = String(contact?.displayName || contact?.name || "Contato");
@@ -3602,7 +3609,7 @@ function OperacaoInboxInner() {
                                               <p className="text-sm font-semibold truncate" title={displayName}>{displayName}</p>
                                               {phones.length > 0 && (
                                                 <p className="text-[11px] opacity-70 truncate" title={phones.join(" · ")}>
-                                                  {phones.map((phone: string) => {
+                                                  {phones.map((phone) => {
                                                     const phoneDigits = String(phone).replace(/\D/g, "");
                                                     return phoneDigits.length >= 10 ? formatPhoneDisplay(phoneDigits) : String(phone);
                                                   }).join(" · ")}
