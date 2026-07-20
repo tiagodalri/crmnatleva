@@ -309,7 +309,7 @@ export function summarizeMessageForPreview(msg: Message): string {
   const map: Record<MsgType, string> = {
     text: "Texto", image: "📷 Foto", video: "🎬 Vídeo",
     audio: "🎤 Áudio", document: "📄 Documento", sticker: "🌟 Figurinha",
-    location: "📍 Localização",
+    location: "📍 Localização", vcard: "👤 Contato", multi_vcard: "👥 Contatos",
   };
   return map[msg.message_type] || "Mídia";
 }

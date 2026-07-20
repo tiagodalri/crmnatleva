@@ -1,114 +1,84 @@
-# Plano · Link curto para o Gerador de Link WhatsApp
+## Diagnóstico confirmado
 
-Escopo restrito à tela **Operação > Gerador de Link** (`/operacao/gerador-link`). Nenhuma outra área do sistema é tocada.
+**Integração ativa:** Z-API (não Cloud API). Webhook em `supabase/functions/zapi-webhook/index.ts`.
 
-## 1. Arquivo atual responsável
+**Causa raiz do bug:**
 
-- `src/pages/operacao/OperacaoGeradorLink.tsx` — tela que hoje monta `https://wa.me/5511966396692?text=<mensagem encodada>` no `useMemo` e exibe nos botões Copiar / Abrir teste / QR.
-- Rota registrada em `src/App.tsx`: `/operacao/gerador-link` (lazy import).
+1. `extractMsgType()` (linhas 87-95) não reconhece `body.contact` nem `body.contactList` · sempre retorna `"text"` nesses casos.
+2. `extractMediaUrl()` (linhas 78-84) não trata contato.
+3. `extractTextContent()` (linhas 100-102) retorna string vazia para contato compartilhado.
+4. Guard de descarte (linha 1071): `if (!phone || (!textContent && !body.image && !body.audio && !body.video && !body.document && !body.sticker && !hasLocation)) { … return no_content }` · como o contato não bate em nenhum campo, cai aqui e a mensagem é descartada (marcada como `no_content` em `whatsapp_events_raw`). É por isso que nada chega ao inbox.
+5. A CHECK constraint em `conversation_messages.message_type` já permite `'vcard'` e `'multi_vcard'` · o banco está pronto, faltou webhook + UI.
 
-Nada mais precisa ser lido/alterado fora desses pontos + a nova rota pública + a nova tabela.
+**Componente real que renderiza os balões:** `src/components/inbox/MessageBubble.tsx` (445 linhas). Tem cases para `text`, `audio`, `image`, `video`, `document`, `sticker` (linhas 219-297) e `location` (linha 384). Não existe case para `vcard`. É aí que precisa entrar o novo cartão.
 
-## 2. Desenho técnico
+Formato Z-API (confirmado na doc oficial):
 
-### 2.1 Formato do link curto · decisão a validar
-
-O pedido é `https://adm.natleva.com/CODIGO`. Usar a raiz `/` tem um risco real: colide com qualquer rota nova que venha a ser criada em `App.tsx` (basta um dia alguém adicionar `/checkout`, `/parceiros`, etc., e o código curto passa a bater com a rota real). Recomendo uma das duas opções, **você escolhe antes de implementar**:
-
-- **Opção A (mais curta, com risco):** `https://adm.natleva.com/CODIGO` · a rota `path="/:shortCode"` é declarada como **última** no `<Routes>` e o loader consulta a tabela; se não encontrar, cai no `NotFound`. Precisa manter uma blacklist de prefixos reservados (dashboard, admin, proposta, portal, vitrine, cadastro-passageiro, operacao, financeiro, rh, etc.) para nunca gerar um código que colida com uma rota existente.
-- **Opção B (recomendada):** `https://adm.natleva.com/w/CODIGO` · prefixo dedicado, zero risco de colisão futura, 2 caracteres a mais. É o padrão que outros encurtadores usam.
-
-Assumo **Opção B** no restante do plano; se preferir A, só troco a rota e adiciono a blacklist.
-
-Código: 7 caracteres base62 (`[a-zA-Z0-9]`) gerados no cliente com retry em caso de conflito de unique.
-
-### 2.2 Nova tabela no Supabase
-
-Uma tabela nova, exclusiva desse recurso. Segue o padrão de `proposal_shares` + `proposal_clicks`, mas simplificada (não precisa de contexto de proposta).
-
-```
-public.whatsapp_short_links
-  id              uuid pk
-  short_code      text unique not null      -- ex: "a7Xk29Q"
-  target_phone    text not null             -- "5511966396692"
-  message         text                      -- texto pronto (pode ser null/"")
-  full_wa_url     text not null             -- wa.me/... já montado (cache p/ redirect rápido)
-  label           text                      -- rótulo interno opcional (ex: "Campanha instagram set/26")
-  click_count     int  not null default 0   -- contador denormalizado (mesma ideia de proposals)
-  created_by      uuid                      -- auth.uid() no insert
-  created_at      timestamptz default now()
-  updated_at      timestamptz default now()
-  is_active       bool default true         -- permite desativar sem apagar
+```json
+// 1 contato
+{ "contact": { "displayName": "Fulano", "vCard": "BEGIN:VCARD…", "phones": ["5544..."] } }
+// N contatos
+{ "contactList": { "contacts": [ { "displayName": "...", "vCard": "...", "phones": [...] }, ... ] } }
 ```
 
-```
-public.whatsapp_short_link_clicks
-  id              uuid pk
-  short_link_id   uuid fk -> whatsapp_short_links(id) on delete cascade
-  clicked_at      timestamptz default now()
-  user_agent      text
-  referrer        text
-```
+## Plano · restrito a recebimento + exibição de mensagens de contato
 
-**GRANTs + RLS** (regra do projeto):
-- `whatsapp_short_links`: `SELECT` liberado a `anon` (o redirect público precisa ler pelo `short_code`); `INSERT/UPDATE/DELETE` só a `authenticated` (policy `created_by = auth.uid()` ou admin). `service_role` ALL.
-- `whatsapp_short_link_clicks`: `INSERT` liberado a `anon` (o click público grava direto); `SELECT` só a `authenticated`. `service_role` ALL.
-- Trigger `update_updated_at_column` em `whatsapp_short_links` (função já existe no projeto).
-- Trigger `AFTER INSERT` em `whatsapp_short_link_clicks` que incrementa `click_count` (padrão idêntico ao `update_status_view_count`).
+### Backend · `supabase/functions/zapi-webhook/index.ts`
 
-### 2.3 Rota pública de redirecionamento
+Edições cirúrgicas, sem alterar nada fora do fluxo de mensagens de contato:
 
-Nova página client-side, sem layout do CRM, sem auth:
+1. **`extractMsgType()`** · adicionar antes do fallback `"text"`:
+   ```
+   if (body.contactList?.contacts?.length > 1) return "multi_vcard";
+   if (body.contact || body.contactList?.contacts?.length === 1) return "vcard";
+   ```
+2. **Guard de descarte (linha 1071)** · incluir `!body.contact && !body.contactList` na condição, para não jogar contato fora.
+3. **Extração + persistência** · antes do insert em `conversation_messages`, quando `msgType === "vcard"` ou `"multi_vcard"`:
+   - Normalizar em um array `contacts: Array<{ displayName: string; phones: string[]; vCard: string }>` a partir de `body.contact` ou `body.contactList.contacts`.
+   - Para cada telefone dentro de `phones`/vCard, aplicar `normalizePhone()` (já existe no arquivo) e gerar link `wa.me/<digits>`.
+   - Salvar:
+     - `content` = string legível (`"👤 <displayName> · <telefone formatado>"` ou, para multi, `"👥 <N> contatos: <nome1>, <nome2>…"`) · isso alimenta `last_message_preview` e busca full-text.
+     - `metadata.contacts` = array normalizado (nome, telefones, vCard raw). Reaproveitar coluna `metadata` já existente (mesmo padrão do `location`).
+     - `message_type` = `'vcard'` ou `'multi_vcard'` (a CHECK já aceita).
+   - `zapi_messages.type` também recebe o valor · mantém o mesmo backup fiel.
+4. **`extractMediaUrl()`** · nenhuma mudança (contato não tem mídia).
+5. **fromMe** · a mesma lógica se aplica quando o atendente compartilha contato pelo celular · vale para `sent` também (só um caminho, sem branch novo).
 
-- Rota: `/w/:shortCode` registrada em `src/App.tsx` fora do `PermissionGuard`/`AppLayout` (mesmo nível de `/proposta/:slug`, `/cadastro-passageiro/:slug`).
-- Componente: `src/pages/WhatsAppShortRedirect.tsx`.
-- Comportamento:
-  1. Lê `shortCode` da URL.
-  2. `SELECT id, full_wa_url, is_active FROM whatsapp_short_links WHERE short_code = ?` (leitura anon).
-  3. Se não achar / inativo → renderiza uma tela simples "Link inválido ou expirado" com botão para o WhatsApp geral da Natleva.
-  4. Se achar: dispara `INSERT` fire-and-forget em `whatsapp_short_link_clicks` (não bloqueia o redirect) e imediatamente `window.location.replace(full_wa_url)`.
-  5. Mostra fallback "Redirecionando pro WhatsApp..." caso o redirect demore.
+### Frontend · `src/components/inbox/MessageBubble.tsx`
 
-Nenhuma edge function precisa ser criada · o redirect é 100% client-side.
+Adicionar um novo bloco de renderização (irmão do bloco de `location` na linha 384):
 
-### 2.4 Mudanças na tela `OperacaoGeradorLink.tsx`
+- Case `msg.message_type === "vcard" || "multi_vcard"` lê `msg.metadata.contacts`.
+- Renderiza um cartão inspirado no cartão nativo do WhatsApp:
+  - Ícone `UserRound`/`Users` (lucide-react) em avatar circular.
+  - Nome em bold (`displayName`).
+  - Telefone(s) formatado(s) via `formatPhoneDisplay` de `src/lib/phone.ts`.
+  - Botão "Conversar" → abre `https://wa.me/<digits>` em nova aba (ou, se o telefone já for cliente conhecido, poderia abrir a conversa interna · **fora do escopo desta correção, fica pra depois** para não expandir).
+  - Para `multi_vcard`, lista compacta com até 3 visíveis e "+N contatos" ao final.
+- Estilo consistente com os outros balões (bg, padding, radius já usados no arquivo).
 
-Reescrita mínima, mantendo o mesmo layout (editor à esquerda + cartão de resultado à direita, botões Copiar / Abrir teste / QR):
+### Lista de conversas · `src/components/inbox/ConversationItem.tsx`
 
-- Estado novo: `shortLink` (`{ id, code, url, clickCount } | null`), `saving` (bool), `label` (string).
-- Enquanto o usuário digita, o cartão da direita mostra o preview do `wa.me` completo em cinza claro ("link direto · sem rastreamento").
-- Botão novo **"Gerar link curto"** logo abaixo do textarea. Ao clicar:
-  1. Monta o `full_wa_url` (mesma lógica atual).
-  2. Gera `short_code` aleatório (7 chars base62), tenta `INSERT` → retry até 4x em caso de colisão (unique_violation).
-  3. Ao voltar, `shortLink` recebe `https://adm.natleva.com/w/<code>` (via `getPublicHost()` de `src/lib/publicUrl.ts`, que já resolve o domínio público correto).
-- Depois de gerado, os botões **Copiar link**, **Abrir teste** e **QR Code** passam a operar sobre o `shortLink.url` em vez do `wa.me` longo. Antes de gerar, operam sobre o `wa.me` com aviso "sem rastreamento".
-- Mini-rodapé no cartão da direita mostra "Cliques registrados: N" quando um link curto está ativo, com botão "Atualizar" (consulta `click_count`) e "Novo" (limpa e permite gerar outro).
-- Campo opcional `label` (input pequeno de rótulo interno) pra facilitar identificar depois. Se vazio, salva null.
+Em `getPreviewContent()` (linha 59), adicionar caso para preview começando com `"👤 "` ou `"👥 "`:
+- Ícone `UserRound` verde + texto "Contato" (ou "N contatos").
+Mantém consistente com áudio/foto/vídeo/documento/localização já existentes.
 
-Nada mais na tela muda: emoji picker, contador de caracteres, limpar, preview da mensagem, tudo permanece.
+### O que NÃO será tocado
 
-### 2.5 Fora de escopo (não vou mexer agora)
+- Nenhum outro extractor, guard, roteamento de flow, LID resolver, cache de mídia, watchdog, envio, retry, notificações, IA · nada.
+- Nenhuma outra tela · só `MessageBubble.tsx` e `ConversationItem.tsx`.
+- Nada de Cloud API (integração inativa).
+- Sem migração (CHECK já aceita `vcard`/`multi_vcard`).
 
-- Listagem/gestão dos links já criados (histórico, edição, desativação) · fica pra uma segunda etapa se você quiser.
-- Dashboard/analytics de cliques · a base fica pronta (`whatsapp_short_link_clicks`), mas nenhuma tela nova é criada.
-- Qualquer alteração em CRM, propostas, financeiro, RH, portal, etc.
+### Arquivos alterados
 
-## 3. Arquivos criados / alterados
+- `supabase/functions/zapi-webhook/index.ts` · 3 pontos (extractMsgType, guard, bloco de persistência para vcard).
+- `src/components/inbox/MessageBubble.tsx` · novo case de render.
+- `src/components/inbox/ConversationItem.tsx` · novo case no preview da lista.
 
-**Criados**
-- `supabase/migrations/<timestamp>_whatsapp_short_links.sql` · tabelas, GRANTs, RLS, policies, trigger de `updated_at`, trigger de contador de cliques.
-- `src/pages/WhatsAppShortRedirect.tsx` · página pública de redirect `/w/:shortCode`.
+### Validação após implementar
 
-**Alterados**
-- `src/App.tsx` · adicionar lazy import + rota pública `<Route path="/w/:shortCode" element={<WhatsAppShortRedirect />} />` (fora do `PermissionGuard`/`AppLayout`) e incluir `/w/` na lista `isPublicRoute`.
-- `src/pages/operacao/OperacaoGeradorLink.tsx` · nova lógica de geração do código curto, botão "Gerar link curto", cartão da direita passando a exibir a URL curta, campo opcional de label, mini contador de cliques. Reaproveita `getPublicHost()` de `src/lib/publicUrl.ts` (já existe, não precisa alterar).
-
-**Não alterados** (mas dependências que o código passará a usar)
-- `src/lib/publicUrl.ts` · usado só como leitor, já retorna `https://adm.natleva.com`.
-- `src/integrations/supabase/types.ts` · será regenerado automaticamente após a migração aprovada.
-
-## 4. Decisões pendentes antes de implementar
-
-1. **Prefixo da rota:** confirmo `/w/CODIGO` (recomendado) ou você prefere `/CODIGO` puro com blacklist de rotas reservadas?
-2. **Campo `label` interno** na tela · manter ou descartar?
-3. **IP nos cliques:** por ser 100% client-side, só dá pra gravar `user_agent` + `referrer` (sem IP). Se quiser IP real, precisa de uma edge function no meio do caminho · me diz se vale o extra ou fica só UA/referrer.
+1. Pedir ao Tiago para compartilhar um contato de teste no WhatsApp.
+2. Conferir no banco: `select message_type, content, metadata from conversation_messages order by created_at desc limit 5` · deve ter `vcard` com metadata populada.
+3. Conferir na tela: balão aparece com nome + telefone + botão "Conversar"; preview na lista mostra "👤 Contato".
+4. Testar `contactList` com 2+ contatos (compartilhamento múltiplo do WhatsApp).
