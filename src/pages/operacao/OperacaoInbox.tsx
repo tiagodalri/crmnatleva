@@ -14,6 +14,7 @@ import {
   AlertTriangle, Link2, LayoutGrid, List, Forward,
   ChevronDown, UserPlus, MoreVertical, Images, MapPin,
   Sticker as StickerIcon, BookmarkPlus, Download as DownloadIcon,
+  UserRound, Users, MessageCircle,
 } from "lucide-react";
 import { SendLocationDialog } from "@/components/inbox/SendLocationDialog";
 import { useConversationDelegation } from "@/hooks/useConversationDelegation";
@@ -3572,6 +3573,61 @@ function OperacaoInboxInner() {
                                         )}
                                         {caption && <span className="text-sm leading-relaxed mt-1 break-words"><Linkify text={caption} /></span>}
                                       </div>
+                                    </div>
+                                  );
+                                })()}
+                                {/* Shared contact (vCard) */}
+                                {(msg.message_type === "vcard" || msg.message_type === "multi_vcard") && (() => {
+                                  const contacts = Array.isArray((msg.metadata as any)?.contacts)
+                                    ? (msg.metadata as any).contacts
+                                    : [];
+
+                                  if (contacts.length === 0) {
+                                    return <p className="text-sm leading-relaxed whitespace-pre-wrap"><Linkify text={stripQuotes(msg.text)} /></p>;
+                                  }
+
+                                  return (
+                                    <div className="flex flex-col gap-1.5 min-w-[220px] max-w-[320px]">
+                                      {contacts.slice(0, 3).map((contact: any, contactIndex: number) => {
+                                        const phones = Array.isArray(contact?.phones) ? contact.phones : [];
+                                        const digits = String(phones[0] || "").replace(/\D/g, "");
+                                        const displayName = String(contact?.displayName || contact?.name || "Contato");
+
+                                        return (
+                                          <div key={`${msg.id}-contact-${contactIndex}`} className="flex items-center gap-2.5 rounded-lg bg-background/40 border border-border/40 p-2 min-w-0">
+                                            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                              {msg.message_type === "multi_vcard" ? <Users className="h-4 w-4 text-primary" /> : <UserRound className="h-4 w-4 text-primary" />}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <p className="text-sm font-semibold truncate" title={displayName}>{displayName}</p>
+                                              {phones.length > 0 && (
+                                                <p className="text-[11px] opacity-70 truncate" title={phones.join(" · ")}>
+                                                  {phones.map((phone: string) => {
+                                                    const phoneDigits = String(phone).replace(/\D/g, "");
+                                                    return phoneDigits.length >= 10 ? formatPhoneDisplay(phoneDigits) : String(phone);
+                                                  }).join(" · ")}
+                                                </p>
+                                              )}
+                                            </div>
+                                            {digits.length >= 10 && (
+                                              <a
+                                                href={`https://wa.me/${digits}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/15 transition-colors min-h-8"
+                                                title="Abrir conversa no WhatsApp"
+                                                onClick={(event) => event.stopPropagation()}
+                                              >
+                                                <MessageCircle className="h-3 w-3" />
+                                                Conversar
+                                              </a>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                      {contacts.length > 3 && (
+                                        <p className="text-[11px] opacity-70 pl-1">+{contacts.length - 3} contatos</p>
+                                      )}
                                     </div>
                                   );
                                 })()}
