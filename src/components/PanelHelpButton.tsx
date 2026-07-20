@@ -1604,7 +1604,11 @@ export default function PanelHelpButton() {
   const [tab, setTab] = useState<Tab>("overview");
   const help = getHelpForPath(location.pathname);
 
-  if (!help) return null;
+  // Nas telas de Inbox/WhatsApp o botão flutuante sobrepõe o microfone
+  // da barra de composição · escondemos aqui pra não atrapalhar o clique.
+  const isInboxRoute = location.pathname === "/inbox" || location.pathname.startsWith("/operacao/inbox");
+  if (!help || isInboxRoute) return null;
+
 
   const hasFaq = help.faq && help.faq.length > 0;
   const hasSteps = help.steps && help.steps.length > 0;
