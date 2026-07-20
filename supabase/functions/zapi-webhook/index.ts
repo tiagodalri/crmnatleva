@@ -91,7 +91,30 @@ function extractMsgType(body: any): string {
   if (body.audio) return "audio"; // includes ptt
   if (body.video) return "video";
   if (body.document) return "document";
+  if (Array.isArray(body.contactList?.contacts) && body.contactList.contacts.length > 1) return "multi_vcard";
+  if (body.contact || (Array.isArray(body.contactList?.contacts) && body.contactList.contacts.length === 1)) return "vcard";
   return "text";
+}
+
+// ─── Helper: extract shared contacts (vCard) into a normalized array ───
+function extractSharedContacts(body: any): Array<{ displayName: string; phones: string[]; vCard: string | null }> {
+  const raw: any[] = [];
+  if (body.contact) raw.push(body.contact);
+  if (Array.isArray(body.contactList?.contacts)) raw.push(...body.contactList.contacts);
+  return raw.map((c) => {
+    const displayName = String(c?.displayName || c?.name || "").trim() || "Contato";
+    let phones: string[] = Array.isArray(c?.phones)
+      ? c.phones.map((p: any) => String(p || "").replace(/\D/g, "")).filter(Boolean)
+      : [];
+    // Fallback: parse phones from vCard TEL lines
+    if (phones.length === 0 && typeof c?.vCard === "string") {
+      const matches = c.vCard.match(/TEL[^:]*:([^\r\n]+)/gi) || [];
+      phones = matches
+        .map((m: string) => m.split(":").slice(1).join(":").replace(/\D/g, ""))
+        .filter(Boolean);
+    }
+    return { displayName, phones, vCard: c?.vCard || null };
+  }).filter((c) => c.displayName || c.phones.length > 0);
 }
 
 // ─── Helper: extract media URL (including sticker) ───
@@ -1068,7 +1091,8 @@ Deno.serve(async (req) => {
     }
 
     // Skip if no phone or no content
-    if (!phone || (!textContent && !body.image && !body.audio && !body.video && !body.document && !body.sticker && !hasLocation)) {
+    const hasSharedContact = !!(body.contact || (Array.isArray(body.contactList?.contacts) && body.contactList.contacts.length > 0));
+    if (!phone || (!textContent && !body.image && !body.audio && !body.video && !body.document && !body.sticker && !hasLocation && !hasSharedContact)) {
       if (rawEventId) await supabase.from("whatsapp_events_raw").update({ processed: true, processed_at: new Date().toISOString(), error: "no_phone_or_content" }).eq("id", rawEventId);
       // Still save contact info
       if (phone && (body.senderName || body.chatName)) {
@@ -1127,9 +1151,14 @@ Deno.serve(async (req) => {
     // ═══════════════════════════════════════════════════════════
     // STEP 6: Upsert conversation
     // ═══════════════════════════════════════════════════════════
+    const sharedContacts = (msgType === "vcard" || msgType === "multi_vcard") ? extractSharedContacts(body) : [];
     const preview = msgType === "location"
       ? `📍 Localização${body.location?.name || body.location?.address ? `: ${body.location?.name || body.location?.address}` : ""}`
-      : (textContent || (msgType !== "text" ? `📎 ${msgType}` : ""));
+      : msgType === "vcard"
+        ? `👤 ${sharedContacts[0]?.displayName || "Contato"}`
+        : msgType === "multi_vcard"
+          ? `👥 ${sharedContacts.length} contatos${sharedContacts[0]?.displayName ? `: ${sharedContacts.slice(0, 3).map((c) => c.displayName).join(", ")}` : ""}`
+          : (textContent || (msgType !== "text" ? `📎 ${msgType}` : ""));
     const isGroupMsg = body.isGroup === true || /-group$/i.test(String(rawPhone || "")) || cleanPhone.length >= 15;
     const groupSubject = isGroupMsg ? (body.chatName || null) : null;
     const conversationId = await upsertConversation(supabase, cleanPhone, safeContactName, preview, timestampIso, fromMe, isGroupMsg, groupSubject);
@@ -1266,13 +1295,18 @@ Deno.serve(async (req) => {
         thumbnail_url: body.location.thumbnailUrl || null,
       };
     }
+    if ((msgType === "vcard" || msgType === "multi_vcard") && sharedContacts.length > 0) {
+      messageMetadata.contacts = sharedContacts;
+    }
 
     // ─── Anti-dup de edição: se for outgoing (fromMe) e já existe uma row recente
     // (≤15min) na mesma conversa com o MESMO conteúdo mas external_message_id diferente,
     // é uma callback de edição da Z-API · só atualizamos o id e marcamos is_edited.
     const insertContent = msgType === "location"
       ? (body.location?.name || body.location?.address || `${body.location?.latitude}, ${body.location?.longitude}`)
-      : (textContent || "");
+      : (msgType === "vcard" || msgType === "multi_vcard")
+        ? preview
+        : (textContent || "");
     if (fromMe && msgType === "text" && insertContent && insertContent.trim().length > 0) {
       try {
         const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
