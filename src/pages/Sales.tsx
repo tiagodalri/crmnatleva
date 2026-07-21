@@ -655,6 +655,70 @@ export default function Sales() {
     loadSales();
   }, [authLoading, scopeLoading, loadSales]);
 
+  // WhatsApp enrichment · ancorado em client_id (nunca via telefone puro).
+  // Fluxo: sale.client_id → clients.phone → conversations.phone (normalizado, is_group=false).
+  // O map é indexado por client_id, então mesmo se dois clients tiverem o mesmo telefone
+  // cadastrado por engano, cada venda só recebe o que veio do SEU próprio client.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const clientIds = Array.from(new Set(sales.map((s) => s.client_id).filter((x): x is string => !!x)));
+      if (clientIds.length === 0) { if (!cancelled) setWaMap(new Map()); return; }
+      try {
+        const { data: clientRows } = await (supabase as any)
+          .from("clients")
+          .select("id, phone")
+          .in("id", clientIds);
+        if (cancelled || !clientRows) return;
+        const clientPhone = new Map<string, string>();
+        const phoneSet = new Set<string>();
+        for (const c of clientRows as { id: string; phone: string | null }[]) {
+          const p = normSalesPhone(c.phone);
+          if (p && p.length >= 8) { clientPhone.set(c.id, p); phoneSet.add(p); }
+        }
+        if (phoneSet.size === 0) { if (!cancelled) setWaMap(new Map()); return; }
+        const phoneList = Array.from(phoneSet);
+        const { data: convs } = await (supabase as any)
+          .from("conversations")
+          .select("phone, profile_picture_url, interaction_count, is_group")
+          .in("phone", phoneList)
+          .eq("is_group", false);
+        const byPhone = new Map<string, { photo: string | null; count: number }>();
+        for (const c of (convs || []) as { phone: string; profile_picture_url: string | null; interaction_count: number | null }[]) {
+          const p = normSalesPhone(c.phone);
+          if (!p) continue;
+          const prev = byPhone.get(p);
+          const count = c.interaction_count || 0;
+          if (!prev || count > prev.count) byPhone.set(p, { photo: c.profile_picture_url || null, count });
+        }
+        // Fallback de foto via zapi_contacts para os que não têm foto na conversation
+        const missingPhoto = Array.from(byPhone.entries()).filter(([, v]) => !v.photo).map(([p]) => p);
+        if (missingPhoto.length) {
+          const { data: zc } = await (supabase as any)
+            .from("zapi_contacts")
+            .select("phone, profile_picture_url")
+            .in("phone", missingPhoto)
+            .not("profile_picture_url", "is", null);
+          for (const z of (zc || []) as { phone: string; profile_picture_url: string | null }[]) {
+            const p = normSalesPhone(z.phone);
+            const cur = byPhone.get(p);
+            if (cur && !cur.photo && z.profile_picture_url) cur.photo = z.profile_picture_url;
+          }
+        }
+        const out = new Map<string, SaleWaLink>();
+        for (const [cid, phone] of clientPhone.entries()) {
+          const hit = byPhone.get(phone);
+          if (hit) out.set(cid, { phone, photo: hit.photo, messageCount: hit.count });
+        }
+        if (!cancelled) setWaMap(out);
+      } catch (err) {
+        console.warn("waMap lookup falhou", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sales]);
+
+
   const { pullDistance, refreshing } = usePullToRefresh({
     onRefresh: loadSales,
     enabled: isMobile,
