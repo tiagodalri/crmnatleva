@@ -309,6 +309,8 @@ export default function Leads() {
           city: seed.city ?? null,
           region: seed.region ?? null,
           country: seed.country ?? null,
+          lat: seed.lat ?? null,
+          lng: seed.lng ?? null,
           device: seed.device ?? null,
           userAgent: seed.userAgent ?? null,
           utmSource: seed.utmSource ?? null,
