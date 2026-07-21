@@ -1164,7 +1164,7 @@ export default function Leads() {
             </div>
             <div>
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Vendido</p>
-              <p className="text-lg font-bold text-foreground tabular-nums">{BRL(conversionValue)}</p>
+              <p className="text-base sm:text-lg font-bold text-foreground tabular-nums whitespace-nowrap" title={BRL(conversionValue)}>{BRLcompact(conversionValue)}</p>
             </div>
           </div>
           <p className="text-[10px] text-muted-foreground pt-1">
