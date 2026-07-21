@@ -1926,10 +1926,10 @@ function Kpi({ icon: Icon, label, value, fullValue, hint, tone, delta, onClick }
       )}>
         <Icon className="w-4 h-4" />
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="flex items-center gap-1 flex-wrap">
           <p
-            className="text-base sm:text-lg font-bold text-foreground leading-tight tabular-nums whitespace-nowrap"
+            className="text-sm sm:text-base xl:text-[17px] font-bold text-foreground leading-tight tabular-nums whitespace-nowrap"
             title={fullValue || value}
           >{value}</p>
           {typeof delta === "number" && (
