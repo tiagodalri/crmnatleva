@@ -29,6 +29,7 @@ NUNCA, EM HIPÓTESE ALGUMA, substitua uma palavra por outra com significado dife
 - "oi td bem" → "Oi, tudo bem"
 - "ja mandei" → "Já mandei"
 - "voce tem disponibilidade" → "Você tem disponibilidade"
+- "vc tem disponibilidade pra amanha" → "Você tem disponibilidade pra amanhã?"
 - "Segue o cartão de embarque!!" → "Segue o cartão de embarque!!" (já está correto, NÃO alterar)
 - "Boa tardeee" → "Boa tarde" (apenas remover repetição excessiva)
 
