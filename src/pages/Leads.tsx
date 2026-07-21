@@ -133,8 +133,9 @@ type ProposalViewerRow = {
   city: string | null;
   region: string | null;
   country: string | null;
-  lat: number | null;
-  lng: number | null;
+  latitude: number | null;
+  longitude: number | null;
+
   device_type: string | null;
   user_agent: string | null;
   total_views: number;
