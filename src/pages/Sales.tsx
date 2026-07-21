@@ -241,7 +241,7 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
         </div>
       </td>
       <td className="px-3 py-4">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           {fromPrateleira && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -253,7 +253,25 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
               <TooltipContent>Compra automática · prateleira NatLeva</TooltipContent>
             </Tooltip>
           )}
+          <WhatsAppAvatar
+            src={waLink?.photo || null}
+            name={sale.name || "?"}
+            phone={waLink?.phone || undefined}
+            size={26}
+            className="shrink-0"
+          />
           <p className="font-medium text-foreground truncate">{sale.name}</p>
+          {waLink && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-4 px-1 shrink-0">
+                  <WhatsAppIcon className="w-2.5 h-2.5" />
+                  {waLink.messageCount > 0 ? waLink.messageCount : ""}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>{waIntensityLabel(waLink.messageCount)}</TooltipContent>
+            </Tooltip>
+          )}
           {sale.client_id && (
             <button
               onClick={(e) => { e.stopPropagation(); onNavigateClient(sale.client_id!); }}
@@ -265,6 +283,7 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
           )}
         </div>
       </td>
+
       <td className="px-2 py-4 text-left"><span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(sale.close_date)}</span></td>
       <td className="px-2 py-4"><span className="text-xs font-mono whitespace-nowrap">{fmtShortDate(sale.departure_date) || <span className="text-muted-foreground/40">—</span>}</span></td>
       <td className="px-2 py-4"><span className="text-xs font-mono whitespace-nowrap">{fmtShortDate(sale.return_date) || <span className="text-muted-foreground/40 italic text-[11px]">Somente ida</span>}</span></td>
