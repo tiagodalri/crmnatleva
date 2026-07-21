@@ -30,7 +30,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const DEFAULT_MARGIN = 0.15; // 15% quando não há custo informado
+// Lucro só é contabilizado quando existe internal_cost > 0 na proposta/produto.
+// Nada de margem-fantasma: sem custo informado, não estimamos nem inventamos número.
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
