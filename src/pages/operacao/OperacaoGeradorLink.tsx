@@ -1,16 +1,18 @@
-import { useMemo, useState } from "react";
-import { Link2, Copy, Check, MessageCircle, Smile, QrCode, Trash2, ExternalLink, Sparkles, BarChart3 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link2, Copy, Check, MessageCircle, Smile, QrCode, Trash2, ExternalLink, Sparkles, BarChart3, History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import LazyEmojiPicker from "@/components/LazyEmojiPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPublicHost } from "@/lib/publicUrl";
+import { formatFullSP } from "@/lib/datetime";
 
 // Número fixo da Natleva · WhatsApp oficial
 const NATLEVA_PHONE = "5511966396692";
