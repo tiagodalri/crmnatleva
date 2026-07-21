@@ -1,16 +1,18 @@
-import { useMemo, useState } from "react";
-import { Link2, Copy, Check, MessageCircle, Smile, QrCode, Trash2, ExternalLink, Sparkles, BarChart3 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link2, Copy, Check, MessageCircle, Smile, QrCode, Trash2, ExternalLink, Sparkles, BarChart3, History, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import LazyEmojiPicker from "@/components/LazyEmojiPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPublicHost } from "@/lib/publicUrl";
+import { formatFullSP } from "@/lib/datetime";
 
 // Número fixo da Natleva · WhatsApp oficial
 const NATLEVA_PHONE = "5511966396692";
@@ -46,6 +48,63 @@ export default function OperacaoGeradorLink() {
   const [qrOpen, setQrOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shortLink, setShortLink] = useState<ShortLink | null>(null);
+
+  // Histórico de links
+  const HISTORY_PAGE_SIZE = 50;
+  type HistoryRow = {
+    id: string;
+    short_code: string;
+    label: string | null;
+    click_count: number | null;
+    created_at: string;
+  };
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [copiedRowId, setCopiedRowId] = useState<string | null>(null);
+
+  const loadHistory = useCallback(async (limit: number) => {
+    setHistoryLoading(true);
+    const { data, error } = await supabase
+      .from("whatsapp_short_links")
+      .select("id, short_code, label, click_count, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit + 1);
+    setHistoryLoading(false);
+    if (error) {
+      toast({ title: "Não foi possível carregar o histórico", description: error.message, variant: "destructive" });
+      return;
+    }
+    const rows = (data ?? []) as HistoryRow[];
+    setHistoryHasMore(rows.length > limit);
+    setHistory(rows.slice(0, limit));
+  }, []);
+
+  useEffect(() => {
+    loadHistory(HISTORY_PAGE_SIZE);
+  }, [loadHistory]);
+
+  // Recarrega quando um novo link é gerado
+  useEffect(() => {
+    if (shortLink) loadHistory(Math.max(HISTORY_PAGE_SIZE, history.length));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shortLink?.id]);
+
+  const copyRowUrl = async (row: HistoryRow) => {
+    const url = `${getPublicHost()}/w/${row.short_code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedRowId(row.id);
+      toast({ title: "Link copiado" });
+      setTimeout(() => setCopiedRowId((v) => (v === row.id ? null : v)), 1800);
+    } catch {
+      toast({ title: "Não foi possível copiar", variant: "destructive" });
+    }
+  };
+
+  const openRowUrl = (row: HistoryRow) => {
+    window.open(`${getPublicHost()}/w/${row.short_code}`, "_blank", "noopener,noreferrer");
+  };
 
   const fullWaUrl = useMemo(() => {
     const base = `https://wa.me/${NATLEVA_PHONE}`;
@@ -336,6 +395,125 @@ export default function OperacaoGeradorLink() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Histórico de links */}
+      <Card>
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="space-y-1">
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="h-4 w-4" />
+                Histórico de links
+              </CardTitle>
+              <CardDescription>
+                Todos os links curtos gerados, do mais recente para o mais antigo.
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => loadHistory(Math.max(HISTORY_PAGE_SIZE, history.length))}
+              disabled={historyLoading}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${historyLoading ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {history.length === 0 && !historyLoading ? (
+            <div className="text-sm text-muted-foreground text-center py-8">
+              Nenhum link curto gerado ainda.
+            </div>
+          ) : (
+            <>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[160px]">Rótulo</TableHead>
+                      <TableHead className="min-w-[200px]">Link</TableHead>
+                      <TableHead className="w-[90px] text-center">Cliques</TableHead>
+                      <TableHead className="min-w-[160px]">Criado em</TableHead>
+                      <TableHead className="w-[120px] text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {history.map((row) => {
+                      const url = `${getPublicHost()}/w/${row.short_code}`;
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell className="align-top">
+                            {row.label ? (
+                              <span className="text-sm">{row.label}</span>
+                            ) : (
+                              <span className="text-xs italic text-muted-foreground">sem rótulo</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="font-mono text-xs break-all leading-relaxed">{url}</div>
+                          </TableCell>
+                          <TableCell className="align-top text-center">
+                            <span className="inline-flex items-center gap-1 text-sm font-semibold">
+                              <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                              {row.click_count ?? 0}
+                            </span>
+                          </TableCell>
+                          <TableCell className="align-top text-xs text-muted-foreground whitespace-nowrap">
+                            {formatFullSP(row.created_at)}
+                          </TableCell>
+                          <TableCell className="align-top text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="Copiar link"
+                                onClick={() => copyRowUrl(row)}
+                              >
+                                {copiedRowId === row.id ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="Abrir link"
+                                onClick={() => openRowUrl(row)}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {historyHasMore && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadHistory(history.length + HISTORY_PAGE_SIZE)}
+                    disabled={historyLoading}
+                    className="gap-2"
+                  >
+                    {historyLoading ? "Carregando..." : "Carregar mais"}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>
         <DialogContent className="max-w-sm">
