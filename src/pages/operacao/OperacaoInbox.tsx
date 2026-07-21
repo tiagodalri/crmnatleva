@@ -1089,6 +1089,93 @@ function OperacaoInboxInner() {
     return () => clearTimeout(handle);
   }, [searchQuery]);
 
+  // Busca por nome/telefone no banco (debounced) · complementa a busca local
+  // trazendo conversas que não estão entre as ~500 carregadas em memória.
+  // Não altera a busca por conteúdo de mensagens (que já roda acima).
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) return;
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      try {
+        const like = `%${q.replace(/[%_]/g, (m) => `\\${m}`)}%`;
+        const digits = q.replace(/\D/g, "");
+        const orParts = [
+          `contact_name.ilike.${like}`,
+          `display_name.ilike.${like}`,
+          `group_subject.ilike.${like}`,
+        ];
+        if (digits.length >= 3) orParts.push(`phone.ilike.%${digits}%`);
+        const { data, error } = await supabase
+          .from("conversations")
+          .select("id, phone, contact_name, display_name, stage, funnel_stage, tags, source, last_message_at, last_message_preview, unread_count, is_vip, assigned_to, score_potential, score_risk, is_pinned, profile_picture_url, manually_marked_unread, is_archived, archived_at, is_group, group_subject, group_photo_url, created_at")
+          .is("excluded_at", null)
+          .or(orParts.join(","))
+          .order("last_message_at", { ascending: false, nullsFirst: false })
+          .limit(50);
+        if (cancelled || error || !data || data.length === 0) return;
+
+        const mapped: Conversation[] = data.map((c: any) => {
+          const cleanPhone = String(c.phone || "").replace(/\D/g, "");
+          const canonicalId = cleanPhone ? `wa_${cleanPhone}` : c.id;
+          const isGroup = !!c.is_group || (cleanPhone.length >= 15);
+          if (isGroup && c.group_photo_url && typeof c.group_photo_url === "string" && c.group_photo_url.startsWith("http")) {
+            if (!profilePicsRef.current.has(canonicalId)) profilePicsRef.current.set(canonicalId, c.group_photo_url);
+          } else if (!isGroup && c.profile_picture_url && typeof c.profile_picture_url === "string" && c.profile_picture_url.startsWith("http")) {
+            if (!profilePicsRef.current.has(canonicalId)) profilePicsRef.current.set(canonicalId, c.profile_picture_url);
+          }
+          return {
+            id: canonicalId,
+            db_id: c.id,
+            phone: cleanPhone || c.phone || "",
+            contact_name: isGroup
+              ? (c.group_subject || c.contact_name || c.display_name || "Grupo")
+              : (c.contact_name || c.display_name || c.phone || "Sem nome"),
+            stage: (c.stage || c.funnel_stage || "novo_lead") as Stage,
+            tags: c.tags || [],
+            source: c.source || "",
+            last_message_at: c.last_message_at || "",
+            last_message_preview: c.last_message_preview || "",
+            unread_count: toUnreadCount(c.unread_count),
+            is_vip: !!c.is_vip,
+            assigned_to: c.assigned_to || "",
+            score_potential: c.score_potential || 0,
+            score_risk: c.score_risk || 0,
+            is_pinned: !!c.is_pinned,
+            manually_marked_unread: !!c.manually_marked_unread,
+            is_archived: !!c.is_archived,
+            archived_at: c.archived_at || null,
+            is_group: isGroup,
+            group_subject: c.group_subject || null,
+            group_photo_url: c.group_photo_url || null,
+            created_at: c.created_at || null,
+          } as Conversation;
+        });
+
+        setConversations(prev => {
+          const byId = new Map(prev.map(c => [c.id, c]));
+          let added = 0;
+          for (const nc of mapped) {
+            if (byId.has(nc.id)) continue;
+            byId.set(nc.id, nc);
+            added++;
+          }
+          if (added === 0) return prev;
+          return Array.from(byId.values()).sort((a, b) => {
+            if (a.is_pinned && !b.is_pinned) return -1;
+            if (!a.is_pinned && b.is_pinned) return 1;
+            const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+            const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+            return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+          });
+        });
+      } catch (e) {
+        if (!cancelled) console.warn("[inbox] name search failed", e);
+      }
+    }, 350);
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [searchQuery]);
+
   const filteredConversations = useMemo(() => {
     const filtered = conversations.filter(c => {
       const contactName = c.contact_name || "";
