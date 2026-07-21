@@ -477,14 +477,14 @@ export default function Leads() {
     [leads, prevR]
   );
 
-  // Fetch conversions (leads → clients → sales) for all loaded leads
+  // Fetch conversions + client/sales enrichment (pré-agrega por client_id
+  // ANTES de mapear pro lead pra nunca duplicar linhas por venda)
   useEffect(() => {
     (async () => {
       const emails = Array.from(new Set(leads.map((l) => (l.email || "").toLowerCase().trim()).filter(Boolean)));
       const phones = Array.from(new Set(leads.map((l) => normPhone(l.phone)).filter((p) => p && p.length >= 8)));
       if (emails.length === 0 && phones.length === 0) { setConversions({}); return; }
-      // Fetch clients by email OR phone
-      const clientsQuery = (supabase as any).from("clients").select("id, email, phone");
+      const clientsQuery = (supabase as any).from("clients").select("id, email, phone, customer_since");
       const orParts: string[] = [];
       if (emails.length) orParts.push(`email.in.(${emails.map(e => `"${e}"`).join(",")})`);
       if (phones.length) orParts.push(`phone.in.(${phones.map(p => `"${p}"`).join(",")})`);
@@ -497,27 +497,64 @@ export default function Leads() {
       const clientIds = clientRows.map((c) => c.id);
       const { data: salesRows } = await (supabase as any)
         .from("sales")
-        .select("client_id, received_value, status, created_at")
+        .select("client_id, received_value, total_cost, profit, status, created_at, close_date, destination_city, payment_method")
         .in("client_id", clientIds);
-      // Map client_id -> {count, value}
-      const byClient: Record<string, { count: number; value: number }> = {};
+
+      // Pré-agrega por client_id (nunca por linha)
+      type Bucket = {
+        count: number; value: number; profit: number;
+        firstSaleAt: string | null; lastSaleAt: string | null;
+        destinations: Set<string>; paymentCounts: Map<string, number>;
+      };
+      const byClient: Record<string, Bucket> = {};
       (salesRows || []).forEach((s: any) => {
         if ((s.status || "").toLowerCase() === "cancelado") return;
-        const cur = byClient[s.client_id] || { count: 0, value: 0 };
+        const cur = byClient[s.client_id] || {
+          count: 0, value: 0, profit: 0,
+          firstSaleAt: null, lastSaleAt: null,
+          destinations: new Set<string>(), paymentCounts: new Map<string, number>(),
+        };
         cur.count += 1;
         cur.value += Number(s.received_value || 0);
+        const p = s.profit != null ? Number(s.profit) : Math.max(Number(s.received_value || 0) - Number(s.total_cost || 0), 0);
+        cur.profit += p;
+        const when = s.close_date || s.created_at;
+        if (when) {
+          if (!cur.firstSaleAt || new Date(when) < new Date(cur.firstSaleAt)) cur.firstSaleAt = when;
+          if (!cur.lastSaleAt || new Date(when) > new Date(cur.lastSaleAt)) cur.lastSaleAt = when;
+        }
+        if (s.destination_city) cur.destinations.add(String(s.destination_city));
+        if (s.payment_method && s.payment_method !== "atualizar campo") {
+          cur.paymentCounts.set(s.payment_method, (cur.paymentCounts.get(s.payment_method) || 0) + 1);
+        }
         byClient[s.client_id] = cur;
       });
-      // Attribute to lead keys (email + phone)
-      const out: Record<string, { count: number; value: number }> = {};
+
+      const out: Record<string, LeadEnrichment> = {};
       for (const c of clientRows) {
         const stats = byClient[c.id];
-        if (!stats) continue;
+        const paymentTop = stats
+          ? Array.from(stats.paymentCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+          : null;
+        const enrich: LeadEnrichment = {
+          count: stats?.count ?? 0,
+          value: stats?.value ?? 0,
+          profit: stats?.profit ?? 0,
+          firstSaleAt: stats?.firstSaleAt ?? null,
+          lastSaleAt: stats?.lastSaleAt ?? null,
+          customerSince: c.customer_since ?? null,
+          clientId: c.id,
+          destinations: stats ? Array.from(stats.destinations).slice(0, 8) : [],
+          paymentTop,
+        };
+        // Só marca como "convertido" quem tem venda; mas mantém enrichment pra "cliente sem venda no período"
+        // Ainda assim, só grava em `out` quem casar com email ou phone
         const emailKey = (c.email || "").toLowerCase().trim();
         const phoneKey = normPhone(c.phone);
-        if (emailKey) out[`e:${emailKey}`] = stats;
-        if (phoneKey) out[`p:${phoneKey}`] = stats;
+        if (emailKey) out[`e:${emailKey}`] = enrich;
+        if (phoneKey) out[`p:${phoneKey}`] = enrich;
       }
+      setConversions(out);
       setConversions(out);
     })();
   }, [leads]);
