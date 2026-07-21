@@ -214,25 +214,26 @@ type LeadAggregate = {
   userAgent: string | null;
   utmSource: string | null;
   utmCampaign: string | null;
-  productsViewed: number;
-  proposalsViewed: number;
+  productsViewed: number;      // nº de produtos únicos da Prateleira
+  proposalsViewed: number;     // nº de propostas únicas
   totalViews: number;
   totalSeconds: number;
   ctaCount: number;
   whatsappCount: number;
   firstAt: string;
   lastAt: string;
-  items: LeadItem[];
+  items: LeadItem[];           // JÁ deduplicados por (kind, refId)
   /** ids para deletar */
   prateleiraViewerIds: string[];
   proposalViewerIds: string[];
-  /** financeiro */
-  totalValue: number;        // soma dos pacotes visualizados
-  profitPotential: number;   // lucro potencial estimado
-  topValue: number;          // maior pacote visto
+  /** financeiro (contando cada pacote UMA vez) */
+  totalValue: number;          // soma dos pacotes visualizados (por refId único)
+  profitPotential: number;     // lucro REAL — só considera itens com internal_cost > 0
+  topValue: number;            // maior pacote visto
+  /** transparência de dado incompleto */
+  proposalsWithoutCost: number;
+  productsWithoutCost: number;
 };
-
-type OriginFilter = "all" | "prateleira" | "proposal";
 
 const isOnline = (iso: string) => Date.now() - new Date(iso).getTime() < 2 * 60 * 1000;
 
