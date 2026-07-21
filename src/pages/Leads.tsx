@@ -2152,7 +2152,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                         {p.subtitle || "·"} · {p.views} {p.views === 1 ? "visualização" : "visualizações"} · {formatTime(p.activeSeconds)} ativo
                       </p>
                       <p className="text-[10px] text-muted-foreground/70">
-                        Última vez {formatDistanceToNow(new Date(p.lastAt), { locale: ptBR, addSuffix: true })}
+                        Última vez {formatWhen(p.lastAt)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
