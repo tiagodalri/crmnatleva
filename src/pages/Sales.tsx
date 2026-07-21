@@ -1088,7 +1088,9 @@ export default function Sales() {
                     </div>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
+
             </div>}
 
             {/* Desktop table view · pipeline vertical virtualizado (Aguardando / Emitido) */}
