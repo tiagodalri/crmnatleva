@@ -1018,7 +1018,49 @@ export default function Leads() {
         </Card>
       </div>
 
+      {/* Horário de pico */}
+      {peakHours.total > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+              <Clock className="w-4 h-4 text-primary" />
+              Horário de pico de engajamento
+              <Badge className="text-[9px] border-0 bg-primary/12 text-primary">
+                pico às {String(peakHours.peakIdx).padStart(2, "0")}h
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              quando os leads mais visualizam e engajam · {peakHours.total} interações no período
+            </p>
+          </div>
+          <div className="flex items-end gap-[2px] h-16">
+            {peakHours.buckets.map((v, h) => {
+              const pct = v / peakHours.max;
+              const isPeak = h === peakHours.peakIdx && v > 0;
+              return (
+                <div key={h} className="flex-1 flex flex-col items-center justify-end gap-1 group">
+                  <div
+                    className={cn(
+                      "w-full rounded-t transition-colors",
+                      isPeak ? "bg-primary" : v > 0 ? "bg-primary/40" : "bg-muted/40",
+                    )}
+                    style={{ height: `${Math.max(pct * 100, v > 0 ? 6 : 2)}%` }}
+                    title={`${String(h).padStart(2, "0")}h · ${v} interação${v === 1 ? "" : "ões"}`}
+                  />
+                  {h % 3 === 0 && (
+                    <span className={cn("text-[8.5px] tabular-nums", isPeak ? "text-primary font-semibold" : "text-muted-foreground/70")}>
+                      {String(h).padStart(2, "0")}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {/* Mapa de origem dos leads */}
+
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
