@@ -426,7 +426,7 @@ async function upsertConversation(
 
   const { data: existingConv } = await supabase
     .from("conversations")
-    .select("id, unread_count, contact_name, excluded_at")
+    .select("id, unread_count, contact_name, excluded_at, is_archived, group_subject")
     .or(`phone.eq.${phoneE164},phone.eq.${cleanPhone},external_conversation_id.eq.${convExternalId}`)
     .order("created_at", { ascending: true })
     .limit(1)
