@@ -698,18 +698,23 @@ export default function Leads() {
       const phonesSet = new Set(phones);
       const { data: convData } = await (supabase as any)
         .from("conversations")
-        .select("id, phone, profile_picture_url, last_message_at, is_group")
+        .select("id, phone, profile_picture_url, last_message_at, is_group, interaction_count")
         .eq("is_group", false)
         .not("phone", "is", null)
         .order("last_message_at", { ascending: false })
         .limit(5000);
-      const out: Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }> = {};
+      const out: Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null; messageCount: number }> = {};
       for (const c of (convData || [])) {
         const p = normPhone(c.phone);
         if (!p || !phonesSet.has(p)) continue;
         const prev = out[p];
         if (!prev || (c.last_message_at && (!prev.lastMessageAt || new Date(c.last_message_at) > new Date(prev.lastMessageAt)))) {
-          out[p] = { conversationId: c.id, photo: c.profile_picture_url || null, lastMessageAt: c.last_message_at || null };
+          out[p] = {
+            conversationId: c.id,
+            photo: c.profile_picture_url || null,
+            lastMessageAt: c.last_message_at || null,
+            messageCount: Number(c.interaction_count ?? 0),
+          };
         }
       }
       // Fallback fotos via zapi_contacts
