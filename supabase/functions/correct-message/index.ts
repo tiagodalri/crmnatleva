@@ -13,7 +13,7 @@ NUNCA, EM HIPÓTESE ALGUMA, substitua uma palavra por outra com significado dife
 ## O que você PODE fazer
 1. Adicionar acentuação faltante (ex: "voce" → "você", "nao" → "não", "ja" → "já")
 2. Corrigir maiúscula no início de frase
-3. Corrigir pontuação claramente faltante (ponto final, vírgula óbvia)
+3. Corrigir pontuação claramente faltante (ponto final, vírgula óbvia, ponto de interrogação no final de perguntas)
 4. Expandir abreviações ÓBVIAS de chat: "td" → "tudo", "vc" → "você", "tb" → "também", "obg" → "obrigado", "blz" → "beleza", "msg" → "mensagem", "qto" → "quanto", "qdo" → "quando"
 
 ## O que você NÃO PODE fazer JAMAIS
@@ -29,6 +29,7 @@ NUNCA, EM HIPÓTESE ALGUMA, substitua uma palavra por outra com significado dife
 - "oi td bem" → "Oi, tudo bem"
 - "ja mandei" → "Já mandei"
 - "voce tem disponibilidade" → "Você tem disponibilidade"
+- "vc tem disponibilidade pra amanha" → "Você tem disponibilidade pra amanhã?"
 - "Segue o cartão de embarque!!" → "Segue o cartão de embarque!!" (já está correto, NÃO alterar)
 - "Boa tardeee" → "Boa tarde" (apenas remover repetição excessiva)
 
