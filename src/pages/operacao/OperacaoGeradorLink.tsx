@@ -49,6 +49,63 @@ export default function OperacaoGeradorLink() {
   const [saving, setSaving] = useState(false);
   const [shortLink, setShortLink] = useState<ShortLink | null>(null);
 
+  // Histórico de links
+  const HISTORY_PAGE_SIZE = 50;
+  type HistoryRow = {
+    id: string;
+    short_code: string;
+    label: string | null;
+    click_count: number | null;
+    created_at: string;
+  };
+  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [copiedRowId, setCopiedRowId] = useState<string | null>(null);
+
+  const loadHistory = useCallback(async (limit: number) => {
+    setHistoryLoading(true);
+    const { data, error } = await supabase
+      .from("whatsapp_short_links")
+      .select("id, short_code, label, click_count, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit + 1);
+    setHistoryLoading(false);
+    if (error) {
+      toast({ title: "Não foi possível carregar o histórico", description: error.message, variant: "destructive" });
+      return;
+    }
+    const rows = (data ?? []) as HistoryRow[];
+    setHistoryHasMore(rows.length > limit);
+    setHistory(rows.slice(0, limit));
+  }, []);
+
+  useEffect(() => {
+    loadHistory(HISTORY_PAGE_SIZE);
+  }, [loadHistory]);
+
+  // Recarrega quando um novo link é gerado
+  useEffect(() => {
+    if (shortLink) loadHistory(Math.max(HISTORY_PAGE_SIZE, history.length));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shortLink?.id]);
+
+  const copyRowUrl = async (row: HistoryRow) => {
+    const url = `${getPublicHost()}/w/${row.short_code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedRowId(row.id);
+      toast({ title: "Link copiado" });
+      setTimeout(() => setCopiedRowId((v) => (v === row.id ? null : v)), 1800);
+    } catch {
+      toast({ title: "Não foi possível copiar", variant: "destructive" });
+    }
+  };
+
+  const openRowUrl = (row: HistoryRow) => {
+    window.open(`${getPublicHost()}/w/${row.short_code}`, "_blank", "noopener,noreferrer");
+  };
+
   const fullWaUrl = useMemo(() => {
     const base = `https://wa.me/${NATLEVA_PHONE}`;
     const trimmed = message.trim();
