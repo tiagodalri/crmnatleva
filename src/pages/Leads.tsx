@@ -239,7 +239,7 @@ type LeadAggregate = {
 
 type OriginFilter = "all" | "prateleira" | "proposal";
 
-const isOnline = (iso: string) => Date.now() - new Date(iso).getTime() < 2 * 60 * 1000;
+const isOnline = (iso: string) => Date.now() - new Date(iso).getTime() < 5 * 60 * 1000;
 
 function originLabel(l: LeadAggregate): { label: string; tone: "prateleira" | "proposal" | "both" } {
   if (l.productsViewed > 0 && l.proposalsViewed > 0) return { label: "Ambos", tone: "both" };
