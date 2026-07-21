@@ -30,6 +30,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+/** Compact monetary formatter for tight KPI cards. Preserves precision via tooltip (full value) in the UI. */
+const BRLcompact = (n: number): string => {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `R$ ${(n / 1_000_000_000).toFixed(1).replace(".", ",")} bi`;
+  if (abs >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(1).replace(".", ",")} mi`;
+  if (abs >= 100_000) return `R$ ${Math.round(n / 1_000)} mil`;
+  if (abs >= 10_000) return `R$ ${(n / 1_000).toFixed(1).replace(".", ",")} mil`;
+  return BRL(n);
+};
 // Lucro só é contabilizado quando existe internal_cost > 0 na proposta/produto.
 // Nada de margem-fantasma: sem custo informado, não estimamos nem inventamos número.
 import { formatDistanceToNow, format } from "date-fns";
@@ -43,6 +52,7 @@ import { LeadsConversionFunnel } from "@/components/leads/LeadsConversionFunnel"
 import { CustomerSinceBadge } from "@/components/clients/CustomerSinceBadge";
 import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import ProposalPreviewModal from "@/components/proposal/ProposalPreviewModal";
 
 // Data relativa + data exata juntas ("há cerca de 1 mês · 15/06/2026")
 function formatWhen(iso: string | Date | null | undefined): string {
@@ -890,6 +900,11 @@ export default function Leads() {
         const engaged = l.ctaCount > 0 || l.whatsappCount > 0;
         const temperature: "hot" | "warm" | "cold" =
           engaged ? "hot" : (l.totalSeconds > 30 || l.totalViews > 2) ? "warm" : "cold";
+        const wa = waLinks[normPhone(l.phone)];
+        // Último item visto (o mais recente pelo lastAt do item)
+        const lastItem = [...l.items].sort(
+          (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
+        )[0];
         return {
           key: l.key,
           name: l.name || l.email || "Lead anônimo",
@@ -900,9 +915,13 @@ export default function Leads() {
           temperature,
           isClient: client,
           pipeline: l.totalValue,
+          photo: wa?.photo || null,
+          profit: l.profitPotential > 0 ? l.profitPotential : null,
+          viewing: lastItem?.title || null,
+          lastAt: l.lastAt,
         };
       });
-  }, [periodLeads, conversions]);
+  }, [periodLeads, conversions, waLinks]);
 
   // Funil de conversão (usa o mesmo dataset periodLeads, sem duplicar por evento)
   const funnelStages = useMemo(() => {
@@ -1109,12 +1128,13 @@ export default function Leads() {
           onClick={() => setDrill({ title: "Leads quentes", hint: "Clicaram no CTA ou no WhatsApp.", leads: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0) })} />
         <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas"
           onClick={() => setDrill({ title: "Leads que viram proposta personalizada", leads: periodLeads.filter((l) => l.proposalsViewed > 0) })} />
-        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)}
+        <Kpi icon={DollarSign} label="Pipeline" value={BRLcompact(pipelineValue)} fullValue={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)}
           onClick={() => setDrill({ title: "Pipeline · valor visualizado", hint: "Leads com pacotes/propostas com valor > 0.", leads: [...periodLeads].filter((l) => l.totalValue > 0).sort((a, b) => b.totalValue - a.totalValue) })} />
-        <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="apenas com custo informado" tone="profit"
+        <Kpi icon={Flame} label="Lucro potencial" value={BRLcompact(profitPotential)} fullValue={BRL(profitPotential)} hint="apenas com custo informado" tone="profit"
           onClick={() => setDrill({ title: "Lucro potencial", hint: "Só entra na conta lead com internal_cost preenchido na proposta/produto.", leads: [...periodLeads].filter((l) => l.profitPotential > 0).sort((a, b) => b.profitPotential - a.profitPotential) })} />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead"
+        <Kpi icon={TrendingUp} label="Ticket médio" value={BRLcompact(avgTicket)} fullValue={BRL(avgTicket)} hint="por lead"
           onClick={() => setDrill({ title: "Base do ticket médio", hint: "Todos os leads considerados na média de pipeline.", leads: periodLeads })} />
+
 
       </div>
 
@@ -1145,7 +1165,7 @@ export default function Leads() {
             </div>
             <div>
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Vendido</p>
-              <p className="text-lg font-bold text-foreground tabular-nums">{BRL(conversionValue)}</p>
+              <p className="text-base sm:text-lg font-bold text-foreground tabular-nums whitespace-nowrap" title={BRL(conversionValue)}>{BRLcompact(conversionValue)}</p>
             </div>
           </div>
           <p className="text-[10px] text-muted-foreground pt-1">
@@ -1868,8 +1888,8 @@ export default function Leads() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, hint, tone, delta, onClick }: {
-  icon: any; label: string; value: string; hint?: string;
+function Kpi({ icon: Icon, label, value, fullValue, hint, tone, delta, onClick }: {
+  icon: any; label: string; value: string; fullValue?: string; hint?: string;
   tone?: "hot" | "live" | "value" | "profit"; delta?: number | null;
   onClick?: () => void;
 }) {
@@ -1901,7 +1921,10 @@ function Kpi({ icon: Icon, label, value, hint, tone, delta, onClick }: {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+          <p
+            className="text-base sm:text-lg font-bold text-foreground leading-tight tabular-nums whitespace-nowrap"
+            title={fullValue || value}
+          >{value}</p>
           {typeof delta === "number" && (
             <span className={cn(
               "text-[9.5px] font-semibold px-1 py-0.5 rounded inline-flex items-center gap-0.5 tabular-nums",
@@ -1990,6 +2013,8 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   onDelete: (l: LeadAggregate) => void;
 }) {
   // Preview de conversa removido a pedido — mantemos apenas o botão de abrir no Inbox.
+  const [previewProposal, setPreviewProposal] = useState<string | null>(null);
+
 
 
   if (!lead) return null;
@@ -2005,6 +2030,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   const isClient = (enrichment?.count ?? 0) > 0;
 
   return (
+    <>
     <Dialog open={!!lead} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
@@ -2205,6 +2231,19 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                           {p.whatsapp && <Badge className="text-[9px] border-0 bg-emerald-500/15 text-emerald-600">WhatsApp</Badge>}
                         </div>
                       )}
+                      {p.kind === "proposal" && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewProposal(p.refId);
+                          }}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                          title="Ver a proposta como o cliente vê, sem disparar captura de lead"
+                        >
+                          <Eye className="w-2.5 h-2.5" /> visualizar proposta
+                        </button>
+                      )}
                       {p.slug && (
                         <Link
                           to={p.kind === "proposal" ? `/p/${p.slug}` : `/produtos/${p.slug}/editar`}
@@ -2286,8 +2325,15 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
         </ScrollArea>
       </DialogContent>
     </Dialog>
+    <ProposalPreviewModal
+      open={!!previewProposal}
+      onOpenChange={(o) => { if (!o) setPreviewProposal(null); }}
+      proposalKey={previewProposal}
+    />
+    </>
   );
 }
+
 
 function Info({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
