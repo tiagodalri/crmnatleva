@@ -1991,8 +1991,9 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                 </Badge>
               )}
               {waLink && (
-                <Badge className="text-[9.5px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-5 px-1.5 flex-shrink-0" title="Já é contato no WhatsApp">
-                  <MessageCircle className="w-2.5 h-2.5" /> WhatsApp
+                <Badge className="text-[9.5px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-5 px-1.5 flex-shrink-0" title={whatsappIntensity(waLink.messageCount).label}>
+                  <WhatsAppIcon className="w-2.5 h-2.5" />
+                  {waLink.messageCount > 0 ? `${waLink.messageCount} msg` : "WhatsApp"}
                 </Badge>
               )}
             </span>
