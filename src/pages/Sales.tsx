@@ -620,6 +620,8 @@ export default function Sales() {
   const { canViewAll, sellerId, loading: scopeLoading } = useSalesScope();
 
   const [prateleiraSaleIds, setPrateleiraSaleIds] = useState<Set<string>>(new Set());
+  const [waMap, setWaMap] = useState<Map<string, SaleWaLink>>(new Map());
+
 
   const loadSales = useCallback(async () => {
     const eqFilters = !canViewAll && sellerId ? { seller_id: sellerId } : undefined;
