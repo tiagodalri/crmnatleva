@@ -1669,14 +1669,22 @@ function Kpi({ icon: Icon, label, value, hint, tone, delta, onClick }: {
 }
 
 
-function OriginBar({ label, tone, leads, pipeline, maxPipeline }: {
+function OriginBar({ label, tone, leads, pipeline, maxPipeline, onClick }: {
   label: string; tone: "prateleira" | "proposal"; leads: number; pipeline: number; maxPipeline: number;
+  onClick?: () => void;
 }) {
   const pct = maxPipeline > 0 ? Math.max(2, (pipeline / maxPipeline) * 100) : 0;
   const barColor = tone === "proposal" ? "bg-violet-500" : "bg-sky-500";
   const textColor = tone === "proposal" ? "text-violet-600 dark:text-violet-400" : "text-sky-600 dark:text-sky-400";
+  const clickable = typeof onClick === "function";
   return (
-    <div className="space-y-1">
+    <div
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
+      className={cn("space-y-1 rounded-md -mx-1 px-1 py-1", clickable && "cursor-pointer hover:bg-muted/40 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40")}
+    >
       <div className="flex items-center justify-between text-[11px]">
         <span className={cn("font-semibold", textColor)}>{label}</span>
         <span className="text-muted-foreground tabular-nums">
@@ -1689,6 +1697,7 @@ function OriginBar({ label, tone, leads, pipeline, maxPipeline }: {
     </div>
   );
 }
+
 
 function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
