@@ -292,6 +292,9 @@ export default function ProposalEditor() {
   const [totalMissingHighlight, setTotalMissingHighlight] = useState(false);
   const costInputRef = useRef<HTMLInputElement | null>(null);
   const totalValueInputRef = useRef<HTMLInputElement | null>(null);
+  // Grandfather rule: propostas antigas salvas sem custo continuam editáveis
+  // sem custo. A obrigatoriedade vale só para NOVAS ou para as que já tinham custo.
+  const legacyNoCostRef = useRef<boolean>(false);
 
   const handleManualSave = () => {
     const totalRaw = (formRef.current.total_value ?? "").toString().trim();
@@ -300,7 +303,10 @@ export default function ProposalEditor() {
 
     const costRaw = (formRef.current.internal_cost ?? "").toString().trim();
     const costNum = parseFloat(costRaw);
-    const costMissing = !costRaw || !Number.isFinite(costNum) || costNum <= 0;
+    // Grandfather: propostas antigas sem custo continuam salvando sem custo.
+    // Obrigatório para NOVAS e para as que já tinham custo válido.
+    const costRequired = isNew || !legacyNoCostRef.current;
+    const costMissing = costRequired && (!costRaw || !Number.isFinite(costNum) || costNum <= 0);
 
     if (totalMissing || costMissing) {
       setActiveTab("finance");
@@ -450,6 +456,9 @@ export default function ProposalEditor() {
 
   useEffect(() => {
     if (existing) {
+      const initialCostRaw = (existing as any).internal_cost;
+      const initialCostNum = initialCostRaw != null ? parseFloat(String(initialCostRaw)) : NaN;
+      legacyNoCostRef.current = !Number.isFinite(initialCostNum) || initialCostNum <= 0;
       setForm({
         title: existing.title || "",
         client_name: existing.client_name || "",
