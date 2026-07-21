@@ -23,6 +23,7 @@ import { DelegateConversationDialog } from "@/components/inbox/DelegateConversat
 import { SlashCommandDropdown, type MessageShortcut } from "@/components/inbox/SlashCommandDropdown";
 import { SpellSuggestionBar } from "@/components/inbox/SpellSuggestionBar";
 import { useSpellSuggestion } from "@/hooks/useSpellSuggestion";
+import { localSpellFix } from "@/lib/localSpellFix";
 import { ScheduleMessagePopover } from "@/components/inbox/ScheduleMessagePopover";
 import { ScheduledForConversationButton } from "@/components/inbox/ScheduledForConversationButton";
 import { GroupInfoDialog } from "@/components/inbox/GroupInfoDialog";
