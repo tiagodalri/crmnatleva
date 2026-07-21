@@ -305,7 +305,7 @@ export default function Leads() {
     if (prIds.length) {
       const { data: prData } = await (supabase as any)
         .from("proposals")
-        .select("id, title, slug, cover_image_url, destinations, client_name, total_value")
+        .select("id, title, slug, cover_image_url, destinations, client_name, total_value, internal_cost, internal_profit")
         .in("id", prIds);
       const map: Record<string, ProposalMini> = {};
       (prData || []).forEach((p: ProposalMini) => { map[p.id] = p; });
