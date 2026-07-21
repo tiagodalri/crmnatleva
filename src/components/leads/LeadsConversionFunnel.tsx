@@ -23,7 +23,10 @@ export interface UtmRow {
 interface Props {
   stages: FunnelStage[];
   utm: UtmRow[];
+  onStageClick?: (stage: FunnelStage) => void;
+  onUtmClick?: (utm: UtmRow) => void;
 }
+
 
 const STAGE_ICON: Record<string, typeof Eye> = {
   view: Eye,
