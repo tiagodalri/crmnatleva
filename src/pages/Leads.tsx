@@ -1489,6 +1489,12 @@ export default function Leads() {
 
       {/* Tabela */}
       <Card className="overflow-hidden">
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/40 bg-muted/20">
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            {filtered.length} lead{filtered.length === 1 ? "" : "s"}
+          </p>
+          <SortMenu value={tableSort} onChange={setTableSort} />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/30 border-b border-border/40">
@@ -1505,9 +1511,15 @@ export default function Leads() {
                 <th className="text-left p-3 font-medium">Origem</th>
                 <th className="text-left p-3 font-medium">O que viu</th>
                 <th className="text-left p-3 font-medium">Tempo total</th>
-                <th className="text-left p-3 font-medium">Valor / Lucro</th>
+                <th className="text-left p-3 font-medium">
+                  <SortHeader label="Valor / Lucro" activeAsc={tableSort === "valueAsc"} activeDesc={tableSort === "valueDesc"}
+                    onClick={() => setTableSort(tableSort === "valueDesc" ? "valueAsc" : "valueDesc")} />
+                </th>
                 <th className="text-left p-3 font-medium">Ações</th>
-                <th className="text-left p-3 font-medium">Última visita</th>
+                <th className="text-left p-3 font-medium">
+                  <SortHeader label="Última visita" activeAsc={tableSort === "oldest"} activeDesc={tableSort === "recent"}
+                    onClick={() => setTableSort(tableSort === "recent" ? "oldest" : "recent")} />
+                </th>
                 <th className="p-3"></th>
               </tr>
             </thead>
