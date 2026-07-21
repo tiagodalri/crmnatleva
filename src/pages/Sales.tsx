@@ -30,6 +30,22 @@ import { useExternalSellers, type ExternalSeller } from "@/hooks/useExternalSell
 import { ExternalSellersDialog } from "@/components/sales/ExternalSellersDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSalesScope } from "@/hooks/useSalesScope";
+import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+
+/** Ancorado em client_id: nunca troca a pessoa via telefone; só decora quando há match seguro. */
+export type SaleWaLink = { phone: string; photo: string | null; messageCount: number };
+
+function normSalesPhone(p?: string | null): string {
+  return (p || "").replace(/\D+/g, "");
+}
+function waIntensityLabel(count: number): string {
+  if (count >= 15) return `${count} mensagens · conversamos bastante`;
+  if (count >= 5) return `${count} mensagens trocadas`;
+  if (count > 0) return `${count} ${count === 1 ? "mensagem" : "mensagens"} · contato inicial`;
+  return "Contato aberto no WhatsApp";
+}
+
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
