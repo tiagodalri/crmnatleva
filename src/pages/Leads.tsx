@@ -1517,6 +1517,67 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelet
               <MiniKpi label="Lucro potencial" value={lead.profitPotential > 0 ? BRL(lead.profitPotential) : "·"} tone={lead.profitPotential > 0 ? "hot" : undefined} />
             </div>
 
+            {/* Histórico como cliente */}
+            {enrichment && (enrichment.customerSince || enrichment.count > 0) && (
+              <Card className={cn(
+                "p-4 space-y-3 border",
+                enrichment.count > 0
+                  ? "border-emerald-500/30 bg-emerald-500/[0.04]"
+                  : "border-primary/20 bg-primary/[0.03]"
+              )}>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                    {enrichment.count > 0 ? "Já é seu cliente" : "Cadastrado no CRM · sem venda ainda"}
+                  </div>
+                  {enrichment.customerSince && (
+                    <CustomerSinceBadge customerSince={enrichment.customerSince} />
+                  )}
+                </div>
+                {enrichment.count > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Vendas</p>
+                      <p className="text-sm font-bold text-foreground tabular-nums">{enrichment.count}</p>
+                    </div>
+                    <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Receita total</p>
+                      <p className="text-sm font-bold text-emerald-600 tabular-nums">
+                        {enrichment.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Lucro total</p>
+                      <p className="text-sm font-bold text-primary tabular-nums">
+                        {enrichment.profit.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    {enrichment.paymentTop && (
+                      <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Pagamento</p>
+                        <p className="text-[11px] font-semibold text-foreground truncate">{enrichment.paymentTop}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {enrichment.destinations.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Destinos anteriores:</span>
+                    {enrichment.destinations.map((d) => (
+                      <Badge key={d} variant="outline" className="text-[10px] py-0 px-1.5 h-5">{d}</Badge>
+                    ))}
+                  </div>
+                )}
+                {enrichment.count > 0 && enrichment.lastSaleAt && (
+                  <p className="text-[10.5px] text-muted-foreground">
+                    Última venda: {format(new Date(enrichment.lastSaleAt), "dd/MM/yyyy", { locale: ptBR })}
+                    {enrichment.firstSaleAt && enrichment.firstSaleAt !== enrichment.lastSaleAt && (
+                      <> · Primeira: {format(new Date(enrichment.firstSaleAt), "dd/MM/yyyy", { locale: ptBR })}</>
+                    )}
+                  </p>
+                )}
+              </Card>
+            )}
 
             {/* Itens visualizados */}
             <Card className="p-4 space-y-3">
