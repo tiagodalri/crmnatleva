@@ -1706,27 +1706,8 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
-  const [waPreview, setWaPreview] = useState<Array<{ id: string; content: string | null; sender_type: string | null; created_at: string; message_type: string | null }>>([]);
-  const [waLoading, setWaLoading] = useState(false);
+  // Preview de conversa removido a pedido — mantemos apenas o botão de abrir no Inbox.
 
-  useEffect(() => {
-    if (!lead || !waLink) { setWaPreview([]); return; }
-    let cancelled = false;
-    (async () => {
-      setWaLoading(true);
-      const { data } = await (supabase as any)
-        .from("conversation_messages")
-        .select("id, content, sender_type, created_at, message_type")
-        .eq("conversation_id", waLink.conversationId)
-        .order("created_at", { ascending: false })
-        .limit(3);
-      if (!cancelled) {
-        setWaPreview((data || []).slice().reverse());
-        setWaLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [lead?.key, waLink?.conversationId]);
 
   if (!lead) return null;
 
