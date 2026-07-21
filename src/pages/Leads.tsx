@@ -1197,7 +1197,31 @@ export default function Leads() {
       </Card>
 
       {/* Funil de conversão + retorno por canal */}
-      <LeadsConversionFunnel stages={funnelStages} utm={utmRanking} />
+      <LeadsConversionFunnel
+        stages={funnelStages}
+        utm={utmRanking}
+        onStageClick={(s) => {
+          const map: Record<string, LeadAggregate[]> = {
+            view: periodLeads,
+            engage: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0),
+            proposal: periodLeads.filter((l) => l.proposalsViewed > 0),
+            sale: convertedLeads,
+          };
+          setDrill({ title: `Funil · ${s.label}`, hint: `${s.leads} leads nesta etapa.`, leads: map[s.key] || [] });
+        }}
+        onUtmClick={(u) => {
+          setDrill({
+            title: `Canal · ${u.source}`,
+            hint: `${u.leads} leads · pipeline ${u.pipeline > 0 ? BRL(u.pipeline) : "sem valor"} · fechado ${u.soldValue > 0 ? BRL(u.soldValue) : "—"}.`,
+            leads: periodLeads.filter((l) => {
+              const src = l.utmSource
+                || (l.proposalsViewed > 0 && l.productsViewed === 0 ? "Direto/Proposta" : "Direto");
+              return src === u.source;
+            }),
+          });
+        }}
+      />
+
 
 
       {/* Quentes sem retorno */}
