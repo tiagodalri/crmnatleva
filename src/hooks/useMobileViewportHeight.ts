@@ -2,14 +2,24 @@ import { useEffect } from "react";
 
 /**
  * Mantém a CSS var `--app-vh` sincronizada com a altura REAL do visual viewport
- * (considera o teclado virtual no iOS/Android) e BLOQUEIA o scroll do documento
- * para evitar que o iOS empurre o conteúdo para cima ao abrir o teclado.
+ * (considera o teclado virtual no iOS/Android) e trava o scroll do documento
+ * para impedir que o iOS "empurre" a página quando o teclado aparece.
  *
  * Uso no CSS: `height: var(--app-vh, 100dvh)` ou classe `h-app-vh`.
  *
- * Bugs resolvidos:
- *  · iOS PWA "tela voa pra cima" ao focar input com teclado virtual.
- *  · Layout shift do composer quando o teclado abre/fecha.
+ * DESIGN (v2 · anti-jitter):
+ *  · SÓ atualiza --app-vh em `visualViewport.resize` (evento discreto quando o
+ *    teclado abre/fecha). Ignoramos `visualViewport.scroll` porque ele dispara
+ *    a cada frame de animação e de pan do usuário, causando thrashing no
+ *    ResizeObserver do chat (bug: "tela sobe sozinha ao focar o input").
+ *  · NÃO reescrevemos `window.scrollTo(0,0)` em cada scroll: com o body em
+ *    `position:fixed;top:0` o window já não pode rolar; qualquer write extra
+ *    briga com o auto-scroll-into-view nativo do teclado.
+ *  · NÃO usamos `focusin` para re-clampar: o browser faz o certo com
+ *    `interactive-widget=resizes-content` (Android) e o lock do body basta pra
+ *    iOS. Handlers extras aqui criam o loop "sobe · desce · sobe".
+ *  · Debounce por rAF: mesmo que o vv.resize dispare em rajada, escrevemos
+ *    --app-vh uma vez por frame, no máximo.
  */
 export function useMobileViewportHeight(enabled: boolean) {
   useEffect(() => {
@@ -18,8 +28,8 @@ export function useMobileViewportHeight(enabled: boolean) {
     const root = document.documentElement;
     const body = document.body;
 
-    // ── Lock document scroll (impede iOS de "scrollar a página" quando o
-    //    teclado abre). Mantém position fixed no body para travar visual.
+    // ── Lock document scroll: impede iOS de rolar a página quando o teclado
+    //    abre. Necessário porque nem todo iOS respeita interactive-widget.
     const prev = {
       htmlOverflow: root.style.overflow,
       htmlHeight: root.style.height,
@@ -42,54 +52,41 @@ export function useMobileViewportHeight(enabled: boolean) {
     body.style.height = "100%";
     (body.style as any).overscrollBehavior = "none";
 
-    const setHeight = () => {
+    let rafId: number | null = null;
+    let lastAppliedH = 0;
+
+    const applyHeight = () => {
+      rafId = null;
       const vv = window.visualViewport;
       const h = vv ? vv.height : window.innerHeight;
-      root.style.setProperty("--app-vh", `${h}px`);
-      // Clamp: alguns navegadores ainda tentam scrollar o layout viewport
-      // quando o input é focado. Forçar 0 mantém o container "fixed" alinhado.
-      if (window.scrollY !== 0) window.scrollTo(0, 0);
+      // Snap para inteiro para evitar mudanças de sub-pixel (que fazem o
+      // ResizeObserver do chat disparar sem motivo).
+      const snapped = Math.round(h);
+      if (snapped === lastAppliedH) return;
+      lastAppliedH = snapped;
+      root.style.setProperty("--app-vh", `${snapped}px`);
     };
 
-    setHeight();
+    const scheduleApply = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(applyHeight);
+    };
+
+    // Aplica uma vez no boot.
+    applyHeight();
 
     const vv = window.visualViewport;
-    const onScroll = () => {
-      if (window.scrollY !== 0) window.scrollTo(0, 0);
-    };
-
     if (vv) {
-      vv.addEventListener("resize", setHeight);
-      vv.addEventListener("scroll", setHeight);
+      // SÓ resize · NÃO scroll. O evento scroll do vv fica intocado.
+      vv.addEventListener("resize", scheduleApply);
     } else {
-      window.addEventListener("resize", setHeight);
+      window.addEventListener("resize", scheduleApply);
     }
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    // Quando um input/textarea recebe foco, iOS tenta "scrollIntoView" e arrasta
-    // o layout. Re-clampamos depois do próximo frame para anular o salto.
-    const onFocusIn = (e: FocusEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (!t) return;
-      if (t.tagName !== "INPUT" && t.tagName !== "TEXTAREA" && !t.isContentEditable) return;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (window.scrollY !== 0) window.scrollTo(0, 0);
-          setHeight();
-        });
-      });
-    };
-    document.addEventListener("focusin", onFocusIn);
 
     return () => {
-      if (vv) {
-        vv.removeEventListener("resize", setHeight);
-        vv.removeEventListener("scroll", setHeight);
-      } else {
-        window.removeEventListener("resize", setHeight);
-      }
-      window.removeEventListener("scroll", onScroll);
-      document.removeEventListener("focusin", onFocusIn);
+      if (rafId != null) cancelAnimationFrame(rafId);
+      if (vv) vv.removeEventListener("resize", scheduleApply);
+      else window.removeEventListener("resize", scheduleApply);
       root.style.overflow = prev.htmlOverflow;
       root.style.height = prev.htmlHeight;
       root.style.position = prev.htmlPosition;

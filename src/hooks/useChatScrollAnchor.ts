@@ -103,30 +103,59 @@ export function useChatScrollAnchor({
 
   // Stay pinned while at bottom AND user has not taken control.
   // Triggered by content size changes (media loading, new message append).
+  //
+  // BUG FIX ("tela sobe sozinha ao focar input mobile"): quando o teclado
+  // virtual abre, o container ENCOLHE (--app-vh diminui). O ResizeObserver
+  // enxerga isso como "size change" e chamava keepPinned → scrollTop =
+  // scrollHeight, o que dava a impressão de que a tela subia sozinha, mesmo
+  // quando o usuário puxava pra baixo. Correções:
+  //   1) Só re-pin quando o CONTEÚDO cresceu (scrollHeight aumentou),
+  //      ignorando encolhimento do próprio container (keyboard open).
+  //   2) rAF-debounce pra não repintar múltiplas vezes por frame durante
+  //      animação de teclado.
   useEffect(() => {
     const c = containerRef.current;
     if (!c) return;
 
+    let lastScrollHeight = c.scrollHeight;
+    let rafId: number | null = null;
+
     const keepPinned = () => {
+      rafId = null;
       if (!readyRef.current) return;
       if (userTookControlRef.current) return;
       if (!isAtBottomRef.current) return;
-      c.scrollTop = c.scrollHeight;
+      const currentSH = c.scrollHeight;
+      // Só ancora se o conteúdo cresceu · encolhimento do container (teclado
+      // abrindo) não deve reposicionar o scroll.
+      if (currentSH <= lastScrollHeight) {
+        lastScrollHeight = currentSH;
+        return;
+      }
+      lastScrollHeight = currentSH;
+      c.scrollTop = currentSH;
     };
 
-    const ro = new ResizeObserver(() => keepPinned());
+    const schedule = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(keepPinned);
+    };
+
+    const ro = new ResizeObserver(schedule);
     Array.from(c.children).forEach((child) => ro.observe(child as Element));
-    ro.observe(c);
+    // NÃO observamos o próprio container: só as crianças (mensagens/mídia).
+    // Assim, encolhimento do container por causa do teclado não dispara pin.
 
     const onMediaLoad = (e: Event) => {
       const t = e.target as HTMLElement | null;
       if (!t) return;
-      if (t.tagName === "IMG" || t.tagName === "VIDEO") keepPinned();
+      if (t.tagName === "IMG" || t.tagName === "VIDEO") schedule();
     };
     c.addEventListener("load", onMediaLoad, true);
     c.addEventListener("loadeddata", onMediaLoad, true);
 
     return () => {
+      if (rafId != null) cancelAnimationFrame(rafId);
       ro.disconnect();
       c.removeEventListener("load", onMediaLoad, true);
       c.removeEventListener("loadeddata", onMediaLoad, true);
