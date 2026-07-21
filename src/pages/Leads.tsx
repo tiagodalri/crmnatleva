@@ -1714,7 +1714,7 @@ export default function Leads() {
             ) : (
               <div className="space-y-1.5">
                 {drill && sortLeads(drill.leads, drillSort).map((l) => {
-                  const wa = waLinks[l.key];
+                  const wa = waLinks[normPhone(l.phone)];
                   const conv = conversions[l.key];
                   const isClient = (conv?.count ?? 0) > 0;
                   const online = isOnline(l.lastAt);
