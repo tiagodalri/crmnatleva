@@ -259,6 +259,8 @@ export default function Leads() {
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customOpen, setCustomOpen] = useState(false);
   const [conversions, setConversions] = useState<Record<string, LeadEnrichment>>({});
+  const [waLinks, setWaLinks] = useState<Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }>>({});
+
 
   const fetchAll = async () => {
     setLoading(true);
