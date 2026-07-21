@@ -1390,7 +1390,9 @@ function OperacaoInboxInner() {
     if (!/[a-zA-ZáéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]/.test(trimmed)) return null;
     try {
       const invokePromise = supabase.functions.invoke("correct-message", { body: { text: trimmed } });
-      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+      // Teto de 6s · a chamada real fica entre 0.8s e 2s morno, mas cold start
+      // pode passar de 3s. 2.5s era apertado demais e engolia quase toda sugestão.
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000));
       const result: any = await Promise.race([invokePromise, timeout]);
       if (!result) return null;
       if (result.error) return null;
