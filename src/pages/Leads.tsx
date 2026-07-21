@@ -1770,13 +1770,13 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
               </div>
             </Card>
 
-            {/* Prévia da conversa WhatsApp */}
+            {/* Atalho para abrir a conversa completa no Inbox */}
             {waLink && (
-              <Card className="p-4 space-y-3 border-emerald-500/25 bg-emerald-500/[0.03]">
+              <Card className="p-3 border-emerald-500/25 bg-emerald-500/[0.03]">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                    Prévia da conversa
+                    Conversa WhatsApp ativa
                     {waLink.lastMessageAt && (
                       <span className="text-[10px] font-normal text-muted-foreground">
                         última: {formatDistanceToNow(new Date(waLink.lastMessageAt), { locale: ptBR, addSuffix: true })}
@@ -1785,51 +1785,14 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                   </div>
                   <Link
                     to={`/operacao/inbox?conversation=${waLink.conversationId}`}
-                    className="text-[10.5px] text-primary hover:underline inline-flex items-center gap-0.5"
+                    className="text-[10.5px] text-primary hover:underline inline-flex items-center gap-1"
                   >
                     Abrir conversa completa <ExternalLink className="w-2.5 h-2.5" />
                   </Link>
                 </div>
-                {waLoading ? (
-                  <p className="text-[10.5px] text-muted-foreground animate-pulse">Carregando mensagens...</p>
-                ) : waPreview.length === 0 ? (
-                  <p className="text-[10.5px] text-muted-foreground">Ainda sem mensagens registradas.</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {waPreview.map((m) => {
-                      const mine = m.sender_type === "atendente";
-                      const preview =
-                        m.message_type && m.message_type !== "text"
-                          ? `[${m.message_type}]`
-                          : (m.content || "").slice(0, 180);
-                      return (
-                        <div
-                          key={m.id}
-                          className={cn(
-                            "text-[11px] px-2.5 py-1.5 rounded-md border",
-                            mine
-                              ? "border-emerald-500/25 bg-emerald-500/10 ml-6"
-                              : "border-border/40 bg-background mr-6",
-                          )}
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                              {mine ? "Você" : "Cliente"}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground tabular-nums">
-                              {format(new Date(m.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                            </span>
-                          </div>
-                          <p className="text-foreground whitespace-pre-wrap break-words">
-                            {preview || <span className="text-muted-foreground italic">·</span>}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </Card>
             )}
+
 
 
 
