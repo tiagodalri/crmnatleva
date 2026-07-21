@@ -1375,12 +1375,58 @@ function OperacaoInboxInner() {
     }
   }, [rebuildingHistoryAll, ensureWhatsAppWebhookSync]);
 
+  // ─── Correção ortográfica no envio ───
+  // Ref de override permite acceptSpellSuggestion mandar o texto corrigido
+  // sem esperar o setInputText renderizar. skipCorrectionRef pula a checagem
+  // quando o usuário já aprovou (ou dispensou) a sugestão.
+  const sendOverrideRef = useRef<string | null>(null);
+  const skipCorrectionRef = useRef(false);
+  const [pendingCorrection, setPendingCorrection] = useState<{ original: string; corrected: string } | null>(null);
+
+  const runSpellCheck = useCallback(async (text: string): Promise<string | null> => {
+    const trimmed = text.trim();
+    if (trimmed.length < 8) return null;
+    if (trimmed.startsWith("/")) return null;
+    if (!/[a-zA-ZáéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]/.test(trimmed)) return null;
+    try {
+      const invokePromise = supabase.functions.invoke("correct-message", { body: { text: trimmed } });
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+      const result: any = await Promise.race([invokePromise, timeout]);
+      if (!result) return null;
+      if (result.error) return null;
+      const corrected = result.data?.corrected;
+      if (typeof corrected !== "string") return null;
+      const c = corrected.trim();
+      if (!c || c === trimmed) return null;
+      return c;
+    } catch {
+      return null;
+    }
+  }, []);
+
   // Send message
   const handleSend = useCallback(async () => {
-    if (!inputText.trim() || !selectedId || isSending) return;
+    const overrideText = sendOverrideRef.current;
+    sendOverrideRef.current = null;
+    const rawInput = overrideText ?? inputText;
+    if (!rawInput.trim() || !selectedId || isSending) return;
+
+    // Checa correção antes de enviar (uma única vez por envio · rápido, com timeout).
+    if (!skipCorrectionRef.current && !editingMsg && !overrideText) {
+      const raw = rawInput.trim();
+      setIsSending(true);
+      const corrected = await runSpellCheck(raw);
+      setIsSending(false);
+      if (corrected) {
+        setPendingCorrection({ original: raw, corrected });
+        return;
+      }
+    }
+    skipCorrectionRef.current = false;
+
     setIsSending(true);
     // ─── Local spell fix · síncrono, zero latência, aplicado no envio ───
-    const text = localSpellFix(inputText.trim());
+    const text = localSpellFix(rawInput.trim());
 
     if (editingMsg) {
       const msgToEdit = editingMsg;
