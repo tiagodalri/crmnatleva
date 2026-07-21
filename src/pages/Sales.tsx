@@ -431,6 +431,8 @@ interface VirtualEmissionGroupProps {
   onRequestDelete: (sale: SaleRow) => void;
   canDelete: boolean;
   prateleiraSaleIds: Set<string>;
+  waMap: Map<string, SaleWaLink>;
+
 }
 
 function VirtualEmissionGroup({
@@ -454,7 +456,9 @@ function VirtualEmissionGroup({
   onRequestDelete,
   canDelete,
   prateleiraSaleIds,
+  waMap,
 }: VirtualEmissionGroupProps) {
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
     count: sales.length,
@@ -542,6 +546,8 @@ function VirtualEmissionGroup({
                         onRequestDelete={onRequestDelete}
                         canDelete={canDelete}
                         fromPrateleira={prateleiraSaleIds.has(sale.id)}
+                        waLink={sale.client_id ? waMap.get(sale.client_id) || null : null}
+
                       />
                     );
                   })}
