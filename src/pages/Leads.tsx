@@ -1908,8 +1908,8 @@ function Kpi({ icon: Icon, label, value, fullValue, hint, tone, delta, onClick }
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
       className={cn(
-        "p-3 flex items-start gap-2.5 rounded-2xl border-border/40 transition",
-        clickable && "cursor-pointer hover:border-primary/40 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "p-3 flex items-start gap-2.5 rounded-2xl border-border/40 transition-all duration-200",
+        clickable && "cursor-pointer hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         tone === "hot" && "border-accent/40 bg-accent/5",
         tone === "live" && "border-emerald-500/40 bg-emerald-500/5",
         tone === "value" && "border-sky-500/30 bg-sky-500/5",
