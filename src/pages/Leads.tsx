@@ -1919,7 +1919,10 @@ function Kpi({ icon: Icon, label, value, fullValue, hint, tone, delta, onClick }
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+          <p
+            className="text-base sm:text-lg font-bold text-foreground leading-tight tabular-nums whitespace-nowrap"
+            title={fullValue || value}
+          >{value}</p>
           {typeof delta === "number" && (
             <span className={cn(
               "text-[9.5px] font-semibold px-1 py-0.5 rounded inline-flex items-center gap-0.5 tabular-nums",
