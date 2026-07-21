@@ -60,8 +60,17 @@ export function LeadsConversionFunnel({ stages, utm, onStageClick, onUtmClick }:
             const pct = topLeads > 0 ? Math.max(4, (s.leads / topLeads) * 100) : 0;
             const prev = i > 0 ? stages[i - 1] : null;
             const conv = prev && prev.leads > 0 ? (s.leads / prev.leads) * 100 : null;
+            const clickable = typeof onStageClick === "function";
             return (
-              <div key={s.key} className={cn("rounded-xl border p-2.5", c.ring)}>
+              <div
+                key={s.key}
+                role={clickable ? "button" : undefined}
+                tabIndex={clickable ? 0 : undefined}
+                onClick={clickable ? () => onStageClick!(s) : undefined}
+                onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onStageClick!(s); } } : undefined}
+                className={cn("rounded-xl border p-2.5 transition", c.ring, clickable && "cursor-pointer hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40")}
+              >
+
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center bg-background border border-border/40")}>
