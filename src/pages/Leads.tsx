@@ -172,7 +172,7 @@ type ProposalClickRow = {
 type LeadItem = {
   kind: "product" | "proposal";
   refId: string;            // product_id ou proposal_id
-  viewerId: string;         // id da linha da viewer table (para delete)
+  viewerIds: string[];      // ids das linhas da viewer table (podem ser várias sessões do MESMO ref)
   title: string;
   subtitle: string | null;  // destino / cliente
   cover: string | null;
@@ -183,8 +183,9 @@ type LeadItem = {
   whatsapp: boolean;
   firstAt: string;
   lastAt: string;
-  value: number;            // valor unitário do pacote
-  profit: number;           // lucro potencial estimado
+  value: number;            // valor unitário do pacote (contado UMA vez por refId)
+  profit: number;           // lucro real (só se internal_cost > 0); 0 quando desconhecido
+  costUnknown: boolean;     // true quando value > 0 mas não há custo interno informado
 };
 
 type LeadEnrichment = {
