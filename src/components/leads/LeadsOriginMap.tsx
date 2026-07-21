@@ -240,47 +240,69 @@ export function LeadsOriginMap({ pins, onPinClick, className }: Props) {
         })}
 
         {activePin && (
-          <InfoWindowF
+          <OverlayViewF
             position={{ lat: activePin.lat, lng: activePin.lng }}
-            onCloseClick={() => setSelected(null)}
-            options={{ pixelOffset: new google.maps.Size(0, -22), disableAutoPan: true }}
+            mapPaneName={OverlayView.FLOAT_PANE}
+            getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -(h + 26) })}
           >
-            <div className="px-1 py-0.5 text-slate-900 space-y-1" style={{ minWidth: 200, maxWidth: 260 }}>
-              <div className="flex items-center gap-1.5 text-[13px] font-semibold">
-                {activePin.isClient ? (
-                  <Trophy className="h-3.5 w-3.5 text-emerald-600" />
-                ) : activePin.temperature === "hot" ? (
-                  <Flame className="h-3.5 w-3.5 text-red-500" />
-                ) : (
-                  <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                )}
-                <span className="truncate">{activePin.name}</span>
-              </div>
-              {activePin.viewing && (
-                <div className="text-[10.5px] text-slate-700">
-                  <span className="text-slate-500">Vendo:</span> <span className="font-medium">{activePin.viewing}</span>
+            <div
+              className="pointer-events-none animate-in fade-in zoom-in-95 duration-150"
+              style={{ filter: "drop-shadow(0 6px 20px rgba(15,23,42,0.18))" }}
+            >
+              <div
+                className="rounded-xl bg-white border border-slate-200/80 px-3 py-2.5 text-slate-900 space-y-1.5"
+                style={{ minWidth: 220, maxWidth: 280 }}
+              >
+                <div className="flex items-center gap-1.5 text-[13px] font-semibold leading-tight">
+                  {activePin.isClient ? (
+                    <Trophy className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+                  ) : activePin.temperature === "hot" ? (
+                    <Flame className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                  ) : (
+                    <MapPin className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+                  )}
+                  <span className="truncate">{activePin.name}</span>
                 </div>
-              )}
-              <div className="text-[10.5px] text-slate-600">
-                {[activePin.city, activePin.country].filter(Boolean).join(", ") || "—"}
-              </div>
-              <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10.5px] pt-0.5 border-t border-slate-200">
-                {activePin.pipeline > 0 && (
-                  <span className="font-semibold text-slate-800">{BRL(activePin.pipeline)}</span>
+                {activePin.viewing && (
+                  <div className="flex items-start gap-1 text-[10.5px] text-slate-700">
+                    <Eye className="h-3 w-3 mt-0.5 text-slate-400 flex-shrink-0" />
+                    <span className="line-clamp-2 leading-snug">{activePin.viewing}</span>
+                  </div>
                 )}
-                {typeof activePin.profit === "number" && activePin.profit > 0 ? (
-                  <span className="text-emerald-700 font-medium">~{BRL(activePin.profit)} lucro</span>
-                ) : (
-                  <span className="text-slate-500">Custo não informado</span>
-                )}
-              </div>
-              {activePin.lastAt && (
-                <div className="text-[10px] text-slate-500">
-                  {relTime(activePin.lastAt)} · {exactDate(activePin.lastAt)}
+                <div className="text-[10.5px] text-slate-500">
+                  {[activePin.city, activePin.country].filter(Boolean).join(", ") || "—"}
                 </div>
-              )}
+                {(activePin.pipeline > 0 || (typeof activePin.profit === "number" && activePin.profit > 0)) && (
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] pt-1 border-t border-slate-100">
+                    {activePin.pipeline > 0 && (
+                      <span className="font-semibold text-slate-800 tabular-nums">{BRL(activePin.pipeline)}</span>
+                    )}
+                    {typeof activePin.profit === "number" && activePin.profit > 0 && (
+                      <span className="text-emerald-700 font-medium tabular-nums">
+                        {BRL(activePin.profit)} <span className="text-emerald-600/70 font-normal">lucro</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+                {activePin.lastAt && (
+                  <div className="text-[10px] text-slate-400">
+                    {relTime(activePin.lastAt)} · {exactDate(activePin.lastAt)}
+                  </div>
+                )}
+              </div>
+              {/* Arrow */}
+              <div
+                className="mx-auto -mt-px"
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: "6px solid transparent",
+                  borderRight: "6px solid transparent",
+                  borderTop: "7px solid #ffffff",
+                }}
+              />
             </div>
-          </InfoWindowF>
+          </OverlayViewF>
         )}
       </GoogleMap>
 
