@@ -30,7 +30,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const DEFAULT_MARGIN = 0.15; // 15% quando não há custo informado
+// Lucro só é contabilizado quando existe internal_cost > 0 na proposta/produto.
+// Nada de margem-fantasma: sem custo informado, não estimamos nem inventamos número.
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -153,6 +154,8 @@ type ProposalMini = {
   destinations: string[] | null;
   client_name: string | null;
   total_value: number | null;
+  internal_cost: number | null;
+  internal_profit: number | null;
 };
 
 type ProposalClickRow = {
@@ -169,7 +172,7 @@ type ProposalClickRow = {
 type LeadItem = {
   kind: "product" | "proposal";
   refId: string;            // product_id ou proposal_id
-  viewerId: string;         // id da linha da viewer table (para delete)
+  viewerIds: string[];      // ids das linhas da viewer table (podem ser várias sessões do MESMO ref)
   title: string;
   subtitle: string | null;  // destino / cliente
   cover: string | null;
@@ -180,8 +183,9 @@ type LeadItem = {
   whatsapp: boolean;
   firstAt: string;
   lastAt: string;
-  value: number;            // valor unitário do pacote
-  profit: number;           // lucro potencial estimado
+  value: number;            // valor unitário do pacote (contado UMA vez por refId)
+  profit: number;           // lucro real (só se internal_cost > 0); 0 quando desconhecido
+  costUnknown: boolean;     // true quando value > 0 mas não há custo interno informado
 };
 
 type LeadEnrichment = {
@@ -210,22 +214,25 @@ type LeadAggregate = {
   userAgent: string | null;
   utmSource: string | null;
   utmCampaign: string | null;
-  productsViewed: number;
-  proposalsViewed: number;
+  productsViewed: number;      // nº de produtos únicos da Prateleira
+  proposalsViewed: number;     // nº de propostas únicas
   totalViews: number;
   totalSeconds: number;
   ctaCount: number;
   whatsappCount: number;
   firstAt: string;
   lastAt: string;
-  items: LeadItem[];
+  items: LeadItem[];           // JÁ deduplicados por (kind, refId)
   /** ids para deletar */
   prateleiraViewerIds: string[];
   proposalViewerIds: string[];
-  /** financeiro */
-  totalValue: number;        // soma dos pacotes visualizados
-  profitPotential: number;   // lucro potencial estimado
-  topValue: number;          // maior pacote visto
+  /** financeiro (contando cada pacote UMA vez) */
+  totalValue: number;          // soma dos pacotes visualizados (por refId único)
+  profitPotential: number;     // lucro REAL — só considera itens com internal_cost > 0
+  topValue: number;            // maior pacote visto
+  /** transparência de dado incompleto */
+  proposalsWithoutCost: number;
+  productsWithoutCost: number;
 };
 
 type OriginFilter = "all" | "prateleira" | "proposal";
@@ -260,6 +267,9 @@ export default function Leads() {
   const [customOpen, setCustomOpen] = useState(false);
   const [conversions, setConversions] = useState<Record<string, LeadEnrichment>>({});
   const [waLinks, setWaLinks] = useState<Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }>>({});
+  // Drill-down: cada KPI/insight clicável abre esta modal com a lista real que compõe o número.
+  const [drill, setDrill] = useState<{ title: string; hint?: string; leads: LeadAggregate[] } | null>(null);
+
 
 
   const fetchAll = async () => {
@@ -298,7 +308,7 @@ export default function Leads() {
     if (prIds.length) {
       const { data: prData } = await (supabase as any)
         .from("proposals")
-        .select("id, title, slug, cover_image_url, destinations, client_name, total_value")
+        .select("id, title, slug, cover_image_url, destinations, client_name, total_value, internal_cost, internal_profit")
         .in("id", prIds);
       const map: Record<string, ProposalMini> = {};
       (prData || []).forEach((p: ProposalMini) => { map[p.id] = p; });
@@ -314,6 +324,10 @@ export default function Leads() {
 
   const leads = useMemo<LeadAggregate[]>(() => {
     const map = new Map<string, LeadAggregate>();
+    // Cada lead carrega um sub-map de itens deduplicado por `${kind}:${refId}`
+    // para nunca somar o mesmo pacote duas vezes quando existem múltiplas
+    // sessões (linhas de viewer) apontando pra mesma proposta/produto.
+    const itemsByLead = new Map<string, Map<string, LeadItem>>();
 
     const ensure = (key: string, seed: Partial<LeadAggregate>) => {
       let lead = map.get(key);
@@ -346,8 +360,11 @@ export default function Leads() {
           totalValue: 0,
           profitPotential: 0,
           topValue: 0,
+          proposalsWithoutCost: 0,
+          productsWithoutCost: 0,
         };
         map.set(key, lead);
+        itemsByLead.set(key, new Map<string, LeadItem>());
       } else {
         if (!lead.name && seed.name) lead.name = seed.name;
         if (!lead.phone && seed.phone) lead.phone = seed.phone;
@@ -363,7 +380,25 @@ export default function Leads() {
       return lead;
     };
 
-    // Prateleira
+    /** Mescla um item no lead SEM duplicar valor por refId. */
+    const upsertItem = (leadKey: string, refKey: string, base: LeadItem) => {
+      const bag = itemsByLead.get(leadKey)!;
+      const existing = bag.get(refKey);
+      if (!existing) {
+        bag.set(refKey, base);
+        return;
+      }
+      existing.viewerIds.push(...base.viewerIds);
+      existing.views += base.views;
+      existing.activeSeconds += base.activeSeconds;
+      existing.cta = existing.cta || base.cta;
+      existing.whatsapp = existing.whatsapp || base.whatsapp;
+      if (new Date(base.firstAt) < new Date(existing.firstAt)) existing.firstAt = base.firstAt;
+      if (new Date(base.lastAt) > new Date(existing.lastAt)) existing.lastAt = base.lastAt;
+      // value/profit/costUnknown mantidos da 1ª ocorrência — refId é o mesmo pacote
+    };
+
+    // ─── Prateleira ────────────────────────────────────────────────────
     for (const v of viewers) {
       const key = (v.email || "").toLowerCase().trim() || `anon-pr:${v.id}`;
       const lead = ensure(key, {
@@ -378,39 +413,39 @@ export default function Leads() {
       }
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
-      lead.productsViewed += 1;
       lead.totalViews += v.total_views || 1;
       lead.totalSeconds += v.active_seconds || 0;
       if (v.cta_clicked) lead.ctaCount += 1;
       if (v.whatsapp_clicked) lead.whatsappCount += 1;
       lead.prateleiraViewerIds.push(v.id);
+
       const p = products[v.product_id];
       const pPrice = Number(p?.price_promo || p?.price_from || 0);
       const pCost = Number(p?.internal_cost || 0);
-      const pProfit = pPrice > 0 ? (pCost > 0 ? Math.max(pPrice - pCost, 0) : pPrice * DEFAULT_MARGIN) : 0;
-      lead.totalValue += pPrice;
-      lead.profitPotential += pProfit;
-      if (pPrice > lead.topValue) lead.topValue = pPrice;
-      lead.items.push({
+      const costUnknown = pPrice > 0 && !(pCost > 0);
+      const pProfit = pPrice > 0 && pCost > 0 ? Math.max(pPrice - pCost, 0) : 0;
+
+      upsertItem(key, `product:${v.product_id}`, {
         kind: "product",
         refId: v.product_id,
-        viewerId: v.id,
+        viewerIds: [v.id],
         title: p?.title || "Produto",
         subtitle: p?.destination || null,
         cover: p?.cover_image_url || null,
         slug: p?.slug || null,
         views: v.total_views || 1,
         activeSeconds: v.active_seconds || 0,
-        cta: v.cta_clicked,
-        whatsapp: v.whatsapp_clicked,
+        cta: !!v.cta_clicked,
+        whatsapp: !!v.whatsapp_clicked,
         firstAt: v.first_viewed_at,
         lastAt: v.last_active_at,
         value: pPrice,
         profit: pProfit,
+        costUnknown,
       });
     }
 
-    // Propostas
+    // ─── Propostas Personalizadas ──────────────────────────────────────
     for (const v of proposalViewers) {
       const key = (v.email || "").toLowerCase().trim() || `anon-pp:${v.id}`;
       const lead = ensure(key, {
@@ -424,42 +459,82 @@ export default function Leads() {
       }
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
-      lead.proposalsViewed += 1;
       lead.totalViews += v.total_views || 1;
       const secs = v.active_seconds || v.total_time_seconds || 0;
       lead.totalSeconds += secs;
       if (v.cta_clicked) lead.ctaCount += 1;
       if (v.whatsapp_clicked) lead.whatsappCount += 1;
       lead.proposalViewerIds.push(v.id);
+
       const pr = proposals[v.proposal_id];
       const prValue = Number(pr?.total_value || 0);
-      const prProfit = prValue > 0 ? prValue * DEFAULT_MARGIN : 0;
-      lead.totalValue += prValue;
-      lead.profitPotential += prProfit;
-      if (prValue > lead.topValue) lead.topValue = prValue;
-      lead.items.push({
+      const prCost = Number(pr?.internal_cost || 0);
+      const prStoredProfit = pr?.internal_profit != null ? Number(pr.internal_profit) : null;
+      const costUnknown = prValue > 0 && !(prCost > 0);
+      const prProfit = prValue > 0 && prCost > 0
+        ? (prStoredProfit != null && prStoredProfit >= 0 ? prStoredProfit : Math.max(prValue - prCost, 0))
+        : 0;
+
+      upsertItem(key, `proposal:${v.proposal_id}`, {
         kind: "proposal",
         refId: v.proposal_id,
-        viewerId: v.id,
+        viewerIds: [v.id],
         title: pr?.title || "Proposta personalizada",
         subtitle: pr?.client_name || (pr?.destinations || []).join(", ") || null,
         cover: pr?.cover_image_url || null,
         slug: pr?.slug || null,
         views: v.total_views || 1,
         activeSeconds: secs,
-        cta: v.cta_clicked,
-        whatsapp: v.whatsapp_clicked,
+        cta: !!v.cta_clicked,
+        whatsapp: !!v.whatsapp_clicked,
         firstAt: v.first_viewed_at,
         lastAt: v.last_active_at,
         value: prValue,
         profit: prProfit,
+        costUnknown,
       });
     }
 
+    // Materializa itens deduplicados e computa totais UMA vez por pacote
     return Array.from(map.values())
-      .map((l) => ({ ...l, items: l.items.sort((a, b) => b.activeSeconds - a.activeSeconds) }))
+      .map((l) => {
+        const items = Array.from(itemsByLead.get(l.key)?.values() || [])
+          .sort((a, b) => b.activeSeconds - a.activeSeconds);
+        let totalValue = 0;
+        let profitPotential = 0;
+        let topValue = 0;
+        let proposalsWithoutCost = 0;
+        let productsWithoutCost = 0;
+        let productsUnique = 0;
+        let proposalsUnique = 0;
+        for (const it of items) {
+          totalValue += it.value;
+          profitPotential += it.profit;
+          if (it.value > topValue) topValue = it.value;
+          if (it.kind === "proposal") {
+            proposalsUnique += 1;
+            if (it.costUnknown) proposalsWithoutCost += 1;
+          } else {
+            productsUnique += 1;
+            if (it.costUnknown) productsWithoutCost += 1;
+          }
+        }
+        return {
+          ...l,
+          items,
+          totalValue,
+          profitPotential,
+          topValue,
+          proposalsWithoutCost,
+          productsWithoutCost,
+          productsViewed: productsUnique,
+          proposalsViewed: proposalsUnique,
+        };
+      })
       .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
   }, [viewers, products, proposalViewers, proposals]);
+
+
 
   // Period-filtered leads (main dataset all cards/lists react to)
   const range = useMemo(() => periodRange(period, customFrom, customTo), [period, customFrom, customTo]);
@@ -659,15 +734,24 @@ export default function Leads() {
   const conversionRate = totalLeads > 0 ? (convertedLeads.length / totalLeads) * 100 : 0;
 
   // Insight: quentes sem retorno
+  // Teto de recência FIXO de 30 dias — independente do filtro global de período.
+  // Regra do produto: não mostrar leads muito antigos aqui, mesmo com "Tudo" ligado.
   const hotStale = useMemo(() => {
-    const cutoff = Date.now() - 24 * 3600 * 1000;
+    const now = Date.now();
+    const staleCutoff = now - 24 * 3600 * 1000;       // já esfriou (>24h sem retorno)
+    const recencyFloor = now - 30 * 24 * 3600 * 1000; // mas ainda dentro dos últimos 30d
     return periodLeads
-      .filter((l) => (l.ctaCount > 0 || l.whatsappCount > 0)
-        && !isConverted(l)
-        && new Date(l.lastAt).getTime() < cutoff)
+      .filter((l) => {
+        const t = new Date(l.lastAt).getTime();
+        return (l.ctaCount > 0 || l.whatsappCount > 0)
+          && !isConverted(l)
+          && t < staleCutoff
+          && t >= recencyFloor;
+      })
       .sort((a, b) => b.profitPotential - a.profitPotential)
       .slice(0, 5);
   }, [periodLeads, conversions]);
+
 
   // Insight: origem prateleira vs proposta
   const prateleiraLeads = periodLeads.filter((l) => l.productsViewed > 0);
@@ -679,17 +763,18 @@ export default function Leads() {
 
   // Insight: top items no período
   const topItems = useMemo(() => {
-    const counts = new Map<string, { title: string; kind: "product" | "proposal"; slug: string | null; views: number }>();
+    const counts = new Map<string, { title: string; kind: "product" | "proposal"; refId: string; slug: string | null; views: number }>();
     for (const l of periodLeads) {
       for (const it of l.items) {
         const k = `${it.kind}:${it.refId}`;
         const prev = counts.get(k);
         if (prev) prev.views += it.views;
-        else counts.set(k, { title: it.title, kind: it.kind, slug: it.slug, views: it.views });
+        else counts.set(k, { title: it.title, kind: it.kind, refId: it.refId, slug: it.slug, views: it.views });
       }
     }
     return Array.from(counts.values()).sort((a, b) => b.views - a.views).slice(0, 3);
   }, [periodLeads]);
+
 
   // Insight: top UTM sources (Prateleira)
   const topUtms = useMemo(() => {
@@ -933,19 +1018,33 @@ export default function Leads() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)} />
-        <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined} />
-        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)} />
-        <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas" />
-        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)} />
-        <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="estimativa com margem real" tone="profit" />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead" />
+        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)}
+          onClick={() => setDrill({ title: "Total de leads no período", hint: "Todos os leads únicos considerados no período selecionado.", leads: periodLeads })} />
+        <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined}
+          onClick={() => setDrill({ title: "Leads online agora", hint: "Ativos nos últimos 2 minutos.", leads: periodLeads.filter((l) => isOnline(l.lastAt)) })} />
+        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)}
+          onClick={() => setDrill({ title: "Leads quentes", hint: "Clicaram no CTA ou no WhatsApp.", leads: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0) })} />
+        <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas"
+          onClick={() => setDrill({ title: "Leads que viram proposta personalizada", leads: periodLeads.filter((l) => l.proposalsViewed > 0) })} />
+        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)}
+          onClick={() => setDrill({ title: "Pipeline · valor visualizado", hint: "Leads com pacotes/propostas com valor > 0.", leads: [...periodLeads].filter((l) => l.totalValue > 0).sort((a, b) => b.totalValue - a.totalValue) })} />
+        <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="apenas com custo informado" tone="profit"
+          onClick={() => setDrill({ title: "Lucro potencial", hint: "Só entra na conta lead com internal_cost preenchido na proposta/produto.", leads: [...periodLeads].filter((l) => l.profitPotential > 0).sort((a, b) => b.profitPotential - a.profitPotential) })} />
+        <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead"
+          onClick={() => setDrill({ title: "Base do ticket médio", hint: "Todos os leads considerados na média de pipeline.", leads: periodLeads })} />
+
       </div>
 
       {/* Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Conversão em venda */}
-        <Card className="p-4 space-y-2 border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.05] to-transparent">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setDrill({ title: "Leads que viraram venda", hint: "Leads do período com venda registrada em `sales`.", leads: convertedLeads })}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDrill({ title: "Leads que viraram venda", leads: convertedLeads }); } }}
+          className="p-4 space-y-2 border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.05] to-transparent cursor-pointer hover:border-emerald-500/50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+        >
           <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             Conversão em venda
@@ -978,9 +1077,12 @@ export default function Leads() {
             Origem com melhor retorno
           </div>
           <div className="space-y-2 pt-1">
-            <OriginBar label="Prateleira" tone="prateleira" leads={prateleiraLeads.length} pipeline={prateleiraPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
-            <OriginBar label="Proposta" tone="proposal" leads={proposalLeads.length} pipeline={proposalPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
+            <OriginBar label="Prateleira" tone="prateleira" leads={prateleiraLeads.length} pipeline={prateleiraPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)}
+              onClick={() => setDrill({ title: "Leads via Prateleira", hint: "Visualizaram algum produto da Prateleira no período.", leads: prateleiraLeads })} />
+            <OriginBar label="Proposta" tone="proposal" leads={proposalLeads.length} pipeline={proposalPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)}
+              onClick={() => setDrill({ title: "Leads via Proposta personalizada", hint: "Abriram alguma proposta enviada no período.", leads: proposalLeads })} />
           </div>
+
           {topUtms.length > 0 && (
             <div className="pt-2 border-t border-border/30">
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">Top UTM (Prateleira)</p>
@@ -1005,15 +1107,25 @@ export default function Leads() {
             {topItems.length === 0 ? (
               <p className="text-[10.5px] text-muted-foreground">Sem visualizações no período.</p>
             ) : topItems.map((it, i) => (
-              <div key={i} className="flex items-center gap-2 py-1 border-b border-border/20 last:border-0">
+              <button
+                type="button"
+                key={i}
+                onClick={() => setDrill({
+                  title: `Quem viu · ${it.title}`,
+                  hint: it.kind === "proposal" ? "Leads que abriram esta proposta." : "Leads que visualizaram este produto.",
+                  leads: periodLeads.filter((l) => l.items.some((x) => x.kind === it.kind && x.refId === it.refId)),
+                })}
+                className="w-full flex items-center gap-2 py-1 border-b border-border/20 last:border-0 hover:bg-muted/40 rounded px-1 text-left transition"
+              >
                 <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4">{i + 1}</span>
                 {it.kind === "proposal"
                   ? <FileText className="w-3 h-3 text-violet-500 flex-shrink-0" />
                   : <PackageOpen className="w-3 h-3 text-sky-500 flex-shrink-0" />}
                 <span className="text-[11px] text-foreground truncate flex-1" title={it.title}>{it.title}</span>
                 <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">{it.views}</span>
-              </div>
+              </button>
             ))}
+
           </div>
         </Card>
       </div>
@@ -1085,7 +1197,31 @@ export default function Leads() {
       </Card>
 
       {/* Funil de conversão + retorno por canal */}
-      <LeadsConversionFunnel stages={funnelStages} utm={utmRanking} />
+      <LeadsConversionFunnel
+        stages={funnelStages}
+        utm={utmRanking}
+        onStageClick={(s) => {
+          const map: Record<string, LeadAggregate[]> = {
+            view: periodLeads,
+            engage: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0),
+            proposal: periodLeads.filter((l) => l.proposalsViewed > 0),
+            sale: convertedLeads,
+          };
+          setDrill({ title: `Funil · ${s.label}`, hint: `${s.leads} leads nesta etapa.`, leads: map[s.key] || [] });
+        }}
+        onUtmClick={(u) => {
+          setDrill({
+            title: `Canal · ${u.source}`,
+            hint: `${u.leads} leads · pipeline ${u.pipeline > 0 ? BRL(u.pipeline) : "sem valor"} · fechado ${u.soldValue > 0 ? BRL(u.soldValue) : "—"}.`,
+            leads: periodLeads.filter((l) => {
+              const src = l.utmSource
+                || (l.proposalsViewed > 0 && l.productsViewed === 0 ? "Direto/Proposta" : "Direto");
+              return src === u.source;
+            }),
+          });
+        }}
+      />
+
 
 
       {/* Quentes sem retorno */}
@@ -1135,9 +1271,16 @@ export default function Leads() {
                 </div>
                 <p className="text-[10px] text-muted-foreground truncate">{l.items[0]?.title || "·"}</p>
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{BRL(l.profitPotential)}</span>
+                  {l.profitPotential > 0 ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{BRL(l.profitPotential)} lucro</span>
+                  ) : l.totalValue > 0 ? (
+                    <span className="text-foreground font-semibold tabular-nums">{BRL(l.totalValue)}</span>
+                  ) : (
+                    <span className="text-muted-foreground/70">sem valor</span>
+                  )}
                   <span className="text-muted-foreground">{formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}</span>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setSelected(l)}
@@ -1214,9 +1357,13 @@ export default function Leads() {
                   <div className="flex items-end justify-between gap-2 pt-1">
                     <div className="min-w-0">
                       <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Lucro potencial</p>
-                      <p className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                        {BRL(l.profitPotential)}
-                      </p>
+                      {l.profitPotential > 0 ? (
+                        <p className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                          {BRL(l.profitPotential)}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground/70 leading-tight">Custo não informado</p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Pacote</p>
@@ -1224,6 +1371,7 @@ export default function Leads() {
                         {l.totalValue > 0 ? BRL(l.totalValue) : "·"}
                       </p>
                     </div>
+
                   </div>
                   <div className="flex items-center gap-1.5 pt-1 border-t border-border/30 text-[9.5px] text-muted-foreground">
                     {l.ctaCount > 0 && <span className="text-accent font-semibold">{l.ctaCount} CTA</span>}
@@ -1414,14 +1562,19 @@ export default function Leads() {
                       {l.totalValue > 0 ? (
                         <div className="space-y-0.5">
                           <p className="text-[12px] font-bold text-foreground tabular-nums leading-tight">{BRL(l.totalValue)}</p>
-                          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums leading-tight flex items-center gap-1">
-                            <Flame className="w-2.5 h-2.5" /> {BRL(l.profitPotential)} lucro
-                          </p>
+                          {l.profitPotential > 0 ? (
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums leading-tight flex items-center gap-1">
+                              <Flame className="w-2.5 h-2.5" /> {BRL(l.profitPotential)} lucro
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground/70 leading-tight">Custo não informado</p>
+                          )}
                         </div>
                       ) : (
                         <span className="text-[10px] text-muted-foreground/60">sem valor</span>
                       )}
                     </td>
+
                     <td className="p-3 align-top">
                       <div className="flex items-center gap-1 flex-wrap">
                         {l.ctaCount > 0 && (
@@ -1477,6 +1630,79 @@ export default function Leads() {
         onDelete={(l) => setToDelete(l)}
       />
 
+      {/* Drill-down: lista real por trás de qualquer indicador clicado */}
+      <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{drill?.title}</DialogTitle>
+            {drill?.hint && (
+              <p className="text-[11px] text-muted-foreground pt-1">{drill.hint}</p>
+            )}
+            <p className="text-[10.5px] text-muted-foreground pt-1 tabular-nums">
+              {drill?.leads.length ?? 0} registro{(drill?.leads.length ?? 0) === 1 ? "" : "s"}
+            </p>
+          </DialogHeader>
+          <ScrollArea className="flex-1 pr-3">
+            {drill && drill.leads.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground py-6 text-center">Nenhum lead nesta lista.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {drill?.leads.map((l) => {
+                  const wa = waLinks[l.key];
+                  const conv = conversions[l.key];
+                  const isClient = (conv?.count ?? 0) > 0;
+                  return (
+                    <button
+                      key={l.key}
+                      type="button"
+                      onClick={() => { setSelected(l); setDrill(null); }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/40 text-left transition"
+                    >
+                      <WhatsAppAvatar
+                        src={wa?.photo || null}
+                        name={l.name || l.email || "?"}
+                        phone={normPhone(l.phone) || undefined}
+                        size={32}
+                        className="w-8 h-8 text-[11px] flex-shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[12px] font-semibold text-foreground truncate">
+                            {l.name || l.email || "Lead anônimo"}
+                          </p>
+                          {isClient && (
+                            <Badge className="text-[9px] border-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 h-4 px-1">
+                              Cliente
+                            </Badge>
+                          )}
+                          {wa && (
+                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 h-4 px-1">
+                              WA
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {(l.email || "sem email")} · {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-[11px] font-bold text-foreground tabular-nums">
+                          {l.totalValue > 0 ? BRL(l.totalValue) : "·"}
+                        </p>
+                        <p className="text-[9.5px] text-muted-foreground tabular-nums">
+                          {l.totalViews} view{l.totalViews === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Confirm delete */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
@@ -1523,18 +1749,27 @@ export default function Leads() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, hint, tone, delta }: {
+function Kpi({ icon: Icon, label, value, hint, tone, delta, onClick }: {
   icon: any; label: string; value: string; hint?: string;
   tone?: "hot" | "live" | "value" | "profit"; delta?: number | null;
+  onClick?: () => void;
 }) {
+  const clickable = typeof onClick === "function";
   return (
-    <Card className={cn(
-      "p-3 flex items-start gap-2.5 rounded-2xl border-border/40",
-      tone === "hot" && "border-accent/40 bg-accent/5",
-      tone === "live" && "border-emerald-500/40 bg-emerald-500/5",
-      tone === "value" && "border-sky-500/30 bg-sky-500/5",
-      tone === "profit" && "border-emerald-500/40 bg-emerald-500/5",
-    )}>
+    <Card
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
+      className={cn(
+        "p-3 flex items-start gap-2.5 rounded-2xl border-border/40 transition",
+        clickable && "cursor-pointer hover:border-primary/40 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        tone === "hot" && "border-accent/40 bg-accent/5",
+        tone === "live" && "border-emerald-500/40 bg-emerald-500/5",
+        tone === "value" && "border-sky-500/30 bg-sky-500/5",
+        tone === "profit" && "border-emerald-500/40 bg-emerald-500/5",
+      )}
+    >
       <div className={cn(
         "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
         tone === "hot" ? "bg-accent/15 text-accent" :
@@ -1567,14 +1802,23 @@ function Kpi({ icon: Icon, label, value, hint, tone, delta }: {
   );
 }
 
-function OriginBar({ label, tone, leads, pipeline, maxPipeline }: {
+
+function OriginBar({ label, tone, leads, pipeline, maxPipeline, onClick }: {
   label: string; tone: "prateleira" | "proposal"; leads: number; pipeline: number; maxPipeline: number;
+  onClick?: () => void;
 }) {
   const pct = maxPipeline > 0 ? Math.max(2, (pipeline / maxPipeline) * 100) : 0;
   const barColor = tone === "proposal" ? "bg-violet-500" : "bg-sky-500";
   const textColor = tone === "proposal" ? "text-violet-600 dark:text-violet-400" : "text-sky-600 dark:text-sky-400";
+  const clickable = typeof onClick === "function";
   return (
-    <div className="space-y-1">
+    <div
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
+      className={cn("space-y-1 rounded-md -mx-1 px-1 py-1", clickable && "cursor-pointer hover:bg-muted/40 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40")}
+    >
       <div className="flex items-center justify-between text-[11px]">
         <span className={cn("font-semibold", textColor)}>{label}</span>
         <span className="text-muted-foreground tabular-nums">
@@ -1587,6 +1831,7 @@ function OriginBar({ label, tone, leads, pipeline, maxPipeline }: {
     </div>
   );
 }
+
 
 function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -1625,27 +1870,8 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
-  const [waPreview, setWaPreview] = useState<Array<{ id: string; content: string | null; sender_type: string | null; created_at: string; message_type: string | null }>>([]);
-  const [waLoading, setWaLoading] = useState(false);
+  // Preview de conversa removido a pedido — mantemos apenas o botão de abrir no Inbox.
 
-  useEffect(() => {
-    if (!lead || !waLink) { setWaPreview([]); return; }
-    let cancelled = false;
-    (async () => {
-      setWaLoading(true);
-      const { data } = await (supabase as any)
-        .from("conversation_messages")
-        .select("id, content, sender_type, created_at, message_type")
-        .eq("conversation_id", waLink.conversationId)
-        .order("created_at", { ascending: false })
-        .limit(3);
-      if (!cancelled) {
-        setWaPreview((data || []).slice().reverse());
-        setWaLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [lead?.key, waLink?.conversationId]);
 
   if (!lead) return null;
 
@@ -1708,13 +1934,13 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
               </div>
             </Card>
 
-            {/* Prévia da conversa WhatsApp */}
+            {/* Atalho para abrir a conversa completa no Inbox */}
             {waLink && (
-              <Card className="p-4 space-y-3 border-emerald-500/25 bg-emerald-500/[0.03]">
+              <Card className="p-3 border-emerald-500/25 bg-emerald-500/[0.03]">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                    Prévia da conversa
+                    Conversa WhatsApp ativa
                     {waLink.lastMessageAt && (
                       <span className="text-[10px] font-normal text-muted-foreground">
                         última: {formatDistanceToNow(new Date(waLink.lastMessageAt), { locale: ptBR, addSuffix: true })}
@@ -1723,51 +1949,14 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                   </div>
                   <Link
                     to={`/operacao/inbox?conversation=${waLink.conversationId}`}
-                    className="text-[10.5px] text-primary hover:underline inline-flex items-center gap-0.5"
+                    className="text-[10.5px] text-primary hover:underline inline-flex items-center gap-1"
                   >
                     Abrir conversa completa <ExternalLink className="w-2.5 h-2.5" />
                   </Link>
                 </div>
-                {waLoading ? (
-                  <p className="text-[10.5px] text-muted-foreground animate-pulse">Carregando mensagens...</p>
-                ) : waPreview.length === 0 ? (
-                  <p className="text-[10.5px] text-muted-foreground">Ainda sem mensagens registradas.</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {waPreview.map((m) => {
-                      const mine = m.sender_type === "atendente";
-                      const preview =
-                        m.message_type && m.message_type !== "text"
-                          ? `[${m.message_type}]`
-                          : (m.content || "").slice(0, 180);
-                      return (
-                        <div
-                          key={m.id}
-                          className={cn(
-                            "text-[11px] px-2.5 py-1.5 rounded-md border",
-                            mine
-                              ? "border-emerald-500/25 bg-emerald-500/10 ml-6"
-                              : "border-border/40 bg-background mr-6",
-                          )}
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                              {mine ? "Você" : "Cliente"}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground tabular-nums">
-                              {format(new Date(m.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                            </span>
-                          </div>
-                          <p className="text-foreground whitespace-pre-wrap break-words">
-                            {preview || <span className="text-muted-foreground italic">·</span>}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </Card>
             )}
+
 
 
 
@@ -1849,7 +2038,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
               </div>
               <div className="space-y-2">
                 {lead.items.map((p) => (
-                  <div key={`${p.kind}-${p.viewerId}`} className="flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/30">
+                  <div key={`${p.kind}-${p.refId}`} className="flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/30">
                     {p.cover ? (
                       <img src={p.cover} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                     ) : (
