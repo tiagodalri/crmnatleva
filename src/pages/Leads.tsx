@@ -40,6 +40,7 @@ import { toast } from "@/hooks/use-toast";
 import { LeadsOriginMap, type LeadMapPin } from "@/components/leads/LeadsOriginMap";
 import { LeadsConversionFunnel } from "@/components/leads/LeadsConversionFunnel";
 import { CustomerSinceBadge } from "@/components/clients/CustomerSinceBadge";
+import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
 
 type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 const PERIOD_LABEL: Record<Period, string> = {
