@@ -23,6 +23,7 @@ import { DelegateConversationDialog } from "@/components/inbox/DelegateConversat
 import { SlashCommandDropdown, type MessageShortcut } from "@/components/inbox/SlashCommandDropdown";
 import { SpellSuggestionBar } from "@/components/inbox/SpellSuggestionBar";
 import { useSpellSuggestion } from "@/hooks/useSpellSuggestion";
+import { localSpellFix } from "@/lib/localSpellFix";
 import { ScheduleMessagePopover } from "@/components/inbox/ScheduleMessagePopover";
 import { ScheduledForConversationButton } from "@/components/inbox/ScheduledForConversationButton";
 import { GroupInfoDialog } from "@/components/inbox/GroupInfoDialog";
@@ -1378,7 +1379,8 @@ function OperacaoInboxInner() {
   const handleSend = useCallback(async () => {
     if (!inputText.trim() || !selectedId || isSending) return;
     setIsSending(true);
-    const text = inputText.trim();
+    // ─── Local spell fix · síncrono, zero latência, aplicado no envio ───
+    const text = localSpellFix(inputText.trim());
 
     if (editingMsg) {
       const msgToEdit = editingMsg;
@@ -1790,7 +1792,7 @@ function OperacaoInboxInner() {
     }
   }, [shortcutOpen]);
 
-  const { suggestion: spellSuggestion, dismissSuggestion: dismissSpellSuggestion } = useSpellSuggestion(inputText);
+  const { suggestion: spellSuggestion, dismissSuggestion: dismissSpellSuggestion } = useSpellSuggestion(inputText, { debounceMs: 450 });
   const acceptSpellSuggestion = useCallback(() => {
     if (!spellSuggestion) return;
     setInputText(spellSuggestion);
