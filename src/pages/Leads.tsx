@@ -1530,7 +1530,7 @@ export default function Leads() {
                 <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">
                   {leads.length === 0 ? "Nenhum lead ainda. Compartilhe páginas da Prateleira ou envie propostas personalizadas para começar." : "Nenhum lead bate com os filtros."}
                 </td></tr>
-              ) : filtered.map((l) => {
+              ) : sortLeads(filtered, tableSort).map((l) => {
                 const online = isOnline(l.lastAt);
                 const ua = parseUA(l.userAgent);
                 const o = originLabel(l);
