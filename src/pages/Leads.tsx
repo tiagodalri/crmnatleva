@@ -1886,8 +1886,8 @@ export default function Leads() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, hint, tone, delta, onClick }: {
-  icon: any; label: string; value: string; hint?: string;
+function Kpi({ icon: Icon, label, value, fullValue, hint, tone, delta, onClick }: {
+  icon: any; label: string; value: string; fullValue?: string; hint?: string;
   tone?: "hot" | "live" | "value" | "profit"; delta?: number | null;
   onClick?: () => void;
 }) {
