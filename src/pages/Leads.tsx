@@ -425,9 +425,82 @@ export default function Leads() {
       .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
   }, [viewers, products, proposalViewers, proposals]);
 
+  // Period-filtered leads (main dataset all cards/lists react to)
+  const range = useMemo(() => periodRange(period, customFrom, customTo), [period, customFrom, customTo]);
+  const prevR = useMemo(() => previousRange(period, customFrom, customTo), [period, customFrom, customTo]);
+
+  const inRange = (iso: string | undefined | null, r: { from: number; to: number } | null) => {
+    if (!r) return true;
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return t >= r.from && t <= r.to;
+  };
+  const leadInRange = (l: LeadAggregate, r: { from: number; to: number } | null) =>
+    inRange(l.lastAt || l.firstAt, r);
+
+  const periodLeads = useMemo(
+    () => leads.filter((l) => leadInRange(l, range)),
+    [leads, range]
+  );
+  const prevLeads = useMemo(
+    () => (prevR ? leads.filter((l) => leadInRange(l, prevR)) : []),
+    [leads, prevR]
+  );
+
+  // Fetch conversions (leads → clients → sales) for all loaded leads
+  useEffect(() => {
+    (async () => {
+      const emails = Array.from(new Set(leads.map((l) => (l.email || "").toLowerCase().trim()).filter(Boolean)));
+      const phones = Array.from(new Set(leads.map((l) => normPhone(l.phone)).filter((p) => p && p.length >= 8)));
+      if (emails.length === 0 && phones.length === 0) { setConversions({}); return; }
+      // Fetch clients by email OR phone
+      const clientsQuery = (supabase as any).from("clients").select("id, email, phone");
+      const orParts: string[] = [];
+      if (emails.length) orParts.push(`email.in.(${emails.map(e => `"${e}"`).join(",")})`);
+      if (phones.length) orParts.push(`phone.in.(${phones.map(p => `"${p}"`).join(",")})`);
+      let clientRows: any[] = [];
+      if (orParts.length) {
+        const { data } = await clientsQuery.or(orParts.join(","));
+        clientRows = data || [];
+      }
+      if (!clientRows.length) { setConversions({}); return; }
+      const clientIds = clientRows.map((c) => c.id);
+      const { data: salesRows } = await (supabase as any)
+        .from("sales")
+        .select("client_id, received_value, status, created_at")
+        .in("client_id", clientIds);
+      // Map client_id -> {count, value}
+      const byClient: Record<string, { count: number; value: number }> = {};
+      (salesRows || []).forEach((s: any) => {
+        if ((s.status || "").toLowerCase() === "cancelado") return;
+        const cur = byClient[s.client_id] || { count: 0, value: 0 };
+        cur.count += 1;
+        cur.value += Number(s.received_value || 0);
+        byClient[s.client_id] = cur;
+      });
+      // Attribute to lead keys (email + phone)
+      const out: Record<string, { count: number; value: number }> = {};
+      for (const c of clientRows) {
+        const stats = byClient[c.id];
+        if (!stats) continue;
+        const emailKey = (c.email || "").toLowerCase().trim();
+        const phoneKey = normPhone(c.phone);
+        if (emailKey) out[`e:${emailKey}`] = stats;
+        if (phoneKey) out[`p:${phoneKey}`] = stats;
+      }
+      setConversions(out);
+    })();
+  }, [leads]);
+
+  const leadConversion = (l: LeadAggregate) => {
+    const e = (l.email || "").toLowerCase().trim();
+    const p = normPhone(l.phone);
+    return conversions[`e:${e}`] || conversions[`p:${p}`] || null;
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return leads.filter((l) => {
+    return periodLeads.filter((l) => {
       if (filter === "hot" && l.ctaCount === 0 && l.whatsappCount === 0) return false;
       if (filter === "online" && !isOnline(l.lastAt)) return false;
       if (filter === "whatsapp" && l.whatsappCount === 0) return false;
@@ -442,26 +515,86 @@ export default function Leads() {
         l.items.some((p) => (p.title || "").toLowerCase().includes(q))
       );
     });
-  }, [leads, search, filter, origin]);
+  }, [periodLeads, search, filter, origin]);
 
-  // KPIs
-  const totalLeads = leads.length;
-  const onlineNow = leads.filter((l) => isOnline(l.lastAt)).length;
-  const hotLeads = leads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0).length;
-  const propostaLeads = leads.filter((l) => l.proposalsViewed > 0).length;
-  const pipelineValue = leads.reduce((s, l) => s + l.totalValue, 0);
-  const profitPotential = leads.reduce((s, l) => s + l.profitPotential, 0);
+  // KPIs (react to period)
+  const totalLeads = periodLeads.length;
+  const onlineNow = periodLeads.filter((l) => isOnline(l.lastAt)).length;
+  const hotLeads = periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0).length;
+  const propostaLeads = periodLeads.filter((l) => l.proposalsViewed > 0).length;
+  const pipelineValue = periodLeads.reduce((s, l) => s + l.totalValue, 0);
+  const profitPotential = periodLeads.reduce((s, l) => s + l.profitPotential, 0);
   const avgTicket = totalLeads > 0 ? pipelineValue / totalLeads : 0;
+
+  // Previous-period deltas (only when period !== "all")
+  const prevTotal = prevLeads.length;
+  const prevHot = prevLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0).length;
+  const prevPipeline = prevLeads.reduce((s, l) => s + l.totalValue, 0);
+  const pct = (curr: number, prev: number): number | null => {
+    if (!prevR) return null;
+    if (prev === 0 && curr === 0) return null;
+    if (prev === 0) return null; // can't compute % from zero
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+
+  // Insight: converted leads (lead → cliente → venda)
+  const convertedLeads = useMemo(() => periodLeads.filter((l) => leadConversion(l)), [periodLeads, conversions]);
+  const conversionValue = convertedLeads.reduce((s, l) => s + (leadConversion(l)?.value || 0), 0);
+  const conversionRate = totalLeads > 0 ? (convertedLeads.length / totalLeads) * 100 : 0;
+
+  // Insight: quentes sem retorno
+  const hotStale = useMemo(() => {
+    const cutoff = Date.now() - 24 * 3600 * 1000;
+    return periodLeads
+      .filter((l) => (l.ctaCount > 0 || l.whatsappCount > 0)
+        && !leadConversion(l)
+        && new Date(l.lastAt).getTime() < cutoff)
+      .sort((a, b) => b.profitPotential - a.profitPotential)
+      .slice(0, 5);
+  }, [periodLeads, conversions]);
+
+  // Insight: origem prateleira vs proposta
+  const prateleiraLeads = periodLeads.filter((l) => l.productsViewed > 0);
+  const proposalLeads = periodLeads.filter((l) => l.proposalsViewed > 0);
+  const prateleiraPipeline = prateleiraLeads.reduce((s, l) =>
+    s + l.items.filter((i) => i.kind === "product").reduce((a, i) => a + i.value, 0), 0);
+  const proposalPipeline = proposalLeads.reduce((s, l) =>
+    s + l.items.filter((i) => i.kind === "proposal").reduce((a, i) => a + i.value, 0), 0);
+
+  // Insight: top items no período
+  const topItems = useMemo(() => {
+    const counts = new Map<string, { title: string; kind: "product" | "proposal"; slug: string | null; views: number }>();
+    for (const l of periodLeads) {
+      for (const it of l.items) {
+        const k = `${it.kind}:${it.refId}`;
+        const prev = counts.get(k);
+        if (prev) prev.views += it.views;
+        else counts.set(k, { title: it.title, kind: it.kind, slug: it.slug, views: it.views });
+      }
+    }
+    return Array.from(counts.values()).sort((a, b) => b.views - a.views).slice(0, 3);
+  }, [periodLeads]);
+
+  // Insight: top UTM sources (Prateleira)
+  const topUtms = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of periodLeads) {
+      if (l.productsViewed > 0 && l.utmSource) {
+        m.set(l.utmSource, (m.get(l.utmSource) || 0) + 1);
+      }
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  }, [periodLeads]);
 
   // Ranking: score = lucro + bônus de engajamento (CTA/WhatsApp/tempo)
   const ranked = useMemo(() => {
-    const withScore = leads.map((l) => {
+    const withScore = periodLeads.map((l) => {
       const engagement = l.ctaCount * 500 + l.whatsappCount * 800 + Math.min(l.totalSeconds, 600);
       const score = l.profitPotential + engagement;
       return { lead: l, score, engagement };
     });
     return withScore.sort((a, b) => b.score - a.score).slice(0, 5);
-  }, [leads]);
+  }, [periodLeads]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
