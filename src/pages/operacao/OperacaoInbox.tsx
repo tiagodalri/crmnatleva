@@ -1002,7 +1002,7 @@ function OperacaoInboxInner() {
         });
 
         // Profile pictures para quem ainda não tem
-        const needsPic = merged.filter(c => !profilePicsRef.current.has(c.id)).slice(0, 6);
+        const needsPic = merged.filter(c => !profilePicsRef.current.has(c.id)).slice(0, 20);
         if (needsPic.length > 0) {
           const BATCH = 2;
           for (let i = 0; i < needsPic.length; i += BATCH) {
