@@ -1006,7 +1006,9 @@ export default function Sales() {
           <>
             {/* Mobile card view */}
             {isMobile && <div className="sm:hidden space-y-2.5">
-              {filtered.map((sale) => (
+              {filtered.map((sale) => {
+                const mWa = sale.client_id ? waMap.get(sale.client_id) : null;
+                return (
                 <Card
                   key={sale.id}
                   className="p-3 glass-card cursor-pointer active:scale-[0.99] transition-transform overflow-hidden"
@@ -1014,20 +1016,36 @@ export default function Sales() {
                 >
                   {/* Linha 1 · nome + valor */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground text-sm leading-tight truncate flex items-center gap-1.5">
-                        {prateleiraSaleIds.has(sale.id) && (
-                          <span className="relative flex h-2 w-2 shrink-0" title="Compra automática · prateleira">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-60" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
-                          </span>
-                        )}
-                        <span className="truncate">{sale.name}</span>
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                        {sale.display_id} · {formatDateBR(sale.close_date)}
-                      </p>
+                    <div className="min-w-0 flex-1 flex items-start gap-2">
+                      <WhatsAppAvatar
+                        src={mWa?.photo || null}
+                        name={sale.name || "?"}
+                        phone={mWa?.phone || undefined}
+                        size={28}
+                        className="shrink-0 mt-0.5"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground text-sm leading-tight truncate flex items-center gap-1.5">
+                          {prateleiraSaleIds.has(sale.id) && (
+                            <span className="relative flex h-2 w-2 shrink-0" title="Compra automática · prateleira">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-60" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+                            </span>
+                          )}
+                          <span className="truncate">{sale.name}</span>
+                          {mWa && (
+                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-4 px-1 shrink-0" title={waIntensityLabel(mWa.messageCount)}>
+                              <WhatsAppIcon className="w-2.5 h-2.5" />
+                              {mWa.messageCount > 0 ? mWa.messageCount : ""}
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          {sale.display_id} · {formatDateBR(sale.close_date)}
+                        </p>
+                      </div>
                     </div>
+
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold leading-tight whitespace-nowrap">{fmt(sale.received_value || 0)}</p>
                       <p className={cn("text-[10px] whitespace-nowrap", (sale.profit || 0) > 0 ? "text-success" : "text-destructive")}>
