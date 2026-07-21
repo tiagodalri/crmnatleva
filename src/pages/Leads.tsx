@@ -1456,10 +1456,11 @@ function OriginBadge({ tone, label }: { tone: "prateleira" | "proposal" | "both"
   );
 }
 
-function LeadDetail({ lead, events, proposalClicks, onClose, onDelete }: {
+function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelete }: {
   lead: LeadAggregate | null;
   events: EventRow[];
   proposalClicks: ProposalClickRow[];
+  enrichment: LeadEnrichment | null;
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
