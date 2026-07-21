@@ -1577,8 +1577,9 @@ export default function Leads() {
                               </Badge>
                             )}
                             {wa && (
-                              <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-4 px-1" title="Já é contato no WhatsApp">
-                                <MessageCircle className="w-2.5 h-2.5" /> WA
+                              <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-4 px-1" title={whatsappIntensity(wa.messageCount).label}>
+                                <WhatsAppIcon className="w-2.5 h-2.5" />
+                                {wa.messageCount > 0 ? `${wa.messageCount}` : "contato"}
                               </Badge>
                             )}
                           </div>
