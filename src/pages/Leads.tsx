@@ -2324,8 +2324,15 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
         </ScrollArea>
       </DialogContent>
     </Dialog>
+    <ProposalPreviewModal
+      open={!!previewProposal}
+      onOpenChange={(o) => { if (!o) setPreviewProposal(null); }}
+      proposalKey={previewProposal}
+    />
+    </>
   );
 }
+
 
 function Info({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
