@@ -292,6 +292,9 @@ export default function ProposalEditor() {
   const [totalMissingHighlight, setTotalMissingHighlight] = useState(false);
   const costInputRef = useRef<HTMLInputElement | null>(null);
   const totalValueInputRef = useRef<HTMLInputElement | null>(null);
+  // Grandfather rule: propostas antigas salvas sem custo continuam editáveis
+  // sem custo. A obrigatoriedade vale só para NOVAS ou para as que já tinham custo.
+  const legacyNoCostRef = useRef<boolean>(false);
 
   const handleManualSave = () => {
     const totalRaw = (formRef.current.total_value ?? "").toString().trim();
