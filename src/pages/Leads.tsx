@@ -183,6 +183,18 @@ type LeadItem = {
   profit: number;           // lucro potencial estimado
 };
 
+type LeadEnrichment = {
+  count: number;
+  value: number;
+  profit: number;
+  firstSaleAt: string | null;
+  lastSaleAt: string | null;
+  customerSince: string | null;
+  clientId: string | null;
+  destinations: string[];
+  paymentTop: string | null;
+};
+
 type LeadAggregate = {
   key: string;
   email: string;
