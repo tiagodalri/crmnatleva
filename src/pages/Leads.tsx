@@ -321,6 +321,10 @@ export default function Leads() {
 
   const leads = useMemo<LeadAggregate[]>(() => {
     const map = new Map<string, LeadAggregate>();
+    // Cada lead carrega um sub-map de itens deduplicado por `${kind}:${refId}`
+    // para nunca somar o mesmo pacote duas vezes quando existem múltiplas
+    // sessões (linhas de viewer) apontando pra mesma proposta/produto.
+    const itemsByLead = new Map<string, Map<string, LeadItem>>();
 
     const ensure = (key: string, seed: Partial<LeadAggregate>) => {
       let lead = map.get(key);
@@ -353,8 +357,11 @@ export default function Leads() {
           totalValue: 0,
           profitPotential: 0,
           topValue: 0,
+          proposalsWithoutCost: 0,
+          productsWithoutCost: 0,
         };
         map.set(key, lead);
+        itemsByLead.set(key, new Map<string, LeadItem>());
       } else {
         if (!lead.name && seed.name) lead.name = seed.name;
         if (!lead.phone && seed.phone) lead.phone = seed.phone;
@@ -370,7 +377,25 @@ export default function Leads() {
       return lead;
     };
 
-    // Prateleira
+    /** Mescla um item no lead SEM duplicar valor por refId. */
+    const upsertItem = (leadKey: string, refKey: string, base: LeadItem) => {
+      const bag = itemsByLead.get(leadKey)!;
+      const existing = bag.get(refKey);
+      if (!existing) {
+        bag.set(refKey, base);
+        return;
+      }
+      existing.viewerIds.push(...base.viewerIds);
+      existing.views += base.views;
+      existing.activeSeconds += base.activeSeconds;
+      existing.cta = existing.cta || base.cta;
+      existing.whatsapp = existing.whatsapp || base.whatsapp;
+      if (new Date(base.firstAt) < new Date(existing.firstAt)) existing.firstAt = base.firstAt;
+      if (new Date(base.lastAt) > new Date(existing.lastAt)) existing.lastAt = base.lastAt;
+      // value/profit/costUnknown mantidos da 1ª ocorrência — refId é o mesmo pacote
+    };
+
+    // ─── Prateleira ────────────────────────────────────────────────────
     for (const v of viewers) {
       const key = (v.email || "").toLowerCase().trim() || `anon-pr:${v.id}`;
       const lead = ensure(key, {
@@ -385,39 +410,39 @@ export default function Leads() {
       }
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
-      lead.productsViewed += 1;
       lead.totalViews += v.total_views || 1;
       lead.totalSeconds += v.active_seconds || 0;
       if (v.cta_clicked) lead.ctaCount += 1;
       if (v.whatsapp_clicked) lead.whatsappCount += 1;
       lead.prateleiraViewerIds.push(v.id);
+
       const p = products[v.product_id];
       const pPrice = Number(p?.price_promo || p?.price_from || 0);
       const pCost = Number(p?.internal_cost || 0);
-      const pProfit = pPrice > 0 ? (pCost > 0 ? Math.max(pPrice - pCost, 0) : pPrice * DEFAULT_MARGIN) : 0;
-      lead.totalValue += pPrice;
-      lead.profitPotential += pProfit;
-      if (pPrice > lead.topValue) lead.topValue = pPrice;
-      lead.items.push({
+      const costUnknown = pPrice > 0 && !(pCost > 0);
+      const pProfit = pPrice > 0 && pCost > 0 ? Math.max(pPrice - pCost, 0) : 0;
+
+      upsertItem(key, `product:${v.product_id}`, {
         kind: "product",
         refId: v.product_id,
-        viewerId: v.id,
+        viewerIds: [v.id],
         title: p?.title || "Produto",
         subtitle: p?.destination || null,
         cover: p?.cover_image_url || null,
         slug: p?.slug || null,
         views: v.total_views || 1,
         activeSeconds: v.active_seconds || 0,
-        cta: v.cta_clicked,
-        whatsapp: v.whatsapp_clicked,
+        cta: !!v.cta_clicked,
+        whatsapp: !!v.whatsapp_clicked,
         firstAt: v.first_viewed_at,
         lastAt: v.last_active_at,
         value: pPrice,
         profit: pProfit,
+        costUnknown,
       });
     }
 
-    // Propostas
+    // ─── Propostas Personalizadas ──────────────────────────────────────
     for (const v of proposalViewers) {
       const key = (v.email || "").toLowerCase().trim() || `anon-pp:${v.id}`;
       const lead = ensure(key, {
@@ -431,42 +456,82 @@ export default function Leads() {
       }
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
-      lead.proposalsViewed += 1;
       lead.totalViews += v.total_views || 1;
       const secs = v.active_seconds || v.total_time_seconds || 0;
       lead.totalSeconds += secs;
       if (v.cta_clicked) lead.ctaCount += 1;
       if (v.whatsapp_clicked) lead.whatsappCount += 1;
       lead.proposalViewerIds.push(v.id);
+
       const pr = proposals[v.proposal_id];
       const prValue = Number(pr?.total_value || 0);
-      const prProfit = prValue > 0 ? prValue * DEFAULT_MARGIN : 0;
-      lead.totalValue += prValue;
-      lead.profitPotential += prProfit;
-      if (prValue > lead.topValue) lead.topValue = prValue;
-      lead.items.push({
+      const prCost = Number(pr?.internal_cost || 0);
+      const prStoredProfit = pr?.internal_profit != null ? Number(pr.internal_profit) : null;
+      const costUnknown = prValue > 0 && !(prCost > 0);
+      const prProfit = prValue > 0 && prCost > 0
+        ? (prStoredProfit != null && prStoredProfit >= 0 ? prStoredProfit : Math.max(prValue - prCost, 0))
+        : 0;
+
+      upsertItem(key, `proposal:${v.proposal_id}`, {
         kind: "proposal",
         refId: v.proposal_id,
-        viewerId: v.id,
+        viewerIds: [v.id],
         title: pr?.title || "Proposta personalizada",
         subtitle: pr?.client_name || (pr?.destinations || []).join(", ") || null,
         cover: pr?.cover_image_url || null,
         slug: pr?.slug || null,
         views: v.total_views || 1,
         activeSeconds: secs,
-        cta: v.cta_clicked,
-        whatsapp: v.whatsapp_clicked,
+        cta: !!v.cta_clicked,
+        whatsapp: !!v.whatsapp_clicked,
         firstAt: v.first_viewed_at,
         lastAt: v.last_active_at,
         value: prValue,
         profit: prProfit,
+        costUnknown,
       });
     }
 
+    // Materializa itens deduplicados e computa totais UMA vez por pacote
     return Array.from(map.values())
-      .map((l) => ({ ...l, items: l.items.sort((a, b) => b.activeSeconds - a.activeSeconds) }))
+      .map((l) => {
+        const items = Array.from(itemsByLead.get(l.key)?.values() || [])
+          .sort((a, b) => b.activeSeconds - a.activeSeconds);
+        let totalValue = 0;
+        let profitPotential = 0;
+        let topValue = 0;
+        let proposalsWithoutCost = 0;
+        let productsWithoutCost = 0;
+        let productsUnique = 0;
+        let proposalsUnique = 0;
+        for (const it of items) {
+          totalValue += it.value;
+          profitPotential += it.profit;
+          if (it.value > topValue) topValue = it.value;
+          if (it.kind === "proposal") {
+            proposalsUnique += 1;
+            if (it.costUnknown) proposalsWithoutCost += 1;
+          } else {
+            productsUnique += 1;
+            if (it.costUnknown) productsWithoutCost += 1;
+          }
+        }
+        return {
+          ...l,
+          items,
+          totalValue,
+          profitPotential,
+          topValue,
+          proposalsWithoutCost,
+          productsWithoutCost,
+          productsViewed: productsUnique,
+          proposalsViewed: proposalsUnique,
+        };
+      })
       .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
   }, [viewers, products, proposalViewers, proposals]);
+
+
 
   // Period-filtered leads (main dataset all cards/lists react to)
   const range = useMemo(() => periodRange(period, customFrom, customTo), [period, customFrom, customTo]);
