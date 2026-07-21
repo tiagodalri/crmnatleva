@@ -955,6 +955,34 @@ export default function Leads() {
         </Card>
       </div>
 
+      {/* Mapa de origem dos leads */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+            <MapPin className="w-4 h-4 text-primary" />
+            Mapa de origem
+            <Badge className="text-[9px] border-0 bg-primary/12 text-primary">
+              {mapPins.length} localizados
+            </Badge>
+          </div>
+          <p className="text-[10px] text-muted-foreground hidden sm:block">
+            1 pino por pessoa · cor por temperatura · verde = cliente
+          </p>
+        </div>
+        <LeadsOriginMap
+          pins={mapPins}
+          onPinClick={(k) => {
+            const l = periodLeads.find((x) => x.key === k);
+            if (l) setSelected(l);
+          }}
+          className="h-[380px] w-full"
+        />
+      </Card>
+
+      {/* Funil de conversão + retorno por canal */}
+      <LeadsConversionFunnel stages={funnelStages} utm={utmRanking} />
+
+
       {/* Quentes sem retorno */}
       {hotStale.length > 0 && (
         <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/[0.04]">
