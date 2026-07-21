@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useRef } from "react";
-import { GoogleMap, useLoadScript, MarkerF, InfoWindowF } from "@react-google-maps/api";
+import { GoogleMap, useLoadScript, OverlayViewF, InfoWindowF, OverlayView } from "@react-google-maps/api";
 import { Loader2, MapPin, Flame, Users as UsersIcon, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,14 @@ export interface LeadMapPin {
   temperature: "hot" | "warm" | "cold";
   isClient: boolean;
   pipeline: number;
+  /** Foto (WhatsApp/gravatar). Se ausente, exibimos iniciais. */
+  photo?: string | null;
+  /** Lucro potencial. Se null/0 mostramos "Custo não informado". */
+  profit?: number | null;
+  /** Último título visualizado (proposta/produto). */
+  viewing?: string | null;
+  /** Última atividade ISO. */
+  lastAt?: string | null;
 }
 
 const containerStyle = { width: "100%", height: "100%" };
@@ -28,11 +36,45 @@ const LIBRARIES: ("places")[] = ["places"];
 const BRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-function pinColor(p: LeadMapPin): string {
-  if (p.isClient) return "#10b981"; // cliente = verde
-  if (p.temperature === "hot") return "#ef4444"; // vermelho
-  if (p.temperature === "warm") return "#f59e0b"; // âmbar
-  return "#64748b"; // slate frio
+function ringColor(p: LeadMapPin): string {
+  if (p.isClient) return "#10b981"; // cliente
+  if (p.temperature === "hot") return "#ef4444";
+  if (p.temperature === "warm") return "#f59e0b";
+  return "#64748b";
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function relTime(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h}h`;
+  const days = Math.floor(h / 24);
+  if (days < 30) return `há ${days} d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `há ${months} mês${months > 1 ? "es" : ""}`;
+  const y = Math.floor(months / 12);
+  return `há ${y} ano${y > 1 ? "s" : ""}`;
+}
+
+function exactDate(iso?: string | null): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-BR");
+  } catch {
+    return "";
+  }
 }
 
 interface Props {
@@ -47,6 +89,7 @@ export function LeadsOriginMap({ pins, onPinClick, className }: Props) {
     googleMapsApiKey: apiKey ?? "",
     libraries: LIBRARIES,
   });
+  const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -112,6 +155,9 @@ export function LeadsOriginMap({ pins, onPinClick, className }: Props) {
     );
   }
 
+  const active = hovered || selected;
+  const activePin = active ? pinById.get(active) : null;
+
   return (
     <div className={cn("overflow-hidden rounded-2xl border border-border/40 relative", className)}>
       <GoogleMap
@@ -127,51 +173,110 @@ export function LeadsOriginMap({ pins, onPinClick, className }: Props) {
         }}
       >
         {pins.map((p) => {
-          const color = pinColor(p);
-          const scale = p.isClient ? 9 : p.temperature === "hot" ? 9 : p.temperature === "warm" ? 7 : 5.5;
-          const icon: google.maps.Symbol = {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale,
-            fillColor: color,
-            fillOpacity: 0.9,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
-          };
+          const color = ringColor(p);
+          const size = p.isClient || p.temperature === "hot" ? 34 : p.temperature === "warm" ? 30 : 26;
           return (
-            <MarkerF
+            <OverlayViewF
               key={p.key}
               position={{ lat: p.lat, lng: p.lng }}
-              title={p.name}
-              icon={icon}
-              onClick={() => {
-                setSelected(p.key);
-                onPinClick?.(p.key);
-              }}
-            />
+              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              getPixelPositionOffset={(w, h) => ({ x: -(w / 2), y: -(h / 2) })}
+            >
+              <div
+                onMouseEnter={() => setHovered(p.key)}
+                onMouseLeave={() => setHovered((cur) => (cur === p.key ? null : cur))}
+                onClick={() => {
+                  setSelected(p.key);
+                  onPinClick?.(p.key);
+                }}
+                style={{
+                  width: size,
+                  height: size,
+                  borderRadius: "9999px",
+                  padding: 2,
+                  background: color,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.28)",
+                  cursor: "pointer",
+                  transition: "transform 120ms ease",
+                  transform: active === p.key ? "scale(1.15)" : "scale(1)",
+                }}
+                title={p.name}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "9999px",
+                    background: "#ffffff",
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#0f172a",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    fontFamily: "system-ui, -apple-system, sans-serif",
+                  }}
+                >
+                  {p.photo ? (
+                    <img
+                      src={p.photo}
+                      alt=""
+                      width={size - 4}
+                      height={size - 4}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <span>{initials(p.name)}</span>
+                  )}
+                </div>
+              </div>
+            </OverlayViewF>
           );
         })}
-        {selected && pinById.get(selected) && (
+
+        {activePin && (
           <InfoWindowF
-            position={{ lat: pinById.get(selected)!.lat, lng: pinById.get(selected)!.lng }}
+            position={{ lat: activePin.lat, lng: activePin.lng }}
             onCloseClick={() => setSelected(null)}
+            options={{ pixelOffset: new google.maps.Size(0, -22), disableAutoPan: true }}
           >
-            <div className="px-1 py-0.5 text-slate-900 space-y-0.5" style={{ minWidth: 160 }}>
+            <div className="px-1 py-0.5 text-slate-900 space-y-1" style={{ minWidth: 200, maxWidth: 260 }}>
               <div className="flex items-center gap-1.5 text-[13px] font-semibold">
-                {pinById.get(selected)!.isClient ? (
+                {activePin.isClient ? (
                   <Trophy className="h-3.5 w-3.5 text-emerald-600" />
-                ) : pinById.get(selected)!.temperature === "hot" ? (
+                ) : activePin.temperature === "hot" ? (
                   <Flame className="h-3.5 w-3.5 text-red-500" />
                 ) : (
                   <MapPin className="h-3.5 w-3.5 text-slate-500" />
                 )}
-                {pinById.get(selected)!.name}
+                <span className="truncate">{activePin.name}</span>
               </div>
-              <div className="text-[11px] text-slate-600">
-                {[pinById.get(selected)!.city, pinById.get(selected)!.country].filter(Boolean).join(", ") || "—"}
+              {activePin.viewing && (
+                <div className="text-[10.5px] text-slate-700">
+                  <span className="text-slate-500">Vendo:</span> <span className="font-medium">{activePin.viewing}</span>
+                </div>
+              )}
+              <div className="text-[10.5px] text-slate-600">
+                {[activePin.city, activePin.country].filter(Boolean).join(", ") || "—"}
               </div>
-              {pinById.get(selected)!.pipeline > 0 && (
-                <div className="text-[11px] font-semibold text-slate-800">
-                  {BRL(pinById.get(selected)!.pipeline)} em pipeline
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[10.5px] pt-0.5 border-t border-slate-200">
+                {activePin.pipeline > 0 && (
+                  <span className="font-semibold text-slate-800">{BRL(activePin.pipeline)}</span>
+                )}
+                {typeof activePin.profit === "number" && activePin.profit > 0 ? (
+                  <span className="text-emerald-700 font-medium">~{BRL(activePin.profit)} lucro</span>
+                ) : (
+                  <span className="text-slate-500">Custo não informado</span>
+                )}
+              </div>
+              {activePin.lastAt && (
+                <div className="text-[10px] text-slate-500">
+                  {relTime(activePin.lastAt)} · {exactDate(activePin.lastAt)}
                 </div>
               )}
             </div>
