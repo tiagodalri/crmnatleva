@@ -232,6 +232,12 @@ export default function Leads() {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [period, setPeriod] = useState<Period>("all");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+  const [customOpen, setCustomOpen] = useState(false);
+  /** key (email lowered or phone digits) -> { count, value } */
+  const [conversions, setConversions] = useState<Record<string, { count: number; value: number }>>({});
 
   const fetchAll = async () => {
     setLoading(true);
