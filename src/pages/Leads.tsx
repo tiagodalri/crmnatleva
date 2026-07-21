@@ -1655,8 +1655,8 @@ export default function Leads() {
                         )}
                       </div>
                     </td>
-                    <td className="p-3 align-top text-[10.5px] text-muted-foreground">
-                      {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
+                    <td className="p-3 align-top text-[10.5px] text-muted-foreground whitespace-nowrap">
+                      {formatWhen(l.lastAt)}
                     </td>
                     <td className="p-3 align-top">
                       <div className="flex items-center gap-1 justify-end">
