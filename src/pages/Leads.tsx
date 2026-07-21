@@ -86,8 +86,9 @@ type ViewerRow = {
   city: string | null;
   region: string | null;
   country: string | null;
-  lat: number | null;
-  lng: number | null;
+  latitude: number | null;
+  longitude: number | null;
+
   device_type: string | null;
   user_agent: string | null;
   total_views: number;
@@ -132,8 +133,9 @@ type ProposalViewerRow = {
   city: string | null;
   region: string | null;
   country: string | null;
-  lat: number | null;
-  lng: number | null;
+  latitude: number | null;
+  longitude: number | null;
+
   device_type: string | null;
   user_agent: string | null;
   total_views: number;
@@ -237,7 +239,7 @@ type LeadAggregate = {
 
 type OriginFilter = "all" | "prateleira" | "proposal";
 
-const isOnline = (iso: string) => Date.now() - new Date(iso).getTime() < 2 * 60 * 1000;
+const isOnline = (iso: string) => Date.now() - new Date(iso).getTime() < 5 * 60 * 1000;
 
 function originLabel(l: LeadAggregate): { label: string; tone: "prateleira" | "proposal" | "both" } {
   if (l.productsViewed > 0 && l.proposalsViewed > 0) return { label: "Ambos", tone: "both" };
@@ -403,14 +405,15 @@ export default function Leads() {
       const key = (v.email || "").toLowerCase().trim() || `anon-pr:${v.id}`;
       const lead = ensure(key, {
         email: v.email, name: v.name, phone: v.phone, city: v.city, region: v.region,
-        country: v.country, lat: v.lat, lng: v.lng,
+        country: v.country, lat: v.latitude, lng: v.longitude,
         device: v.device_type, userAgent: v.user_agent,
         utmSource: v.utm_source, utmCampaign: v.utm_campaign,
         firstAt: v.first_viewed_at, lastAt: v.last_active_at,
       });
-      if (v.lat != null && v.lng != null && new Date(v.last_active_at) >= new Date(lead.lastAt)) {
-        lead.lat = v.lat; lead.lng = v.lng;
+      if (v.latitude != null && v.longitude != null && new Date(v.last_active_at) >= new Date(lead.lastAt)) {
+        lead.lat = Number(v.latitude); lead.lng = Number(v.longitude);
       }
+
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
       lead.totalViews += v.total_views || 1;
@@ -450,13 +453,14 @@ export default function Leads() {
       const key = (v.email || "").toLowerCase().trim() || `anon-pp:${v.id}`;
       const lead = ensure(key, {
         email: v.email, name: v.name, phone: v.phone, city: v.city, region: v.region,
-        country: v.country, lat: v.lat, lng: v.lng,
+        country: v.country, lat: v.latitude, lng: v.longitude,
         device: v.device_type, userAgent: v.user_agent,
         firstAt: v.first_viewed_at, lastAt: v.last_active_at,
       });
-      if (v.lat != null && v.lng != null && new Date(v.last_active_at) >= new Date(lead.lastAt)) {
-        lead.lat = v.lat; lead.lng = v.lng;
+      if (v.latitude != null && v.longitude != null && new Date(v.last_active_at) >= new Date(lead.lastAt)) {
+        lead.lat = Number(v.latitude); lead.lng = Number(v.longitude);
       }
+
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
       lead.totalViews += v.total_views || 1;
@@ -1021,7 +1025,8 @@ export default function Leads() {
         <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)}
           onClick={() => setDrill({ title: "Total de leads no período", hint: "Todos os leads únicos considerados no período selecionado.", leads: periodLeads })} />
         <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined}
-          onClick={() => setDrill({ title: "Leads online agora", hint: "Ativos nos últimos 2 minutos.", leads: periodLeads.filter((l) => isOnline(l.lastAt)) })} />
+          onClick={() => setDrill({ title: "Leads online agora", hint: "Ativos nos últimos 5 minutos · veja quem está e o que está olhando.", leads: periodLeads.filter((l) => isOnline(l.lastAt)).sort((a,b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()) })} />
+
         <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)}
           onClick={() => setDrill({ title: "Leads quentes", hint: "Clicaram no CTA ou no WhatsApp.", leads: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0) })} />
         <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas"
@@ -1651,6 +1656,9 @@ export default function Leads() {
                   const wa = waLinks[l.key];
                   const conv = conversions[l.key];
                   const isClient = (conv?.count ?? 0) > 0;
+                  const online = isOnline(l.lastAt);
+                  const top = l.items[0];
+                  const sourceLabel = top?.kind === "proposal" ? "Proposta" : top?.kind === "product" ? "Prateleira" : null;
                   return (
                     <button
                       key={l.key}
@@ -1658,15 +1666,20 @@ export default function Leads() {
                       onClick={() => { setSelected(l); setDrill(null); }}
                       className="w-full flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/40 text-left transition"
                     >
-                      <WhatsAppAvatar
-                        src={wa?.photo || null}
-                        name={l.name || l.email || "?"}
-                        phone={normPhone(l.phone) || undefined}
-                        size={32}
-                        className="w-8 h-8 text-[11px] flex-shrink-0"
-                      />
+                      <div className="relative flex-shrink-0">
+                        <WhatsAppAvatar
+                          src={wa?.photo || null}
+                          name={l.name || l.email || "?"}
+                          phone={normPhone(l.phone) || undefined}
+                          size={32}
+                          className="w-8 h-8 text-[11px]"
+                        />
+                        {online && (
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse" title="Online agora" />
+                        )}
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-[12px] font-semibold text-foreground truncate">
                             {l.name || l.email || "Lead anônimo"}
                           </p>
@@ -1680,7 +1693,17 @@ export default function Leads() {
                               WA
                             </Badge>
                           )}
+                          {sourceLabel && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 border-border/50 text-muted-foreground">
+                              {sourceLabel}
+                            </Badge>
+                          )}
                         </div>
+                        {top?.title && (
+                          <p className="text-[10.5px] text-foreground/80 truncate">
+                            {online ? "vendo: " : "último item: "}<span className="font-medium">{top.title}</span>
+                          </p>
+                        )}
                         <p className="text-[10px] text-muted-foreground truncate">
                           {(l.email || "sem email")} · {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
                         </p>
@@ -1694,6 +1717,7 @@ export default function Leads() {
                         </p>
                       </div>
                     </button>
+
                   );
                 })}
               </div>
