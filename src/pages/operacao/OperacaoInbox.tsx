@@ -21,6 +21,8 @@ import { useConversationDelegation } from "@/hooks/useConversationDelegation";
 import { useMyDelegations } from "@/hooks/useMyDelegations";
 import { DelegateConversationDialog } from "@/components/inbox/DelegateConversationDialog";
 import { SlashCommandDropdown, type MessageShortcut } from "@/components/inbox/SlashCommandDropdown";
+import { SpellSuggestionBar } from "@/components/inbox/SpellSuggestionBar";
+import { useSpellSuggestion } from "@/hooks/useSpellSuggestion";
 import { ScheduleMessagePopover } from "@/components/inbox/ScheduleMessagePopover";
 import { ScheduledForConversationButton } from "@/components/inbox/ScheduledForConversationButton";
 import { GroupInfoDialog } from "@/components/inbox/GroupInfoDialog";
@@ -1788,9 +1790,27 @@ function OperacaoInboxInner() {
     }
   }, [shortcutOpen]);
 
+  const { suggestion: spellSuggestion, dismissSuggestion: dismissSpellSuggestion } = useSpellSuggestion(inputText);
+  const acceptSpellSuggestion = useCallback(() => {
+    if (!spellSuggestion) return;
+    setInputText(spellSuggestion);
+    dismissSpellSuggestion();
+    textareaRef.current?.focus();
+  }, [spellSuggestion, dismissSpellSuggestion]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Quando o dropdown está aberto, deixa ele tratar Enter/setas
     if (shortcutOpen && (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab" || e.key === "Escape")) {
+      return;
+    }
+    if (e.key === "Tab" && spellSuggestion && !e.shiftKey) {
+      e.preventDefault();
+      acceptSpellSuggestion();
+      return;
+    }
+    if (e.key === "Escape" && spellSuggestion) {
+      e.preventDefault();
+      dismissSpellSuggestion();
       return;
     }
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
