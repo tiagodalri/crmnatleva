@@ -1257,6 +1257,8 @@ export default function Leads() {
                 const ua = parseUA(l.userAgent);
                 const o = originLabel(l);
                 const topItem = l.items[0];
+                const wa = leadWa(l);
+                const isClient = (leadConversion(l)?.count ?? 0) > 0;
                 return (
                   <tr
                     key={l.key}
@@ -1272,18 +1274,43 @@ export default function Leads() {
                     </td>
                     <td className="p-3 align-top">
                       <div className="flex items-start gap-2">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full mt-1.5 flex-shrink-0",
-                          online ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/30",
-                        )} />
+                        <div className="relative flex-shrink-0">
+                          <WhatsAppAvatar
+                            src={wa?.photo || null}
+                            name={l.name || l.email || "?"}
+                            phone={normPhone(l.phone) || undefined}
+                            size={36}
+                            className="w-9 h-9 text-[11px]"
+                          />
+                          <span
+                            className={cn(
+                              "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-background",
+                              online ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/30",
+                            )}
+                            title={online ? "Online agora" : "Offline"}
+                          />
+                        </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-foreground truncate">{l.name || "Sem nome"}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-foreground truncate">{l.name || "Sem nome"}</p>
+                            {isClient && (
+                              <Badge className="text-[9px] border-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 gap-0.5 h-4 px-1">
+                                <CheckCircle2 className="w-2.5 h-2.5" /> Cliente
+                              </Badge>
+                            )}
+                            {wa && (
+                              <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-4 px-1" title="Já é contato no WhatsApp">
+                                <MessageCircle className="w-2.5 h-2.5" /> WA
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-[10.5px] text-muted-foreground truncate">
                             {l.city ? `${l.city}${l.country ? `, ${l.country}` : ""}` : ua.os}
                           </p>
                         </div>
                       </div>
                     </td>
+
                     <td className="p-3 align-top">
                       <p className="text-[11px] text-foreground truncate max-w-[200px]" title={l.email}>{l.email || "·"}</p>
                       {l.phone && <p className="text-[10.5px] text-muted-foreground">{l.phone}</p>}
