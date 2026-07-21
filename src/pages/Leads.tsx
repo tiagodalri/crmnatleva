@@ -188,6 +188,8 @@ type LeadAggregate = {
   city: string | null;
   region: string | null;
   country: string | null;
+  lat: number | null;
+  lng: number | null;
   device: string | null;
   userAgent: string | null;
   utmSource: string | null;
