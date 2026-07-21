@@ -54,6 +54,8 @@ import { fetchAllRows } from "@/lib/fetchAll";
 import { ContactProfilePanel } from "@/components/livechat/ContactProfilePanel";
 import { ProfilePictureViewer } from "@/components/livechat/ProfilePictureViewer";
 import { ClientContextPanel } from "@/components/livechat/ClientContextPanel";
+import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
+
 import { ConversationSummaryDialog } from "@/components/livechat/ConversationSummaryDialog";
 import { AttachmentDropOverlay } from "@/components/livechat/AttachmentDropOverlay";
 import { AttachmentPreviewDialog } from "@/components/livechat/AttachmentPreviewDialog";
@@ -1000,7 +1002,7 @@ function OperacaoInboxInner() {
         });
 
         // Profile pictures para quem ainda não tem
-        const needsPic = merged.filter(c => !profilePicsRef.current.has(c.id)).slice(0, 6);
+        const needsPic = merged.filter(c => !profilePicsRef.current.has(c.id)).slice(0, 20);
         if (needsPic.length > 0) {
           const BATCH = 2;
           for (let i = 0; i < needsPic.length; i += BATCH) {
@@ -3048,13 +3050,21 @@ function OperacaoInboxInner() {
                       >
                         {(() => {
                           const headerPic = profilePicsRef.current.get(selected.id) || (selected as any).profile_picture_url || (selected as any).group_photo_url || "";
-                          return headerPic ? (
-                            <img loading="lazy" decoding="async" src={headerPic} alt="" className="h-9 w-9 md:h-10 md:w-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
-                          ) : null;
+                          const cleanPhone = (selected.phone || "").replace(/\D/g, "");
+                          const displayName = ((selected as any).group_subject && (selected as any).is_group)
+                            ? (selected as any).group_subject
+                            : (selected.contact_name || "Sem nome");
+                          return (
+                            <WhatsAppAvatar
+                              src={headerPic || null}
+                              name={displayName}
+                              phone={cleanPhone || null}
+                              className="h-9 w-9 md:h-10 md:w-10"
+                              textClassName="text-sm"
+                            />
+                          );
                         })()}
-                        <div className={`h-9 w-9 md:h-10 md:w-10 rounded-full bg-secondary flex items-center justify-center text-sm font-bold ${(profilePicsRef.current.get(selected.id) || (selected as any).profile_picture_url || (selected as any).group_photo_url) ? 'hidden' : ''}`}>
-                          {(selected.contact_name || "Sem nome").split(" ").map(w => w[0]).join("").slice(0, 2)}
-                        </div>
+
                       </button>
                       {/* Name + phone */}
                       <div className="min-w-0 flex-1">

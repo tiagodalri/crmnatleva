@@ -426,7 +426,7 @@ async function upsertConversation(
 
   const { data: existingConv } = await supabase
     .from("conversations")
-    .select("id, unread_count, contact_name, excluded_at")
+    .select("id, unread_count, contact_name, excluded_at, is_archived, group_subject")
     .or(`phone.eq.${phoneE164},phone.eq.${cleanPhone},external_conversation_id.eq.${convExternalId}`)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -457,18 +457,32 @@ async function upsertConversation(
     };
     if (isGroup) {
       updateData.is_group = true;
-      if (groupSubject) updateData.group_subject = groupSubject;
+      if (groupSubject) {
+        updateData.group_subject = groupSubject;
+        // Grupo renomeado no WhatsApp · manter contact_name/display_name em sincronia
+        // (o "nome oficial" de um grupo é o subject; contact_name antigo fica preso ao histórico).
+        const existingName = (existingConv.contact_name || "").trim();
+        if (existingName !== groupSubject) {
+          updateData.contact_name = groupSubject;
+          updateData.display_name = groupSubject;
+        }
+      }
     }
     if (!fromMe) {
       // Update contact name if it looks like a phone number or generic
       const existing = (existingConv.contact_name || "").trim();
       const looksLikePhone = /^\+?\d[\d\s\-()]{6,}$/.test(existing);
       const isGeneric = isAgencyOrGenericName(existing);
-      if (looksLikePhone || isGeneric) {
+      if (!isGroup && (looksLikePhone || isGeneric)) {
         updateData.contact_name = contactName;
       }
       updateData.unread_count = (existingConv.unread_count || 0) + 1;
+      // Auto-desarquivar quando chega mensagem nova do contato (igual WhatsApp oficial).
+      // Não interfere com arquivamento manual — só reage a inbound.
+      updateData.is_archived = false;
+      updateData.archived_at = null;
     }
+
     await supabase.from("conversations").update(updateData).eq("id", existingConv.id);
     return existingConv.id;
   }
