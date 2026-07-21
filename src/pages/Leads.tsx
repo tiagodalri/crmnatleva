@@ -731,15 +731,24 @@ export default function Leads() {
   const conversionRate = totalLeads > 0 ? (convertedLeads.length / totalLeads) * 100 : 0;
 
   // Insight: quentes sem retorno
+  // Teto de recência FIXO de 30 dias — independente do filtro global de período.
+  // Regra do produto: não mostrar leads muito antigos aqui, mesmo com "Tudo" ligado.
   const hotStale = useMemo(() => {
-    const cutoff = Date.now() - 24 * 3600 * 1000;
+    const now = Date.now();
+    const staleCutoff = now - 24 * 3600 * 1000;       // já esfriou (>24h sem retorno)
+    const recencyFloor = now - 30 * 24 * 3600 * 1000; // mas ainda dentro dos últimos 30d
     return periodLeads
-      .filter((l) => (l.ctaCount > 0 || l.whatsappCount > 0)
-        && !isConverted(l)
-        && new Date(l.lastAt).getTime() < cutoff)
+      .filter((l) => {
+        const t = new Date(l.lastAt).getTime();
+        return (l.ctaCount > 0 || l.whatsappCount > 0)
+          && !isConverted(l)
+          && t < staleCutoff
+          && t >= recencyFloor;
+      })
       .sort((a, b) => b.profitPotential - a.profitPotential)
       .slice(0, 5);
   }, [periodLeads, conversions]);
+
 
   // Insight: origem prateleira vs proposta
   const prateleiraLeads = periodLeads.filter((l) => l.productsViewed > 0);
