@@ -132,9 +132,10 @@ interface SaleRowProps {
   onRequestDelete: (sale: SaleRow) => void;
   canDelete: boolean;
   fromPrateleira?: boolean;
+  waLink?: SaleWaLink | null;
 }
 
-const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, externalSeller, productCatalog, onNavigate, onNavigateClient, onDeleted, onDragStart, onMove, onRequestDelete, canDelete, fromPrateleira }: SaleRowProps) {
+const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, externalSeller, productCatalog, onNavigate, onNavigateClient, onDeleted, onDragStart, onMove, onRequestDelete, canDelete, fromPrateleira, waLink }: SaleRowProps) {
   const o = routeCode(sale.origin_city, sale.origin_iata);
   const d = routeCode(sale.destination_city, sale.destination_iata);
   const routeEmpty = !o && !d;
@@ -142,6 +143,7 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
   const slugs = normalizeProductsToSlugs(sale.products);
   const emitted = isEmitted(sale);
   const [menuOpen, setMenuOpen] = useState(false);
+
 
   const sellerInitials = seller
     ? (seller.full_name || seller.email || "?")
