@@ -890,6 +890,11 @@ export default function Leads() {
         const engaged = l.ctaCount > 0 || l.whatsappCount > 0;
         const temperature: "hot" | "warm" | "cold" =
           engaged ? "hot" : (l.totalSeconds > 30 || l.totalViews > 2) ? "warm" : "cold";
+        const wa = waLinks[normPhone(l.phone)];
+        // Último item visto (o mais recente pelo lastAt do item)
+        const lastItem = [...l.items].sort(
+          (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
+        )[0];
         return {
           key: l.key,
           name: l.name || l.email || "Lead anônimo",
@@ -900,9 +905,13 @@ export default function Leads() {
           temperature,
           isClient: client,
           pipeline: l.totalValue,
+          photo: wa?.photo || null,
+          profit: l.profitPotential > 0 ? l.profitPotential : null,
+          viewing: lastItem?.title || null,
+          lastAt: l.lastAt,
         };
       });
-  }, [periodLeads, conversions]);
+  }, [periodLeads, conversions, waLinks]);
 
   // Funil de conversão (usa o mesmo dataset periodLeads, sem duplicar por evento)
   const funnelStages = useMemo(() => {
