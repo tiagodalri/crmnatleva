@@ -245,18 +245,6 @@ export default function Leads() {
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customOpen, setCustomOpen] = useState(false);
-  /** key (email lowered or phone digits) -> enrichment */
-  type LeadEnrichment = {
-    count: number;
-    value: number;
-    profit: number;
-    firstSaleAt: string | null;
-    lastSaleAt: string | null;
-    customerSince: string | null;
-    clientId: string | null;
-    destinations: string[];
-    paymentTop: string | null;
-  };
   const [conversions, setConversions] = useState<Record<string, LeadEnrichment>>({});
 
   const fetchAll = async () => {
