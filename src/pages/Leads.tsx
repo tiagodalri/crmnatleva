@@ -1328,7 +1328,7 @@ export default function Leads() {
                   ) : (
                     <span className="text-muted-foreground/70">sem valor</span>
                   )}
-                  <span className="text-muted-foreground">{formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}</span>
+                  <span className="text-muted-foreground truncate ml-2" title={format(new Date(l.lastAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}>{formatWhen(l.lastAt)}</span>
                 </div>
 
                 <button
