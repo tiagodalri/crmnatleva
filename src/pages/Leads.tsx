@@ -1607,18 +1607,27 @@ export default function Leads() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, hint, tone, delta }: {
+function Kpi({ icon: Icon, label, value, hint, tone, delta, onClick }: {
   icon: any; label: string; value: string; hint?: string;
   tone?: "hot" | "live" | "value" | "profit"; delta?: number | null;
+  onClick?: () => void;
 }) {
+  const clickable = typeof onClick === "function";
   return (
-    <Card className={cn(
-      "p-3 flex items-start gap-2.5 rounded-2xl border-border/40",
-      tone === "hot" && "border-accent/40 bg-accent/5",
-      tone === "live" && "border-emerald-500/40 bg-emerald-500/5",
-      tone === "value" && "border-sky-500/30 bg-sky-500/5",
-      tone === "profit" && "border-emerald-500/40 bg-emerald-500/5",
-    )}>
+    <Card
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
+      className={cn(
+        "p-3 flex items-start gap-2.5 rounded-2xl border-border/40 transition",
+        clickable && "cursor-pointer hover:border-primary/40 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        tone === "hot" && "border-accent/40 bg-accent/5",
+        tone === "live" && "border-emerald-500/40 bg-emerald-500/5",
+        tone === "value" && "border-sky-500/30 bg-sky-500/5",
+        tone === "profit" && "border-emerald-500/40 bg-emerald-500/5",
+      )}
+    >
       <div className={cn(
         "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
         tone === "hot" ? "bg-accent/15 text-accent" :
@@ -1650,6 +1659,7 @@ function Kpi({ icon: Icon, label, value, hint, tone, delta }: {
     </Card>
   );
 }
+
 
 function OriginBar({ label, tone, leads, pipeline, maxPipeline }: {
   label: string; tone: "prateleira" | "proposal"; leads: number; pipeline: number; maxPipeline: number;
