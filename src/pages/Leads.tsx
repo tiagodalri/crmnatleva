@@ -1107,15 +1107,25 @@ export default function Leads() {
             {topItems.length === 0 ? (
               <p className="text-[10.5px] text-muted-foreground">Sem visualizações no período.</p>
             ) : topItems.map((it, i) => (
-              <div key={i} className="flex items-center gap-2 py-1 border-b border-border/20 last:border-0">
+              <button
+                type="button"
+                key={i}
+                onClick={() => setDrill({
+                  title: `Quem viu · ${it.title}`,
+                  hint: it.kind === "proposal" ? "Leads que abriram esta proposta." : "Leads que visualizaram este produto.",
+                  leads: periodLeads.filter((l) => l.items.some((x) => x.kind === it.kind && x.refId === it.refId)),
+                })}
+                className="w-full flex items-center gap-2 py-1 border-b border-border/20 last:border-0 hover:bg-muted/40 rounded px-1 text-left transition"
+              >
                 <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4">{i + 1}</span>
                 {it.kind === "proposal"
                   ? <FileText className="w-3 h-3 text-violet-500 flex-shrink-0" />
                   : <PackageOpen className="w-3 h-3 text-sky-500 flex-shrink-0" />}
                 <span className="text-[11px] text-foreground truncate flex-1" title={it.title}>{it.title}</span>
                 <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">{it.views}</span>
-              </div>
+              </button>
             ))}
+
           </div>
         </Card>
       </div>
