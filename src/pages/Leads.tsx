@@ -1037,7 +1037,13 @@ export default function Leads() {
       {/* Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Conversão em venda */}
-        <Card className="p-4 space-y-2 border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.05] to-transparent">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setDrill({ title: "Leads que viraram venda", hint: "Leads do período com venda registrada em `sales`.", leads: convertedLeads })}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDrill({ title: "Leads que viraram venda", leads: convertedLeads }); } }}
+          className="p-4 space-y-2 border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.05] to-transparent cursor-pointer hover:border-emerald-500/50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+        >
           <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             Conversão em venda
@@ -1070,9 +1076,12 @@ export default function Leads() {
             Origem com melhor retorno
           </div>
           <div className="space-y-2 pt-1">
-            <OriginBar label="Prateleira" tone="prateleira" leads={prateleiraLeads.length} pipeline={prateleiraPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
-            <OriginBar label="Proposta" tone="proposal" leads={proposalLeads.length} pipeline={proposalPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
+            <OriginBar label="Prateleira" tone="prateleira" leads={prateleiraLeads.length} pipeline={prateleiraPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)}
+              onClick={() => setDrill({ title: "Leads via Prateleira", hint: "Visualizaram algum produto da Prateleira no período.", leads: prateleiraLeads })} />
+            <OriginBar label="Proposta" tone="proposal" leads={proposalLeads.length} pipeline={proposalPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)}
+              onClick={() => setDrill({ title: "Leads via Proposta personalizada", hint: "Abriram alguma proposta enviada no período.", leads: proposalLeads })} />
           </div>
+
           {topUtms.length > 0 && (
             <div className="pt-2 border-t border-border/30">
               <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">Top UTM (Prateleira)</p>
