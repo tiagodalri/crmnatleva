@@ -24,7 +24,10 @@ import {
   Smartphone, MapPin, ExternalLink, PackageOpen, Phone, Mail,
   TrendingUp, Wifi, Activity, Target, Filter as FilterIcon,
   FileText, Trash2, Sparkles, X, DollarSign, Flame, Crown, Trophy,
+  ArrowUp, ArrowDown, CalendarRange, AlertTriangle, Eye, CheckCircle2,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const DEFAULT_MARGIN = 0.15; // 15% quando não há custo informado
@@ -34,6 +37,38 @@ import { cn } from "@/lib/utils";
 import { formatTime, parseUA } from "@/lib/proposalAnalytics";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+
+type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
+const PERIOD_LABEL: Record<Period, string> = {
+  today: "Hoje", yesterday: "Ontem", "7d": "7 dias", "30d": "30 dias", all: "Tudo", custom: "Personalizado",
+};
+
+/** Returns [fromMs, toMs] for a period, or null when "all". Previous returns the immediately prior window. */
+function periodRange(period: Period, customFrom?: Date, customTo?: Date): { from: number; to: number } | null {
+  const now = Date.now();
+  const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); };
+  const endOfDay = (d: Date) => { const x = new Date(d); x.setHours(23,59,59,999); return x.getTime(); };
+  if (period === "all") return null;
+  if (period === "today") return { from: startOfDay(new Date()), to: now };
+  if (period === "yesterday") {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    return { from: startOfDay(y), to: endOfDay(y) };
+  }
+  if (period === "7d") return { from: now - 7 * 86400000, to: now };
+  if (period === "30d") return { from: now - 30 * 86400000, to: now };
+  if (period === "custom" && customFrom && customTo) return { from: startOfDay(customFrom), to: endOfDay(customTo) };
+  return null;
+}
+function previousRange(period: Period, customFrom?: Date, customTo?: Date): { from: number; to: number } | null {
+  const cur = periodRange(period, customFrom, customTo);
+  if (!cur) return null;
+  const span = cur.to - cur.from;
+  return { from: cur.from - span - 1, to: cur.from - 1 };
+}
+function normPhone(p?: string | null): string {
+  if (!p) return "";
+  return String(p).replace(/\D+/g, "");
+}
 
 // ─── Prateleira ────────────────────────────────────────────────────────
 type ViewerRow = {
@@ -197,6 +232,12 @@ export default function Leads() {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [period, setPeriod] = useState<Period>("all");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+  const [customOpen, setCustomOpen] = useState(false);
+  /** key (email lowered or phone digits) -> { count, value } */
+  const [conversions, setConversions] = useState<Record<string, { count: number; value: number }>>({});
 
   const fetchAll = async () => {
     setLoading(true);
@@ -384,9 +425,82 @@ export default function Leads() {
       .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
   }, [viewers, products, proposalViewers, proposals]);
 
+  // Period-filtered leads (main dataset all cards/lists react to)
+  const range = useMemo(() => periodRange(period, customFrom, customTo), [period, customFrom, customTo]);
+  const prevR = useMemo(() => previousRange(period, customFrom, customTo), [period, customFrom, customTo]);
+
+  const inRange = (iso: string | undefined | null, r: { from: number; to: number } | null) => {
+    if (!r) return true;
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return t >= r.from && t <= r.to;
+  };
+  const leadInRange = (l: LeadAggregate, r: { from: number; to: number } | null) =>
+    inRange(l.lastAt || l.firstAt, r);
+
+  const periodLeads = useMemo(
+    () => leads.filter((l) => leadInRange(l, range)),
+    [leads, range]
+  );
+  const prevLeads = useMemo(
+    () => (prevR ? leads.filter((l) => leadInRange(l, prevR)) : []),
+    [leads, prevR]
+  );
+
+  // Fetch conversions (leads → clients → sales) for all loaded leads
+  useEffect(() => {
+    (async () => {
+      const emails = Array.from(new Set(leads.map((l) => (l.email || "").toLowerCase().trim()).filter(Boolean)));
+      const phones = Array.from(new Set(leads.map((l) => normPhone(l.phone)).filter((p) => p && p.length >= 8)));
+      if (emails.length === 0 && phones.length === 0) { setConversions({}); return; }
+      // Fetch clients by email OR phone
+      const clientsQuery = (supabase as any).from("clients").select("id, email, phone");
+      const orParts: string[] = [];
+      if (emails.length) orParts.push(`email.in.(${emails.map(e => `"${e}"`).join(",")})`);
+      if (phones.length) orParts.push(`phone.in.(${phones.map(p => `"${p}"`).join(",")})`);
+      let clientRows: any[] = [];
+      if (orParts.length) {
+        const { data } = await clientsQuery.or(orParts.join(","));
+        clientRows = data || [];
+      }
+      if (!clientRows.length) { setConversions({}); return; }
+      const clientIds = clientRows.map((c) => c.id);
+      const { data: salesRows } = await (supabase as any)
+        .from("sales")
+        .select("client_id, received_value, status, created_at")
+        .in("client_id", clientIds);
+      // Map client_id -> {count, value}
+      const byClient: Record<string, { count: number; value: number }> = {};
+      (salesRows || []).forEach((s: any) => {
+        if ((s.status || "").toLowerCase() === "cancelado") return;
+        const cur = byClient[s.client_id] || { count: 0, value: 0 };
+        cur.count += 1;
+        cur.value += Number(s.received_value || 0);
+        byClient[s.client_id] = cur;
+      });
+      // Attribute to lead keys (email + phone)
+      const out: Record<string, { count: number; value: number }> = {};
+      for (const c of clientRows) {
+        const stats = byClient[c.id];
+        if (!stats) continue;
+        const emailKey = (c.email || "").toLowerCase().trim();
+        const phoneKey = normPhone(c.phone);
+        if (emailKey) out[`e:${emailKey}`] = stats;
+        if (phoneKey) out[`p:${phoneKey}`] = stats;
+      }
+      setConversions(out);
+    })();
+  }, [leads]);
+
+  const leadConversion = (l: LeadAggregate) => {
+    const e = (l.email || "").toLowerCase().trim();
+    const p = normPhone(l.phone);
+    return conversions[`e:${e}`] || conversions[`p:${p}`] || null;
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return leads.filter((l) => {
+    return periodLeads.filter((l) => {
       if (filter === "hot" && l.ctaCount === 0 && l.whatsappCount === 0) return false;
       if (filter === "online" && !isOnline(l.lastAt)) return false;
       if (filter === "whatsapp" && l.whatsappCount === 0) return false;
@@ -401,26 +515,86 @@ export default function Leads() {
         l.items.some((p) => (p.title || "").toLowerCase().includes(q))
       );
     });
-  }, [leads, search, filter, origin]);
+  }, [periodLeads, search, filter, origin]);
 
-  // KPIs
-  const totalLeads = leads.length;
-  const onlineNow = leads.filter((l) => isOnline(l.lastAt)).length;
-  const hotLeads = leads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0).length;
-  const propostaLeads = leads.filter((l) => l.proposalsViewed > 0).length;
-  const pipelineValue = leads.reduce((s, l) => s + l.totalValue, 0);
-  const profitPotential = leads.reduce((s, l) => s + l.profitPotential, 0);
+  // KPIs (react to period)
+  const totalLeads = periodLeads.length;
+  const onlineNow = periodLeads.filter((l) => isOnline(l.lastAt)).length;
+  const hotLeads = periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0).length;
+  const propostaLeads = periodLeads.filter((l) => l.proposalsViewed > 0).length;
+  const pipelineValue = periodLeads.reduce((s, l) => s + l.totalValue, 0);
+  const profitPotential = periodLeads.reduce((s, l) => s + l.profitPotential, 0);
   const avgTicket = totalLeads > 0 ? pipelineValue / totalLeads : 0;
+
+  // Previous-period deltas (only when period !== "all")
+  const prevTotal = prevLeads.length;
+  const prevHot = prevLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0).length;
+  const prevPipeline = prevLeads.reduce((s, l) => s + l.totalValue, 0);
+  const pct = (curr: number, prev: number): number | null => {
+    if (!prevR) return null;
+    if (prev === 0 && curr === 0) return null;
+    if (prev === 0) return null; // can't compute % from zero
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+
+  // Insight: converted leads (lead → cliente → venda)
+  const convertedLeads = useMemo(() => periodLeads.filter((l) => leadConversion(l)), [periodLeads, conversions]);
+  const conversionValue = convertedLeads.reduce((s, l) => s + (leadConversion(l)?.value || 0), 0);
+  const conversionRate = totalLeads > 0 ? (convertedLeads.length / totalLeads) * 100 : 0;
+
+  // Insight: quentes sem retorno
+  const hotStale = useMemo(() => {
+    const cutoff = Date.now() - 24 * 3600 * 1000;
+    return periodLeads
+      .filter((l) => (l.ctaCount > 0 || l.whatsappCount > 0)
+        && !leadConversion(l)
+        && new Date(l.lastAt).getTime() < cutoff)
+      .sort((a, b) => b.profitPotential - a.profitPotential)
+      .slice(0, 5);
+  }, [periodLeads, conversions]);
+
+  // Insight: origem prateleira vs proposta
+  const prateleiraLeads = periodLeads.filter((l) => l.productsViewed > 0);
+  const proposalLeads = periodLeads.filter((l) => l.proposalsViewed > 0);
+  const prateleiraPipeline = prateleiraLeads.reduce((s, l) =>
+    s + l.items.filter((i) => i.kind === "product").reduce((a, i) => a + i.value, 0), 0);
+  const proposalPipeline = proposalLeads.reduce((s, l) =>
+    s + l.items.filter((i) => i.kind === "proposal").reduce((a, i) => a + i.value, 0), 0);
+
+  // Insight: top items no período
+  const topItems = useMemo(() => {
+    const counts = new Map<string, { title: string; kind: "product" | "proposal"; slug: string | null; views: number }>();
+    for (const l of periodLeads) {
+      for (const it of l.items) {
+        const k = `${it.kind}:${it.refId}`;
+        const prev = counts.get(k);
+        if (prev) prev.views += it.views;
+        else counts.set(k, { title: it.title, kind: it.kind, slug: it.slug, views: it.views });
+      }
+    }
+    return Array.from(counts.values()).sort((a, b) => b.views - a.views).slice(0, 3);
+  }, [periodLeads]);
+
+  // Insight: top UTM sources (Prateleira)
+  const topUtms = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of periodLeads) {
+      if (l.productsViewed > 0 && l.utmSource) {
+        m.set(l.utmSource, (m.get(l.utmSource) || 0) + 1);
+      }
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  }, [periodLeads]);
 
   // Ranking: score = lucro + bônus de engajamento (CTA/WhatsApp/tempo)
   const ranked = useMemo(() => {
-    const withScore = leads.map((l) => {
+    const withScore = periodLeads.map((l) => {
       const engagement = l.ctaCount * 500 + l.whatsappCount * 800 + Math.min(l.totalSeconds, 600);
       const score = l.profitPotential + engagement;
       return { lead: l, score, engagement };
     });
     return withScore.sort((a, b) => b.score - a.score).slice(0, 5);
-  }, [leads]);
+  }, [periodLeads]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -513,16 +687,192 @@ export default function Leads() {
         </p>
       </div>
 
+      {/* Period filter pills */}
+      <Card className="p-2.5 flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-1 flex items-center gap-1">
+          <CalendarRange className="w-3 h-3" /> Período:
+        </span>
+        {(["today", "yesterday", "7d", "30d", "all"] as Period[]).map((p) => (
+          <FilterChip key={p} active={period === p} onClick={() => setPeriod(p)}>
+            {PERIOD_LABEL[p]}
+          </FilterChip>
+        ))}
+        <Popover open={customOpen} onOpenChange={setCustomOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "h-8 px-3 rounded-lg text-[11px] font-medium transition-colors",
+                period === "custom" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {period === "custom" && customFrom && customTo
+                ? `${format(customFrom, "dd/MM")} → ${format(customTo, "dd/MM")}`
+                : "Personalizado"}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto p-3 space-y-2">
+            <Calendar
+              mode="range"
+              locale={ptBR}
+              selected={{ from: customFrom, to: customTo }}
+              onSelect={(range: any) => {
+                setCustomFrom(range?.from);
+                setCustomTo(range?.to || range?.from);
+              }}
+              numberOfMonths={1}
+              className="rounded-md border p-2 pointer-events-auto"
+            />
+            <div className="flex justify-end gap-2 pt-1 border-t">
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+                setCustomFrom(undefined); setCustomTo(undefined); setPeriod("all"); setCustomOpen(false);
+              }}>Limpar</Button>
+              <Button size="sm" className="h-7 text-xs" disabled={!customFrom || !customTo} onClick={() => {
+                setPeriod("custom"); setCustomOpen(false);
+              }}>Aplicar</Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </Card>
+
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} />
+        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)} />
         <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined} />
-        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} />
+        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)} />
         <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas" />
-        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" />
+        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)} />
         <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="estimativa com margem real" tone="profit" />
         <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead" />
       </div>
+
+      {/* Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Conversão em venda */}
+        <Card className="p-4 space-y-2 border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.05] to-transparent">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            Conversão em venda
+          </div>
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Leads convertidos</p>
+              <p className="text-lg font-bold text-foreground tabular-nums">{convertedLeads.length}</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Taxa</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                {conversionRate.toFixed(1)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Vendido</p>
+              <p className="text-lg font-bold text-foreground tabular-nums">{BRL(conversionValue)}</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground pt-1">
+            leads do período que viraram cliente com venda registrada
+          </p>
+        </Card>
+
+        {/* Origem: Prateleira vs Proposta */}
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            Origem com melhor retorno
+          </div>
+          <div className="space-y-2 pt-1">
+            <OriginBar label="Prateleira" tone="prateleira" leads={prateleiraLeads.length} pipeline={prateleiraPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
+            <OriginBar label="Proposta" tone="proposal" leads={proposalLeads.length} pipeline={proposalPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
+          </div>
+          {topUtms.length > 0 && (
+            <div className="pt-2 border-t border-border/30">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">Top UTM (Prateleira)</p>
+              <div className="flex flex-wrap gap-1">
+                {topUtms.map(([src, count]) => (
+                  <Badge key={src} className="text-[9.5px] border-0 bg-sky-500/12 text-sky-600 dark:text-sky-400">
+                    {src} · {count}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Produtos/propostas em alta */}
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+            <Eye className="w-3.5 h-3.5 text-violet-500" />
+            Em alta no período
+          </div>
+          <div className="space-y-1.5 pt-1">
+            {topItems.length === 0 ? (
+              <p className="text-[10.5px] text-muted-foreground">Sem visualizações no período.</p>
+            ) : topItems.map((it, i) => (
+              <div key={i} className="flex items-center gap-2 py-1 border-b border-border/20 last:border-0">
+                <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4">{i + 1}</span>
+                {it.kind === "proposal"
+                  ? <FileText className="w-3 h-3 text-violet-500 flex-shrink-0" />
+                  : <PackageOpen className="w-3 h-3 text-sky-500 flex-shrink-0" />}
+                <span className="text-[11px] text-foreground truncate flex-1" title={it.title}>{it.title}</span>
+                <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">{it.views}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Quentes sem retorno */}
+      {hotStale.length > 0 && (
+        <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/[0.04]">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              Quentes sem retorno
+              <Badge className="text-[9px] border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                {hotStale.length}
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground hidden sm:block">
+              engajaram há mais de 24h e ainda não compraram · toca no WhatsApp
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
+            {hotStale.map((l) => (
+              <div key={l.key} className="p-2.5 rounded-lg border border-amber-500/25 bg-card space-y-1.5">
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[11.5px] font-semibold text-foreground truncate">{l.name || l.email || "Sem nome"}</p>
+                  {l.phone && (
+                    <a
+                      href={`https://wa.me/${normPhone(l.phone)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-shrink-0 inline-flex items-center gap-0.5 text-[9.5px] font-semibold text-emerald-600 hover:text-emerald-700"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MessageCircle className="w-3 h-3" /> WhatsApp
+                    </a>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate">{l.items[0]?.title || "·"}</p>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{BRL(l.profitPotential)}</span>
+                  <span className="text-muted-foreground">{formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelected(l)}
+                  className="w-full text-[10px] text-primary hover:underline pt-0.5"
+                >
+                  ver detalhes →
+                </button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+
 
       {/* Top leads */}
       {ranked.length > 0 && (
@@ -851,8 +1201,9 @@ export default function Leads() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, hint, tone }: {
-  icon: any; label: string; value: string; hint?: string; tone?: "hot" | "live" | "value" | "profit";
+function Kpi({ icon: Icon, label, value, hint, tone, delta }: {
+  icon: any; label: string; value: string; hint?: string;
+  tone?: "hot" | "live" | "value" | "profit"; delta?: number | null;
 }) {
   return (
     <Card className={cn(
@@ -873,11 +1224,45 @@ function Kpi({ icon: Icon, label, value, hint, tone }: {
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+          {typeof delta === "number" && (
+            <span className={cn(
+              "text-[9.5px] font-semibold px-1 py-0.5 rounded inline-flex items-center gap-0.5 tabular-nums",
+              delta >= 0
+                ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                : "bg-destructive/12 text-destructive",
+            )}>
+              {delta >= 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+              {Math.abs(delta)}%
+            </span>
+          )}
+        </div>
         <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">{label}</p>
         {hint && <p className="text-[9px] text-muted-foreground/70 mt-0.5 leading-tight truncate">{hint}</p>}
       </div>
     </Card>
+  );
+}
+
+function OriginBar({ label, tone, leads, pipeline, maxPipeline }: {
+  label: string; tone: "prateleira" | "proposal"; leads: number; pipeline: number; maxPipeline: number;
+}) {
+  const pct = maxPipeline > 0 ? Math.max(2, (pipeline / maxPipeline) * 100) : 0;
+  const barColor = tone === "proposal" ? "bg-violet-500" : "bg-sky-500";
+  const textColor = tone === "proposal" ? "text-violet-600 dark:text-violet-400" : "text-sky-600 dark:text-sky-400";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className={cn("font-semibold", textColor)}>{label}</span>
+        <span className="text-muted-foreground tabular-nums">
+          {leads} lead{leads === 1 ? "" : "s"} · <span className="font-semibold text-foreground">{BRL(pipeline)}</span>
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted/60 overflow-hidden">
+        <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
   );
 }
 
