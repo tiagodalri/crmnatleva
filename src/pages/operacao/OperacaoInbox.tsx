@@ -3978,6 +3978,10 @@ function OperacaoInboxInner() {
                     </div>
                   ) : isMobile ? (
                     /* ─── WhatsApp-style mobile composer ─── */
+                    <>
+                    {spellSuggestion && (
+                      <SpellSuggestionBar suggestion={spellSuggestion} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
+                    )}
                     <div className="relative flex items-end gap-2 w-full flex-nowrap">
                       <SlashCommandDropdown open={shortcutOpen} query={shortcutQuery} onSelect={handleSelectShortcut} onClose={() => { setShortcutOpen(false); setShortcutQuery(""); }} />
                       {/* Pill input with embedded actions */}
