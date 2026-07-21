@@ -2029,6 +2029,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   const isClient = (enrichment?.count ?? 0) > 0;
 
   return (
+    <>
     <Dialog open={!!lead} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
