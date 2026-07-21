@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useRef } from "react";
-import { GoogleMap, useLoadScript, OverlayViewF, InfoWindowF, OverlayView } from "@react-google-maps/api";
-import { Loader2, MapPin, Flame, Users as UsersIcon, Trophy } from "lucide-react";
+import { GoogleMap, useLoadScript, OverlayViewF, OverlayView } from "@react-google-maps/api";
+import { Loader2, MapPin, Flame, Users as UsersIcon, Trophy, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface LeadMapPin {
