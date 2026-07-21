@@ -1017,13 +1017,21 @@ export default function Leads() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)} />
-        <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined} />
-        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)} />
-        <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas" />
-        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)} />
-        <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="estimativa com margem real" tone="profit" />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead" />
+        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)}
+          onClick={() => setDrill({ title: "Total de leads no período", hint: "Todos os leads únicos considerados no período selecionado.", leads: periodLeads })} />
+        <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined}
+          onClick={() => setDrill({ title: "Leads online agora", hint: "Ativos nos últimos 2 minutos.", leads: periodLeads.filter((l) => isOnline(l.lastAt)) })} />
+        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)}
+          onClick={() => setDrill({ title: "Leads quentes", hint: "Clicaram no CTA ou no WhatsApp.", leads: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0) })} />
+        <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas"
+          onClick={() => setDrill({ title: "Leads que viram proposta personalizada", leads: periodLeads.filter((l) => l.proposalsViewed > 0) })} />
+        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)}
+          onClick={() => setDrill({ title: "Pipeline · valor visualizado", hint: "Leads com pacotes/propostas com valor > 0.", leads: [...periodLeads].filter((l) => l.totalValue > 0).sort((a, b) => b.totalValue - a.totalValue) })} />
+        <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="apenas com custo informado" tone="profit"
+          onClick={() => setDrill({ title: "Lucro potencial", hint: "Só entra na conta lead com internal_cost preenchido na proposta/produto.", leads: [...periodLeads].filter((l) => l.profitPotential > 0).sort((a, b) => b.profitPotential - a.profitPotential) })} />
+        <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead"
+          onClick={() => setDrill({ title: "Base do ticket médio", hint: "Todos os leads considerados na média de pipeline.", leads: periodLeads })} />
+
       </div>
 
       {/* Insights */}
