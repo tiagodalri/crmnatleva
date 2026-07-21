@@ -110,6 +110,9 @@ function SortHeader({ label, activeAsc, activeDesc, onClick }: { label: string; 
       <span className="text-[9px] leading-none">{activeDesc ? "▼" : activeAsc ? "▲" : "↕"}</span>
     </button>
   );
+}
+
+
 
 type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 const PERIOD_LABEL: Record<Period, string> = {
