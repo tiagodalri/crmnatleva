@@ -54,6 +54,8 @@ import { fetchAllRows } from "@/lib/fetchAll";
 import { ContactProfilePanel } from "@/components/livechat/ContactProfilePanel";
 import { ProfilePictureViewer } from "@/components/livechat/ProfilePictureViewer";
 import { ClientContextPanel } from "@/components/livechat/ClientContextPanel";
+import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
+
 import { ConversationSummaryDialog } from "@/components/livechat/ConversationSummaryDialog";
 import { AttachmentDropOverlay } from "@/components/livechat/AttachmentDropOverlay";
 import { AttachmentPreviewDialog } from "@/components/livechat/AttachmentPreviewDialog";
