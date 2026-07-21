@@ -267,6 +267,9 @@ export default function Leads() {
   const [customOpen, setCustomOpen] = useState(false);
   const [conversions, setConversions] = useState<Record<string, LeadEnrichment>>({});
   const [waLinks, setWaLinks] = useState<Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }>>({});
+  // Drill-down: cada KPI/insight clicável abre esta modal com a lista real que compõe o número.
+  const [drill, setDrill] = useState<{ title: string; hint?: string; leads: LeadAggregate[] } | null>(null);
+
 
 
   const fetchAll = async () => {
