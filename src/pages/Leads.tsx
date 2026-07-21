@@ -664,6 +664,68 @@ export default function Leads() {
     return withScore.sort((a, b) => b.score - a.score).slice(0, 5);
   }, [periodLeads]);
 
+  // Mapa: 1 pino por pessoa com lat/lng
+  const mapPins = useMemo(() => {
+    return periodLeads
+      .filter((l) => l.lat != null && l.lng != null
+        && !isNaN(Number(l.lat)) && !isNaN(Number(l.lng))
+        && Number(l.lat) !== 0 && Number(l.lng) !== 0)
+      .map((l) => {
+        const client = isConverted(l);
+        const engaged = l.ctaCount > 0 || l.whatsappCount > 0;
+        const temperature: "hot" | "warm" | "cold" =
+          engaged ? "hot" : (l.totalSeconds > 30 || l.totalViews > 2) ? "warm" : "cold";
+        return {
+          key: l.key,
+          name: l.name || l.email || "Lead anônimo",
+          city: l.city,
+          country: l.country,
+          lat: Number(l.lat),
+          lng: Number(l.lng),
+          temperature,
+          isClient: client,
+          pipeline: l.totalValue,
+        };
+      });
+  }, [periodLeads, conversions]);
+
+  // Funil de conversão (usa o mesmo dataset periodLeads, sem duplicar por evento)
+  const funnelStages = useMemo(() => {
+    const engaged = periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0);
+    const withProposal = periodLeads.filter((l) => l.proposalsViewed > 0);
+    const converted = convertedLeads;
+    const sumProposalPipeline = (arr: LeadAggregate[]) =>
+      arr.reduce((s, l) => s + l.items.filter((i) => i.kind === "proposal").reduce((a, i) => a + i.value, 0), 0);
+    return [
+      { key: "view", label: "Visualizou", leads: periodLeads.length, value: pipelineValue },
+      { key: "engage", label: "Engajou (CTA/WhatsApp)", leads: engaged.length, value: engaged.reduce((s, l) => s + l.totalValue, 0) },
+      { key: "proposal", label: "Viu proposta personalizada", leads: withProposal.length, value: sumProposalPipeline(withProposal) },
+      { key: "sale", label: "Fechou venda", leads: converted.length, value: conversionValue },
+    ];
+  }, [periodLeads, convertedLeads, pipelineValue, conversionValue]);
+
+  // Ranking por canal (utm_source) — pipeline + venda real. Propostas sem utm caem em "Direto/Proposta".
+  const utmRanking = useMemo(() => {
+    const m = new Map<string, { leads: number; pipeline: number; soldValue: number; soldCount: number }>();
+    for (const l of periodLeads) {
+      const src = l.utmSource
+        || (l.proposalsViewed > 0 && l.productsViewed === 0 ? "Direto/Proposta" : "Direto");
+      const cur = m.get(src) || { leads: 0, pipeline: 0, soldValue: 0, soldCount: 0 };
+      cur.leads += 1;
+      cur.pipeline += l.totalValue;
+      const conv = leadConversion(l);
+      if (conv && conv.count > 0) {
+        cur.soldValue += conv.value;
+        cur.soldCount += conv.count;
+      }
+      m.set(src, cur);
+    }
+    return Array.from(m.entries())
+      .map(([source, s]) => ({ source, ...s }))
+      .sort((a, b) => b.soldValue - a.soldValue || b.leads - a.leads);
+  }, [periodLeads, conversions]);
+
+
   const handleDelete = async () => {
     if (!toDelete) return;
     const lead = toDelete;
