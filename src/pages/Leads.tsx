@@ -1127,12 +1127,13 @@ export default function Leads() {
           onClick={() => setDrill({ title: "Leads quentes", hint: "Clicaram no CTA ou no WhatsApp.", leads: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0) })} />
         <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas"
           onClick={() => setDrill({ title: "Leads que viram proposta personalizada", leads: periodLeads.filter((l) => l.proposalsViewed > 0) })} />
-        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)}
+        <Kpi icon={DollarSign} label="Pipeline" value={BRLcompact(pipelineValue)} fullValue={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)}
           onClick={() => setDrill({ title: "Pipeline · valor visualizado", hint: "Leads com pacotes/propostas com valor > 0.", leads: [...periodLeads].filter((l) => l.totalValue > 0).sort((a, b) => b.totalValue - a.totalValue) })} />
-        <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="apenas com custo informado" tone="profit"
+        <Kpi icon={Flame} label="Lucro potencial" value={BRLcompact(profitPotential)} fullValue={BRL(profitPotential)} hint="apenas com custo informado" tone="profit"
           onClick={() => setDrill({ title: "Lucro potencial", hint: "Só entra na conta lead com internal_cost preenchido na proposta/produto.", leads: [...periodLeads].filter((l) => l.profitPotential > 0).sort((a, b) => b.profitPotential - a.profitPotential) })} />
-        <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead"
+        <Kpi icon={TrendingUp} label="Ticket médio" value={BRLcompact(avgTicket)} fullValue={BRL(avgTicket)} hint="por lead"
           onClick={() => setDrill({ title: "Base do ticket médio", hint: "Todos os leads considerados na média de pipeline.", leads: periodLeads })} />
+
 
       </div>
 
