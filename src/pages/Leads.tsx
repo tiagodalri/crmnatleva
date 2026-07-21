@@ -235,6 +235,8 @@ type LeadAggregate = {
   productsWithoutCost: number;
 };
 
+type OriginFilter = "all" | "prateleira" | "proposal";
+
 const isOnline = (iso: string) => Date.now() - new Date(iso).getTime() < 2 * 60 * 1000;
 
 function originLabel(l: LeadAggregate): { label: string; tone: "prateleira" | "proposal" | "both" } {
