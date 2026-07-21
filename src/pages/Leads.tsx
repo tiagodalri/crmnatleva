@@ -339,6 +339,9 @@ export default function Leads() {
         if (!lead.userAgent && seed.userAgent) lead.userAgent = seed.userAgent;
         if (!lead.device && seed.device) lead.device = seed.device;
         if (!lead.utmSource && seed.utmSource) lead.utmSource = seed.utmSource;
+        if ((lead.lat == null || lead.lng == null) && seed.lat != null && seed.lng != null) {
+          lead.lat = seed.lat; lead.lng = seed.lng;
+        }
       }
       return lead;
     };
