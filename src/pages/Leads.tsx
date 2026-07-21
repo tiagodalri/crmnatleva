@@ -1271,9 +1271,16 @@ export default function Leads() {
                 </div>
                 <p className="text-[10px] text-muted-foreground truncate">{l.items[0]?.title || "·"}</p>
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{BRL(l.profitPotential)}</span>
+                  {l.profitPotential > 0 ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{BRL(l.profitPotential)} lucro</span>
+                  ) : l.totalValue > 0 ? (
+                    <span className="text-foreground font-semibold tabular-nums">{BRL(l.totalValue)}</span>
+                  ) : (
+                    <span className="text-muted-foreground/70">sem valor</span>
+                  )}
                   <span className="text-muted-foreground">{formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}</span>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setSelected(l)}
