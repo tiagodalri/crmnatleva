@@ -81,6 +81,36 @@ function sortLeads<T extends { totalValue: number; lastAt: string }>(list: T[], 
   return arr;
 }
 
+function SortMenu({ value, onChange }: { value: SortKey; onChange: (k: SortKey) => void }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Ordenar</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as SortKey)}
+        className="h-6 text-[10.5px] rounded-md border border-border/50 bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+      >
+        {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+          <option key={k} value={k}>{SORT_LABEL[k]}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SortHeader({ label, activeAsc, activeDesc, onClick }: { label: string; activeAsc: boolean; activeDesc: boolean; onClick: () => void }) {
+  const active = activeAsc || activeDesc;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 text-[10.5px] uppercase tracking-wider font-medium transition ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+    >
+      {label}
+      <span className="text-[9px] leading-none">{activeDesc ? "▼" : activeAsc ? "▲" : "↕"}</span>
+    </button>
+  );
+
 type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 const PERIOD_LABEL: Record<Period, string> = {
   today: "Hoje", yesterday: "Ontem", "7d": "7 dias", "30d": "30 dias", all: "Tudo", custom: "Personalizado",
