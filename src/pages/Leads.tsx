@@ -1616,14 +1616,37 @@ function OriginBadge({ tone, label }: { tone: "prateleira" | "proposal" | "both"
   );
 }
 
-function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelete }: {
+function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose, onDelete }: {
   lead: LeadAggregate | null;
   events: EventRow[];
   proposalClicks: ProposalClickRow[];
   enrichment: LeadEnrichment | null;
+  waLink: { conversationId: string; photo: string | null; lastMessageAt: string | null } | null;
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
+  const [waPreview, setWaPreview] = useState<Array<{ id: string; content: string | null; sender_type: string | null; created_at: string; message_type: string | null }>>([]);
+  const [waLoading, setWaLoading] = useState(false);
+
+  useEffect(() => {
+    if (!lead || !waLink) { setWaPreview([]); return; }
+    let cancelled = false;
+    (async () => {
+      setWaLoading(true);
+      const { data } = await (supabase as any)
+        .from("conversation_messages")
+        .select("id, content, sender_type, created_at, message_type")
+        .eq("conversation_id", waLink.conversationId)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (!cancelled) {
+        setWaPreview((data || []).slice().reverse());
+        setWaLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lead?.key, waLink?.conversationId]);
+
   if (!lead) return null;
 
   const emailLc = (lead.email || "").toLowerCase();
@@ -1634,20 +1657,37 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelet
   const prClicks = prateleiraEvents.filter((e) => e.event_type === "click");
   const sectionViews = prateleiraEvents.filter((e) => e.event_type === "section_view");
   const ua = parseUA(lead.userAgent);
+  const isClient = (enrichment?.count ?? 0) > 0;
 
   return (
     <Dialog open={!!lead} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2 pr-6">
-            <span className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              {lead.name || lead.email || "Lead"}
+            <span className="flex items-center gap-2 min-w-0">
+              <WhatsAppAvatar
+                src={waLink?.photo || null}
+                name={lead.name || lead.email || "?"}
+                phone={normPhone(lead.phone) || undefined}
+                size={32}
+                className="w-8 h-8 text-[11px] flex-shrink-0"
+              />
+              <span className="truncate">{lead.name || lead.email || "Lead"}</span>
+              {isClient && (
+                <Badge className="text-[9.5px] border-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 gap-0.5 h-5 px-1.5 flex-shrink-0">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Cliente
+                </Badge>
+              )}
+              {waLink && (
+                <Badge className="text-[9.5px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-5 px-1.5 flex-shrink-0" title="Já é contato no WhatsApp">
+                  <MessageCircle className="w-2.5 h-2.5" /> WhatsApp
+                </Badge>
+              )}
             </span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="h-8 text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
               onClick={() => onDelete(lead)}
             >
               <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Excluir
@@ -1667,6 +1707,69 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelet
                 {lead.utmSource && <Info icon={Target} label="UTM" value={`${lead.utmSource}${lead.utmCampaign ? ` · ${lead.utmCampaign}` : ""}`} />}
               </div>
             </Card>
+
+            {/* Prévia da conversa WhatsApp */}
+            {waLink && (
+              <Card className="p-4 space-y-3 border-emerald-500/25 bg-emerald-500/[0.03]">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    Prévia da conversa
+                    {waLink.lastMessageAt && (
+                      <span className="text-[10px] font-normal text-muted-foreground">
+                        última: {formatDistanceToNow(new Date(waLink.lastMessageAt), { locale: ptBR, addSuffix: true })}
+                      </span>
+                    )}
+                  </div>
+                  <Link
+                    to={`/operacao/inbox?conversation=${waLink.conversationId}`}
+                    className="text-[10.5px] text-primary hover:underline inline-flex items-center gap-0.5"
+                  >
+                    Abrir conversa completa <ExternalLink className="w-2.5 h-2.5" />
+                  </Link>
+                </div>
+                {waLoading ? (
+                  <p className="text-[10.5px] text-muted-foreground animate-pulse">Carregando mensagens...</p>
+                ) : waPreview.length === 0 ? (
+                  <p className="text-[10.5px] text-muted-foreground">Ainda sem mensagens registradas.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {waPreview.map((m) => {
+                      const mine = m.sender_type === "atendente";
+                      const preview =
+                        m.message_type && m.message_type !== "text"
+                          ? `[${m.message_type}]`
+                          : (m.content || "").slice(0, 180);
+                      return (
+                        <div
+                          key={m.id}
+                          className={cn(
+                            "text-[11px] px-2.5 py-1.5 rounded-md border",
+                            mine
+                              ? "border-emerald-500/25 bg-emerald-500/10 ml-6"
+                              : "border-border/40 bg-background mr-6",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              {mine ? "Você" : "Cliente"}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground tabular-nums">
+                              {format(new Date(m.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                            </span>
+                          </div>
+                          <p className="text-foreground whitespace-pre-wrap break-words">
+                            {preview || <span className="text-muted-foreground italic">·</span>}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            )}
+
+
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               <MiniKpi label="Prateleira" value={lead.productsViewed} />
