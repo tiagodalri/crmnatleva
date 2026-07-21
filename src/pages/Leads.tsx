@@ -1025,7 +1025,8 @@ export default function Leads() {
         <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)}
           onClick={() => setDrill({ title: "Total de leads no período", hint: "Todos os leads únicos considerados no período selecionado.", leads: periodLeads })} />
         <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined}
-          onClick={() => setDrill({ title: "Leads online agora", hint: "Ativos nos últimos 2 minutos.", leads: periodLeads.filter((l) => isOnline(l.lastAt)) })} />
+          onClick={() => setDrill({ title: "Leads online agora", hint: "Ativos nos últimos 5 minutos · veja quem está e o que está olhando.", leads: periodLeads.filter((l) => isOnline(l.lastAt)).sort((a,b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()) })} />
+
         <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)}
           onClick={() => setDrill({ title: "Leads quentes", hint: "Clicaram no CTA ou no WhatsApp.", leads: periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0) })} />
         <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas"
