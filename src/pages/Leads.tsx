@@ -52,6 +52,7 @@ import { LeadsConversionFunnel } from "@/components/leads/LeadsConversionFunnel"
 import { CustomerSinceBadge } from "@/components/clients/CustomerSinceBadge";
 import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import ProposalPreviewModal from "@/components/proposal/ProposalPreviewModal";
 
 // Data relativa + data exata juntas ("há cerca de 1 mês · 15/06/2026")
 function formatWhen(iso: string | Date | null | undefined): string {
