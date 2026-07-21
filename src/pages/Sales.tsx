@@ -1144,6 +1144,7 @@ export default function Sales() {
                     onRequestDelete={setSaleToDelete}
                     canDelete={canDelete}
                     prateleiraSaleIds={prateleiraSaleIds}
+                    waMap={waMap}
                   />
                   <VirtualEmissionGroup
                     id="group:emitted"
@@ -1166,6 +1167,7 @@ export default function Sales() {
                     onRequestDelete={setSaleToDelete}
                     canDelete={canDelete}
                     prateleiraSaleIds={prateleiraSaleIds}
+                    waMap={waMap}
                   />
                 </div>
             </Card>}
