@@ -30,6 +30,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+/** Compact monetary formatter for tight KPI cards. Preserves precision via tooltip (full value) in the UI. */
+const BRLcompact = (n: number): string => {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `R$ ${(n / 1_000_000_000).toFixed(1).replace(".", ",")} bi`;
+  if (abs >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(1).replace(".", ",")} mi`;
+  if (abs >= 100_000) return `R$ ${Math.round(n / 1_000)} mil`;
+  if (abs >= 10_000) return `R$ ${(n / 1_000).toFixed(1).replace(".", ",")} mil`;
+  return BRL(n);
+};
 // Lucro só é contabilizado quando existe internal_cost > 0 na proposta/produto.
 // Nada de margem-fantasma: sem custo informado, não estimamos nem inventamos número.
 import { formatDistanceToNow, format } from "date-fns";
