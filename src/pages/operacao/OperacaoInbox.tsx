@@ -1378,7 +1378,8 @@ function OperacaoInboxInner() {
   const handleSend = useCallback(async () => {
     if (!inputText.trim() || !selectedId || isSending) return;
     setIsSending(true);
-    const text = inputText.trim();
+    // ─── Local spell fix · síncrono, zero latência, aplicado no envio ───
+    const text = localSpellFix(inputText.trim());
 
     if (editingMsg) {
       const msgToEdit = editingMsg;
@@ -1790,7 +1791,7 @@ function OperacaoInboxInner() {
     }
   }, [shortcutOpen]);
 
-  const { suggestion: spellSuggestion, dismissSuggestion: dismissSpellSuggestion } = useSpellSuggestion(inputText);
+  const { suggestion: spellSuggestion, dismissSuggestion: dismissSpellSuggestion } = useSpellSuggestion(inputText, { debounceMs: 450 });
   const acceptSpellSuggestion = useCallback(() => {
     if (!spellSuggestion) return;
     setInputText(spellSuggestion);
