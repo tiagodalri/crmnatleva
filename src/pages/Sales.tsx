@@ -30,6 +30,22 @@ import { useExternalSellers, type ExternalSeller } from "@/hooks/useExternalSell
 import { ExternalSellersDialog } from "@/components/sales/ExternalSellersDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSalesScope } from "@/hooks/useSalesScope";
+import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+
+/** Ancorado em client_id: nunca troca a pessoa via telefone; só decora quando há match seguro. */
+export type SaleWaLink = { phone: string; photo: string | null; messageCount: number };
+
+function normSalesPhone(p?: string | null): string {
+  return (p || "").replace(/\D+/g, "");
+}
+function waIntensityLabel(count: number): string {
+  if (count >= 15) return `${count} mensagens · conversamos bastante`;
+  if (count >= 5) return `${count} mensagens trocadas`;
+  if (count > 0) return `${count} ${count === 1 ? "mensagem" : "mensagens"} · contato inicial`;
+  return "Contato aberto no WhatsApp";
+}
+
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -116,9 +132,10 @@ interface SaleRowProps {
   onRequestDelete: (sale: SaleRow) => void;
   canDelete: boolean;
   fromPrateleira?: boolean;
+  waLink?: SaleWaLink | null;
 }
 
-const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, externalSeller, productCatalog, onNavigate, onNavigateClient, onDeleted, onDragStart, onMove, onRequestDelete, canDelete, fromPrateleira }: SaleRowProps) {
+const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, externalSeller, productCatalog, onNavigate, onNavigateClient, onDeleted, onDragStart, onMove, onRequestDelete, canDelete, fromPrateleira, waLink }: SaleRowProps) {
   const o = routeCode(sale.origin_city, sale.origin_iata);
   const d = routeCode(sale.destination_city, sale.destination_iata);
   const routeEmpty = !o && !d;
@@ -126,6 +143,7 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
   const slugs = normalizeProductsToSlugs(sale.products);
   const emitted = isEmitted(sale);
   const [menuOpen, setMenuOpen] = useState(false);
+
 
   const sellerInitials = seller
     ? (seller.full_name || seller.email || "?")
@@ -223,7 +241,7 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
         </div>
       </td>
       <td className="px-3 py-4">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           {fromPrateleira && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -235,7 +253,25 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
               <TooltipContent>Compra automática · prateleira NatLeva</TooltipContent>
             </Tooltip>
           )}
+          <WhatsAppAvatar
+            src={waLink?.photo || null}
+            name={sale.name || "?"}
+            phone={waLink?.phone || undefined}
+            size={26}
+            className="shrink-0"
+          />
           <p className="font-medium text-foreground truncate">{sale.name}</p>
+          {waLink && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-4 px-1 shrink-0">
+                  <WhatsAppIcon className="w-2.5 h-2.5" />
+                  {waLink.messageCount > 0 ? waLink.messageCount : ""}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>{waIntensityLabel(waLink.messageCount)}</TooltipContent>
+            </Tooltip>
+          )}
           {sale.client_id && (
             <button
               onClick={(e) => { e.stopPropagation(); onNavigateClient(sale.client_id!); }}
@@ -247,6 +283,7 @@ const SaleRowComponent = memo(function SaleRowComponent({ sale, seller, external
           )}
         </div>
       </td>
+
       <td className="px-2 py-4 text-left"><span className="text-xs text-muted-foreground whitespace-nowrap">{formatDateBR(sale.close_date)}</span></td>
       <td className="px-2 py-4"><span className="text-xs font-mono whitespace-nowrap">{fmtShortDate(sale.departure_date) || <span className="text-muted-foreground/40">—</span>}</span></td>
       <td className="px-2 py-4"><span className="text-xs font-mono whitespace-nowrap">{fmtShortDate(sale.return_date) || <span className="text-muted-foreground/40 italic text-[11px]">Somente ida</span>}</span></td>
@@ -394,6 +431,8 @@ interface VirtualEmissionGroupProps {
   onRequestDelete: (sale: SaleRow) => void;
   canDelete: boolean;
   prateleiraSaleIds: Set<string>;
+  waMap: Map<string, SaleWaLink>;
+
 }
 
 function VirtualEmissionGroup({
@@ -417,7 +456,9 @@ function VirtualEmissionGroup({
   onRequestDelete,
   canDelete,
   prateleiraSaleIds,
+  waMap,
 }: VirtualEmissionGroupProps) {
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
     count: sales.length,
@@ -505,6 +546,8 @@ function VirtualEmissionGroup({
                         onRequestDelete={onRequestDelete}
                         canDelete={canDelete}
                         fromPrateleira={prateleiraSaleIds.has(sale.id)}
+                        waLink={sale.client_id ? waMap.get(sale.client_id) || null : null}
+
                       />
                     );
                   })}
@@ -577,6 +620,8 @@ export default function Sales() {
   const { canViewAll, sellerId, loading: scopeLoading } = useSalesScope();
 
   const [prateleiraSaleIds, setPrateleiraSaleIds] = useState<Set<string>>(new Set());
+  const [waMap, setWaMap] = useState<Map<string, SaleWaLink>>(new Map());
+
 
   const loadSales = useCallback(async () => {
     const eqFilters = !canViewAll && sellerId ? { seller_id: sellerId } : undefined;
@@ -609,6 +654,70 @@ export default function Sales() {
     if (authLoading || scopeLoading) return;
     loadSales();
   }, [authLoading, scopeLoading, loadSales]);
+
+  // WhatsApp enrichment · ancorado em client_id (nunca via telefone puro).
+  // Fluxo: sale.client_id → clients.phone → conversations.phone (normalizado, is_group=false).
+  // O map é indexado por client_id, então mesmo se dois clients tiverem o mesmo telefone
+  // cadastrado por engano, cada venda só recebe o que veio do SEU próprio client.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const clientIds = Array.from(new Set(sales.map((s) => s.client_id).filter((x): x is string => !!x)));
+      if (clientIds.length === 0) { if (!cancelled) setWaMap(new Map()); return; }
+      try {
+        const { data: clientRows } = await (supabase as any)
+          .from("clients")
+          .select("id, phone")
+          .in("id", clientIds);
+        if (cancelled || !clientRows) return;
+        const clientPhone = new Map<string, string>();
+        const phoneSet = new Set<string>();
+        for (const c of clientRows as { id: string; phone: string | null }[]) {
+          const p = normSalesPhone(c.phone);
+          if (p && p.length >= 8) { clientPhone.set(c.id, p); phoneSet.add(p); }
+        }
+        if (phoneSet.size === 0) { if (!cancelled) setWaMap(new Map()); return; }
+        const phoneList = Array.from(phoneSet);
+        const { data: convs } = await (supabase as any)
+          .from("conversations")
+          .select("phone, profile_picture_url, interaction_count, is_group")
+          .in("phone", phoneList)
+          .eq("is_group", false);
+        const byPhone = new Map<string, { photo: string | null; count: number }>();
+        for (const c of (convs || []) as { phone: string; profile_picture_url: string | null; interaction_count: number | null }[]) {
+          const p = normSalesPhone(c.phone);
+          if (!p) continue;
+          const prev = byPhone.get(p);
+          const count = c.interaction_count || 0;
+          if (!prev || count > prev.count) byPhone.set(p, { photo: c.profile_picture_url || null, count });
+        }
+        // Fallback de foto via zapi_contacts para os que não têm foto na conversation
+        const missingPhoto = Array.from(byPhone.entries()).filter(([, v]) => !v.photo).map(([p]) => p);
+        if (missingPhoto.length) {
+          const { data: zc } = await (supabase as any)
+            .from("zapi_contacts")
+            .select("phone, profile_picture_url")
+            .in("phone", missingPhoto)
+            .not("profile_picture_url", "is", null);
+          for (const z of (zc || []) as { phone: string; profile_picture_url: string | null }[]) {
+            const p = normSalesPhone(z.phone);
+            const cur = byPhone.get(p);
+            if (cur && !cur.photo && z.profile_picture_url) cur.photo = z.profile_picture_url;
+          }
+        }
+        const out = new Map<string, SaleWaLink>();
+        for (const [cid, phone] of clientPhone.entries()) {
+          const hit = byPhone.get(phone);
+          if (hit) out.set(cid, { phone, photo: hit.photo, messageCount: hit.count });
+        }
+        if (!cancelled) setWaMap(out);
+      } catch (err) {
+        console.warn("waMap lookup falhou", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sales]);
+
 
   const { pullDistance, refreshing } = usePullToRefresh({
     onRefresh: loadSales,
@@ -897,7 +1006,9 @@ export default function Sales() {
           <>
             {/* Mobile card view */}
             {isMobile && <div className="sm:hidden space-y-2.5">
-              {filtered.map((sale) => (
+              {filtered.map((sale) => {
+                const mWa = sale.client_id ? waMap.get(sale.client_id) : null;
+                return (
                 <Card
                   key={sale.id}
                   className="p-3 glass-card cursor-pointer active:scale-[0.99] transition-transform overflow-hidden"
@@ -905,20 +1016,36 @@ export default function Sales() {
                 >
                   {/* Linha 1 · nome + valor */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground text-sm leading-tight truncate flex items-center gap-1.5">
-                        {prateleiraSaleIds.has(sale.id) && (
-                          <span className="relative flex h-2 w-2 shrink-0" title="Compra automática · prateleira">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-60" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
-                          </span>
-                        )}
-                        <span className="truncate">{sale.name}</span>
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                        {sale.display_id} · {formatDateBR(sale.close_date)}
-                      </p>
+                    <div className="min-w-0 flex-1 flex items-start gap-2">
+                      <WhatsAppAvatar
+                        src={mWa?.photo || null}
+                        name={sale.name || "?"}
+                        phone={mWa?.phone || undefined}
+                        size={28}
+                        className="shrink-0 mt-0.5"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground text-sm leading-tight truncate flex items-center gap-1.5">
+                          {prateleiraSaleIds.has(sale.id) && (
+                            <span className="relative flex h-2 w-2 shrink-0" title="Compra automática · prateleira">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-60" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+                            </span>
+                          )}
+                          <span className="truncate">{sale.name}</span>
+                          {mWa && (
+                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-4 px-1 shrink-0" title={waIntensityLabel(mWa.messageCount)}>
+                              <WhatsAppIcon className="w-2.5 h-2.5" />
+                              {mWa.messageCount > 0 ? mWa.messageCount : ""}
+                            </Badge>
+                          )}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          {sale.display_id} · {formatDateBR(sale.close_date)}
+                        </p>
+                      </div>
                     </div>
+
                     <div className="text-right shrink-0">
                       <p className="text-sm font-semibold leading-tight whitespace-nowrap">{fmt(sale.received_value || 0)}</p>
                       <p className={cn("text-[10px] whitespace-nowrap", (sale.profit || 0) > 0 ? "text-success" : "text-destructive")}>
@@ -961,7 +1088,9 @@ export default function Sales() {
                     </div>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
+
             </div>}
 
             {/* Desktop table view · pipeline vertical virtualizado (Aguardando / Emitido) */}
@@ -1035,6 +1164,7 @@ export default function Sales() {
                     onRequestDelete={setSaleToDelete}
                     canDelete={canDelete}
                     prateleiraSaleIds={prateleiraSaleIds}
+                    waMap={waMap}
                   />
                   <VirtualEmissionGroup
                     id="group:emitted"
@@ -1057,6 +1187,7 @@ export default function Sales() {
                     onRequestDelete={setSaleToDelete}
                     canDelete={canDelete}
                     prateleiraSaleIds={prateleiraSaleIds}
+                    waMap={waMap}
                   />
                 </div>
             </Card>}
