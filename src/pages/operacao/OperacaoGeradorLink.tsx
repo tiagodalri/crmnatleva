@@ -396,6 +396,125 @@ export default function OperacaoGeradorLink() {
         </Card>
       </div>
 
+      {/* Histórico de links */}
+      <Card>
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="space-y-1">
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="h-4 w-4" />
+                Histórico de links
+              </CardTitle>
+              <CardDescription>
+                Todos os links curtos gerados, do mais recente para o mais antigo.
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => loadHistory(Math.max(HISTORY_PAGE_SIZE, history.length))}
+              disabled={historyLoading}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${historyLoading ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {history.length === 0 && !historyLoading ? (
+            <div className="text-sm text-muted-foreground text-center py-8">
+              Nenhum link curto gerado ainda.
+            </div>
+          ) : (
+            <>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[160px]">Rótulo</TableHead>
+                      <TableHead className="min-w-[200px]">Link</TableHead>
+                      <TableHead className="w-[90px] text-center">Cliques</TableHead>
+                      <TableHead className="min-w-[160px]">Criado em</TableHead>
+                      <TableHead className="w-[120px] text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {history.map((row) => {
+                      const url = `${getPublicHost()}/w/${row.short_code}`;
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell className="align-top">
+                            {row.label ? (
+                              <span className="text-sm">{row.label}</span>
+                            ) : (
+                              <span className="text-xs italic text-muted-foreground">sem rótulo</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="font-mono text-xs break-all leading-relaxed">{url}</div>
+                          </TableCell>
+                          <TableCell className="align-top text-center">
+                            <span className="inline-flex items-center gap-1 text-sm font-semibold">
+                              <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                              {row.click_count ?? 0}
+                            </span>
+                          </TableCell>
+                          <TableCell className="align-top text-xs text-muted-foreground whitespace-nowrap">
+                            {formatFullSP(row.created_at)}
+                          </TableCell>
+                          <TableCell className="align-top text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="Copiar link"
+                                onClick={() => copyRowUrl(row)}
+                              >
+                                {copiedRowId === row.id ? (
+                                  <Check className="h-4 w-4" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="Abrir link"
+                                onClick={() => openRowUrl(row)}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {historyHasMore && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadHistory(history.length + HISTORY_PAGE_SIZE)}
+                    disabled={historyLoading}
+                    className="gap-2"
+                  >
+                    {historyLoading ? "Carregando..." : "Carregar mais"}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+
+
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
