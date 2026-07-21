@@ -2025,12 +2025,17 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
             {waLink && (
               <Card className="p-3 border-emerald-500/25 bg-emerald-500/[0.03]">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground flex-wrap">
+                    <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
                     Conversa WhatsApp ativa
+                    {waLink.messageCount > 0 && (
+                      <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                        {whatsappIntensity(waLink.messageCount).label}
+                      </span>
+                    )}
                     {waLink.lastMessageAt && (
                       <span className="text-[10px] font-normal text-muted-foreground">
-                        última: {formatDistanceToNow(new Date(waLink.lastMessageAt), { locale: ptBR, addSuffix: true })}
+                        última: {formatWhen(waLink.lastMessageAt)}
                       </span>
                     )}
                   </div>
