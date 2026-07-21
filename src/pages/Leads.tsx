@@ -1935,7 +1935,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   events: EventRow[];
   proposalClicks: ProposalClickRow[];
   enrichment: LeadEnrichment | null;
-  waLink: { conversationId: string; photo: string | null; lastMessageAt: string | null } | null;
+  waLink: { conversationId: string; photo: string | null; lastMessageAt: string | null; messageCount: number } | null;
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
