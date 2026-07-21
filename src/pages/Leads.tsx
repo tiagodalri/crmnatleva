@@ -24,7 +24,10 @@ import {
   Smartphone, MapPin, ExternalLink, PackageOpen, Phone, Mail,
   TrendingUp, Wifi, Activity, Target, Filter as FilterIcon,
   FileText, Trash2, Sparkles, X, DollarSign, Flame, Crown, Trophy,
+  ArrowUp, ArrowDown, CalendarRange, AlertTriangle, Eye, CheckCircle2,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const DEFAULT_MARGIN = 0.15; // 15% quando não há custo informado
@@ -34,6 +37,38 @@ import { cn } from "@/lib/utils";
 import { formatTime, parseUA } from "@/lib/proposalAnalytics";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+
+type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
+const PERIOD_LABEL: Record<Period, string> = {
+  today: "Hoje", yesterday: "Ontem", "7d": "7 dias", "30d": "30 dias", all: "Tudo", custom: "Personalizado",
+};
+
+/** Returns [fromMs, toMs] for a period, or null when "all". Previous returns the immediately prior window. */
+function periodRange(period: Period, customFrom?: Date, customTo?: Date): { from: number; to: number } | null {
+  const now = Date.now();
+  const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); };
+  const endOfDay = (d: Date) => { const x = new Date(d); x.setHours(23,59,59,999); return x.getTime(); };
+  if (period === "all") return null;
+  if (period === "today") return { from: startOfDay(new Date()), to: now };
+  if (period === "yesterday") {
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    return { from: startOfDay(y), to: endOfDay(y) };
+  }
+  if (period === "7d") return { from: now - 7 * 86400000, to: now };
+  if (period === "30d") return { from: now - 30 * 86400000, to: now };
+  if (period === "custom" && customFrom && customTo) return { from: startOfDay(customFrom), to: endOfDay(customTo) };
+  return null;
+}
+function previousRange(period: Period, customFrom?: Date, customTo?: Date): { from: number; to: number } | null {
+  const cur = periodRange(period, customFrom, customTo);
+  if (!cur) return null;
+  const span = cur.to - cur.from;
+  return { from: cur.from - span - 1, to: cur.from - 1 };
+}
+function normPhone(p?: string | null): string {
+  if (!p) return "";
+  return String(p).replace(/\D+/g, "");
+}
 
 // ─── Prateleira ────────────────────────────────────────────────────────
 type ViewerRow = {
