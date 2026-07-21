@@ -42,6 +42,44 @@ import { LeadsOriginMap, type LeadMapPin } from "@/components/leads/LeadsOriginM
 import { LeadsConversionFunnel } from "@/components/leads/LeadsConversionFunnel";
 import { CustomerSinceBadge } from "@/components/clients/CustomerSinceBadge";
 import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+
+// Data relativa + data exata juntas ("há cerca de 1 mês · 15/06/2026")
+function formatWhen(iso: string | Date | null | undefined): string {
+  if (!iso) return "·";
+  const d = iso instanceof Date ? iso : new Date(iso);
+  if (isNaN(d.getTime())) return "·";
+  return `${formatDistanceToNow(d, { locale: ptBR, addSuffix: true })} · ${format(d, "dd/MM/yyyy", { locale: ptBR })}`;
+}
+
+// Classificação de intensidade da conversa no WhatsApp
+function whatsappIntensity(count: number | null | undefined): { label: string; tone: "cold" | "warm" | "hot" } {
+  const n = count ?? 0;
+  if (n >= 15) return { label: `${n} mensagens · conversamos bastante`, tone: "hot" };
+  if (n >= 5) return { label: `${n} mensagens trocadas`, tone: "warm" };
+  if (n > 0) return { label: `${n} ${n === 1 ? "mensagem" : "mensagens"} · contato inicial`, tone: "cold" };
+  return { label: "contato aberto", tone: "cold" };
+}
+
+// Ordenação usada na tabela principal e nas modais de drill-down
+type SortKey = "recent" | "oldest" | "valueDesc" | "valueAsc";
+const SORT_LABEL: Record<SortKey, string> = {
+  recent: "Mais recente",
+  oldest: "Mais antigo",
+  valueDesc: "Valor (maior→menor)",
+  valueAsc: "Valor (menor→maior)",
+};
+function sortLeads<T extends { totalValue: number; lastAt: string }>(list: T[], key: SortKey): T[] {
+  const arr = [...list];
+  arr.sort((a, b) => {
+    if (key === "valueDesc") return b.totalValue - a.totalValue;
+    if (key === "valueAsc") return a.totalValue - b.totalValue;
+    const av = new Date(a.lastAt).getTime();
+    const bv = new Date(b.lastAt).getTime();
+    return key === "oldest" ? av - bv : bv - av;
+  });
+  return arr;
+}
 
 type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 const PERIOD_LABEL: Record<Period, string> = {
