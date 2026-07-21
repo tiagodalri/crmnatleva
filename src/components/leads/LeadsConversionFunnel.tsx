@@ -42,7 +42,7 @@ const STAGE_COLOR = [
   { bar: "bg-emerald-500", pill: "text-emerald-600 dark:text-emerald-400", ring: "border-emerald-500/30 bg-emerald-500/[0.04]" },
 ];
 
-export function LeadsConversionFunnel({ stages, utm }: Props) {
+export function LeadsConversionFunnel({ stages, utm, onStageClick, onUtmClick }: Props) {
   const topLeads = stages[0]?.leads || 0;
 
   return (
