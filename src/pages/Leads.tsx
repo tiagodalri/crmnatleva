@@ -1589,6 +1589,79 @@ export default function Leads() {
         onDelete={(l) => setToDelete(l)}
       />
 
+      {/* Drill-down: lista real por trás de qualquer indicador clicado */}
+      <Dialog open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{drill?.title}</DialogTitle>
+            {drill?.hint && (
+              <p className="text-[11px] text-muted-foreground pt-1">{drill.hint}</p>
+            )}
+            <p className="text-[10.5px] text-muted-foreground pt-1 tabular-nums">
+              {drill?.leads.length ?? 0} registro{(drill?.leads.length ?? 0) === 1 ? "" : "s"}
+            </p>
+          </DialogHeader>
+          <ScrollArea className="flex-1 pr-3">
+            {drill && drill.leads.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground py-6 text-center">Nenhum lead nesta lista.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {drill?.leads.map((l) => {
+                  const wa = waLinks[l.key];
+                  const conv = conversions[l.key];
+                  const isClient = (conv?.count ?? 0) > 0;
+                  return (
+                    <button
+                      key={l.key}
+                      type="button"
+                      onClick={() => { setSelected(l); setDrill(null); }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/40 text-left transition"
+                    >
+                      <WhatsAppAvatar
+                        src={wa?.photo || null}
+                        name={l.name || l.email || "?"}
+                        phone={normPhone(l.phone) || undefined}
+                        size={32}
+                        className="w-8 h-8 text-[11px] flex-shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[12px] font-semibold text-foreground truncate">
+                            {l.name || l.email || "Lead anônimo"}
+                          </p>
+                          {isClient && (
+                            <Badge className="text-[9px] border-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 h-4 px-1">
+                              Cliente
+                            </Badge>
+                          )}
+                          {wa && (
+                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 h-4 px-1">
+                              WA
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {(l.email || "sem email")} · {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-[11px] font-bold text-foreground tabular-nums">
+                          {l.totalValue > 0 ? BRL(l.totalValue) : "·"}
+                        </p>
+                        <p className="text-[9.5px] text-muted-foreground tabular-nums">
+                          {l.totalViews} view{l.totalViews === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Confirm delete */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
