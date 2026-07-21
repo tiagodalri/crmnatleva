@@ -37,6 +37,9 @@ import { cn } from "@/lib/utils";
 import { formatTime, parseUA } from "@/lib/proposalAnalytics";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { LeadsOriginMap, type LeadMapPin } from "@/components/leads/LeadsOriginMap";
+import { LeadsConversionFunnel } from "@/components/leads/LeadsConversionFunnel";
+import { CustomerSinceBadge } from "@/components/clients/CustomerSinceBadge";
 
 type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 const PERIOD_LABEL: Record<Period, string> = {
@@ -81,6 +84,8 @@ type ViewerRow = {
   city: string | null;
   region: string | null;
   country: string | null;
+  lat: number | null;
+  lng: number | null;
   device_type: string | null;
   user_agent: string | null;
   total_views: number;
@@ -125,6 +130,8 @@ type ProposalViewerRow = {
   city: string | null;
   region: string | null;
   country: string | null;
+  lat: number | null;
+  lng: number | null;
   device_type: string | null;
   user_agent: string | null;
   total_views: number;
@@ -176,6 +183,18 @@ type LeadItem = {
   profit: number;           // lucro potencial estimado
 };
 
+type LeadEnrichment = {
+  count: number;
+  value: number;
+  profit: number;
+  firstSaleAt: string | null;
+  lastSaleAt: string | null;
+  customerSince: string | null;
+  clientId: string | null;
+  destinations: string[];
+  paymentTop: string | null;
+};
+
 type LeadAggregate = {
   key: string;
   email: string;
@@ -184,6 +203,8 @@ type LeadAggregate = {
   city: string | null;
   region: string | null;
   country: string | null;
+  lat: number | null;
+  lng: number | null;
   device: string | null;
   userAgent: string | null;
   utmSource: string | null;
@@ -236,8 +257,7 @@ export default function Leads() {
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customOpen, setCustomOpen] = useState(false);
-  /** key (email lowered or phone digits) -> { count, value } */
-  const [conversions, setConversions] = useState<Record<string, { count: number; value: number }>>({});
+  const [conversions, setConversions] = useState<Record<string, LeadEnrichment>>({});
 
   const fetchAll = async () => {
     setLoading(true);
@@ -303,6 +323,8 @@ export default function Leads() {
           city: seed.city ?? null,
           region: seed.region ?? null,
           country: seed.country ?? null,
+          lat: seed.lat ?? null,
+          lng: seed.lng ?? null,
           device: seed.device ?? null,
           userAgent: seed.userAgent ?? null,
           utmSource: seed.utmSource ?? null,
@@ -331,6 +353,9 @@ export default function Leads() {
         if (!lead.userAgent && seed.userAgent) lead.userAgent = seed.userAgent;
         if (!lead.device && seed.device) lead.device = seed.device;
         if (!lead.utmSource && seed.utmSource) lead.utmSource = seed.utmSource;
+        if ((lead.lat == null || lead.lng == null) && seed.lat != null && seed.lng != null) {
+          lead.lat = seed.lat; lead.lng = seed.lng;
+        }
       }
       return lead;
     };
@@ -340,10 +365,14 @@ export default function Leads() {
       const key = (v.email || "").toLowerCase().trim() || `anon-pr:${v.id}`;
       const lead = ensure(key, {
         email: v.email, name: v.name, phone: v.phone, city: v.city, region: v.region,
-        country: v.country, device: v.device_type, userAgent: v.user_agent,
+        country: v.country, lat: v.lat, lng: v.lng,
+        device: v.device_type, userAgent: v.user_agent,
         utmSource: v.utm_source, utmCampaign: v.utm_campaign,
         firstAt: v.first_viewed_at, lastAt: v.last_active_at,
       });
+      if (v.lat != null && v.lng != null && new Date(v.last_active_at) >= new Date(lead.lastAt)) {
+        lead.lat = v.lat; lead.lng = v.lng;
+      }
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
       lead.productsViewed += 1;
@@ -383,9 +412,13 @@ export default function Leads() {
       const key = (v.email || "").toLowerCase().trim() || `anon-pp:${v.id}`;
       const lead = ensure(key, {
         email: v.email, name: v.name, phone: v.phone, city: v.city, region: v.region,
-        country: v.country, device: v.device_type, userAgent: v.user_agent,
+        country: v.country, lat: v.lat, lng: v.lng,
+        device: v.device_type, userAgent: v.user_agent,
         firstAt: v.first_viewed_at, lastAt: v.last_active_at,
       });
+      if (v.lat != null && v.lng != null && new Date(v.last_active_at) >= new Date(lead.lastAt)) {
+        lead.lat = v.lat; lead.lng = v.lng;
+      }
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
       lead.proposalsViewed += 1;
@@ -447,14 +480,14 @@ export default function Leads() {
     [leads, prevR]
   );
 
-  // Fetch conversions (leads → clients → sales) for all loaded leads
+  // Fetch conversions + client/sales enrichment (pré-agrega por client_id
+  // ANTES de mapear pro lead pra nunca duplicar linhas por venda)
   useEffect(() => {
     (async () => {
       const emails = Array.from(new Set(leads.map((l) => (l.email || "").toLowerCase().trim()).filter(Boolean)));
       const phones = Array.from(new Set(leads.map((l) => normPhone(l.phone)).filter((p) => p && p.length >= 8)));
       if (emails.length === 0 && phones.length === 0) { setConversions({}); return; }
-      // Fetch clients by email OR phone
-      const clientsQuery = (supabase as any).from("clients").select("id, email, phone");
+      const clientsQuery = (supabase as any).from("clients").select("id, email, phone, customer_since");
       const orParts: string[] = [];
       if (emails.length) orParts.push(`email.in.(${emails.map(e => `"${e}"`).join(",")})`);
       if (phones.length) orParts.push(`phone.in.(${phones.map(p => `"${p}"`).join(",")})`);
@@ -467,27 +500,64 @@ export default function Leads() {
       const clientIds = clientRows.map((c) => c.id);
       const { data: salesRows } = await (supabase as any)
         .from("sales")
-        .select("client_id, received_value, status, created_at")
+        .select("client_id, received_value, total_cost, profit, status, created_at, close_date, destination_city, payment_method")
         .in("client_id", clientIds);
-      // Map client_id -> {count, value}
-      const byClient: Record<string, { count: number; value: number }> = {};
+
+      // Pré-agrega por client_id (nunca por linha)
+      type Bucket = {
+        count: number; value: number; profit: number;
+        firstSaleAt: string | null; lastSaleAt: string | null;
+        destinations: Set<string>; paymentCounts: Map<string, number>;
+      };
+      const byClient: Record<string, Bucket> = {};
       (salesRows || []).forEach((s: any) => {
         if ((s.status || "").toLowerCase() === "cancelado") return;
-        const cur = byClient[s.client_id] || { count: 0, value: 0 };
+        const cur = byClient[s.client_id] || {
+          count: 0, value: 0, profit: 0,
+          firstSaleAt: null, lastSaleAt: null,
+          destinations: new Set<string>(), paymentCounts: new Map<string, number>(),
+        };
         cur.count += 1;
         cur.value += Number(s.received_value || 0);
+        const p = s.profit != null ? Number(s.profit) : Math.max(Number(s.received_value || 0) - Number(s.total_cost || 0), 0);
+        cur.profit += p;
+        const when = s.close_date || s.created_at;
+        if (when) {
+          if (!cur.firstSaleAt || new Date(when) < new Date(cur.firstSaleAt)) cur.firstSaleAt = when;
+          if (!cur.lastSaleAt || new Date(when) > new Date(cur.lastSaleAt)) cur.lastSaleAt = when;
+        }
+        if (s.destination_city) cur.destinations.add(String(s.destination_city));
+        if (s.payment_method && s.payment_method !== "atualizar campo") {
+          cur.paymentCounts.set(s.payment_method, (cur.paymentCounts.get(s.payment_method) || 0) + 1);
+        }
         byClient[s.client_id] = cur;
       });
-      // Attribute to lead keys (email + phone)
-      const out: Record<string, { count: number; value: number }> = {};
+
+      const out: Record<string, LeadEnrichment> = {};
       for (const c of clientRows) {
         const stats = byClient[c.id];
-        if (!stats) continue;
+        const paymentTop = stats
+          ? Array.from(stats.paymentCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+          : null;
+        const enrich: LeadEnrichment = {
+          count: stats?.count ?? 0,
+          value: stats?.value ?? 0,
+          profit: stats?.profit ?? 0,
+          firstSaleAt: stats?.firstSaleAt ?? null,
+          lastSaleAt: stats?.lastSaleAt ?? null,
+          customerSince: c.customer_since ?? null,
+          clientId: c.id,
+          destinations: stats ? Array.from(stats.destinations).slice(0, 8) : [],
+          paymentTop,
+        };
+        // Só marca como "convertido" quem tem venda; mas mantém enrichment pra "cliente sem venda no período"
+        // Ainda assim, só grava em `out` quem casar com email ou phone
         const emailKey = (c.email || "").toLowerCase().trim();
         const phoneKey = normPhone(c.phone);
-        if (emailKey) out[`e:${emailKey}`] = stats;
-        if (phoneKey) out[`p:${phoneKey}`] = stats;
+        if (emailKey) out[`e:${emailKey}`] = enrich;
+        if (phoneKey) out[`p:${phoneKey}`] = enrich;
       }
+      setConversions(out);
       setConversions(out);
     })();
   }, [leads]);
@@ -537,8 +607,9 @@ export default function Leads() {
     return Math.round(((curr - prev) / prev) * 100);
   };
 
-  // Insight: converted leads (lead → cliente → venda)
-  const convertedLeads = useMemo(() => periodLeads.filter((l) => leadConversion(l)), [periodLeads, conversions]);
+  // Insight: converted leads (lead → cliente → venda). "Converted" = tem venda real.
+  const isConverted = (l: LeadAggregate) => (leadConversion(l)?.count ?? 0) > 0;
+  const convertedLeads = useMemo(() => periodLeads.filter(isConverted), [periodLeads, conversions]);
   const conversionValue = convertedLeads.reduce((s, l) => s + (leadConversion(l)?.value || 0), 0);
   const conversionRate = totalLeads > 0 ? (convertedLeads.length / totalLeads) * 100 : 0;
 
@@ -547,7 +618,7 @@ export default function Leads() {
     const cutoff = Date.now() - 24 * 3600 * 1000;
     return periodLeads
       .filter((l) => (l.ctaCount > 0 || l.whatsappCount > 0)
-        && !leadConversion(l)
+        && !isConverted(l)
         && new Date(l.lastAt).getTime() < cutoff)
       .sort((a, b) => b.profitPotential - a.profitPotential)
       .slice(0, 5);
@@ -595,6 +666,68 @@ export default function Leads() {
     });
     return withScore.sort((a, b) => b.score - a.score).slice(0, 5);
   }, [periodLeads]);
+
+  // Mapa: 1 pino por pessoa com lat/lng
+  const mapPins = useMemo(() => {
+    return periodLeads
+      .filter((l) => l.lat != null && l.lng != null
+        && !isNaN(Number(l.lat)) && !isNaN(Number(l.lng))
+        && Number(l.lat) !== 0 && Number(l.lng) !== 0)
+      .map((l) => {
+        const client = isConverted(l);
+        const engaged = l.ctaCount > 0 || l.whatsappCount > 0;
+        const temperature: "hot" | "warm" | "cold" =
+          engaged ? "hot" : (l.totalSeconds > 30 || l.totalViews > 2) ? "warm" : "cold";
+        return {
+          key: l.key,
+          name: l.name || l.email || "Lead anônimo",
+          city: l.city,
+          country: l.country,
+          lat: Number(l.lat),
+          lng: Number(l.lng),
+          temperature,
+          isClient: client,
+          pipeline: l.totalValue,
+        };
+      });
+  }, [periodLeads, conversions]);
+
+  // Funil de conversão (usa o mesmo dataset periodLeads, sem duplicar por evento)
+  const funnelStages = useMemo(() => {
+    const engaged = periodLeads.filter((l) => l.ctaCount > 0 || l.whatsappCount > 0);
+    const withProposal = periodLeads.filter((l) => l.proposalsViewed > 0);
+    const converted = convertedLeads;
+    const sumProposalPipeline = (arr: LeadAggregate[]) =>
+      arr.reduce((s, l) => s + l.items.filter((i) => i.kind === "proposal").reduce((a, i) => a + i.value, 0), 0);
+    return [
+      { key: "view", label: "Visualizou", leads: periodLeads.length, value: pipelineValue },
+      { key: "engage", label: "Engajou (CTA/WhatsApp)", leads: engaged.length, value: engaged.reduce((s, l) => s + l.totalValue, 0) },
+      { key: "proposal", label: "Viu proposta personalizada", leads: withProposal.length, value: sumProposalPipeline(withProposal) },
+      { key: "sale", label: "Fechou venda", leads: converted.length, value: conversionValue },
+    ];
+  }, [periodLeads, convertedLeads, pipelineValue, conversionValue]);
+
+  // Ranking por canal (utm_source) — pipeline + venda real. Propostas sem utm caem em "Direto/Proposta".
+  const utmRanking = useMemo(() => {
+    const m = new Map<string, { leads: number; pipeline: number; soldValue: number; soldCount: number }>();
+    for (const l of periodLeads) {
+      const src = l.utmSource
+        || (l.proposalsViewed > 0 && l.productsViewed === 0 ? "Direto/Proposta" : "Direto");
+      const cur = m.get(src) || { leads: 0, pipeline: 0, soldValue: 0, soldCount: 0 };
+      cur.leads += 1;
+      cur.pipeline += l.totalValue;
+      const conv = leadConversion(l);
+      if (conv && conv.count > 0) {
+        cur.soldValue += conv.value;
+        cur.soldCount += conv.count;
+      }
+      m.set(src, cur);
+    }
+    return Array.from(m.entries())
+      .map(([source, s]) => ({ source, ...s }))
+      .sort((a, b) => b.soldValue - a.soldValue || b.leads - a.leads);
+  }, [periodLeads, conversions]);
+
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -821,6 +954,34 @@ export default function Leads() {
           </div>
         </Card>
       </div>
+
+      {/* Mapa de origem dos leads */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+            <MapPin className="w-4 h-4 text-primary" />
+            Mapa de origem
+            <Badge className="text-[9px] border-0 bg-primary/12 text-primary">
+              {mapPins.length} localizados
+            </Badge>
+          </div>
+          <p className="text-[10px] text-muted-foreground hidden sm:block">
+            1 pino por pessoa · cor por temperatura · verde = cliente
+          </p>
+        </div>
+        <LeadsOriginMap
+          pins={mapPins}
+          onPinClick={(k) => {
+            const l = periodLeads.find((x) => x.key === k);
+            if (l) setSelected(l);
+          }}
+          className="h-[380px] w-full"
+        />
+      </Card>
+
+      {/* Funil de conversão + retorno por canal */}
+      <LeadsConversionFunnel stages={funnelStages} utm={utmRanking} />
+
 
       {/* Quentes sem retorno */}
       {hotStale.length > 0 && (
@@ -1152,6 +1313,7 @@ export default function Leads() {
         lead={selected}
         events={events}
         proposalClicks={proposalClicks}
+        enrichment={selected ? leadConversion(selected) : null}
         onClose={() => setSelected(null)}
         onDelete={(l) => setToDelete(l)}
       />
@@ -1294,10 +1456,11 @@ function OriginBadge({ tone, label }: { tone: "prateleira" | "proposal" | "both"
   );
 }
 
-function LeadDetail({ lead, events, proposalClicks, onClose, onDelete }: {
+function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelete }: {
   lead: LeadAggregate | null;
   events: EventRow[];
   proposalClicks: ProposalClickRow[];
+  enrichment: LeadEnrichment | null;
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
@@ -1354,6 +1517,67 @@ function LeadDetail({ lead, events, proposalClicks, onClose, onDelete }: {
               <MiniKpi label="Lucro potencial" value={lead.profitPotential > 0 ? BRL(lead.profitPotential) : "·"} tone={lead.profitPotential > 0 ? "hot" : undefined} />
             </div>
 
+            {/* Histórico como cliente */}
+            {enrichment && (enrichment.customerSince || enrichment.count > 0) && (
+              <Card className={cn(
+                "p-4 space-y-3 border",
+                enrichment.count > 0
+                  ? "border-emerald-500/30 bg-emerald-500/[0.04]"
+                  : "border-primary/20 bg-primary/[0.03]"
+              )}>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                    {enrichment.count > 0 ? "Já é seu cliente" : "Cadastrado no CRM · sem venda ainda"}
+                  </div>
+                  {enrichment.customerSince && (
+                    <CustomerSinceBadge customerSince={enrichment.customerSince} />
+                  )}
+                </div>
+                {enrichment.count > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Vendas</p>
+                      <p className="text-sm font-bold text-foreground tabular-nums">{enrichment.count}</p>
+                    </div>
+                    <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Receita total</p>
+                      <p className="text-sm font-bold text-emerald-600 tabular-nums">
+                        {enrichment.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Lucro total</p>
+                      <p className="text-sm font-bold text-primary tabular-nums">
+                        {enrichment.profit.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    {enrichment.paymentTop && (
+                      <div className="rounded-lg bg-background/60 border border-border/40 px-2.5 py-1.5">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Pagamento</p>
+                        <p className="text-[11px] font-semibold text-foreground truncate">{enrichment.paymentTop}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {enrichment.destinations.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Destinos anteriores:</span>
+                    {enrichment.destinations.map((d) => (
+                      <Badge key={d} variant="outline" className="text-[10px] py-0 px-1.5 h-5">{d}</Badge>
+                    ))}
+                  </div>
+                )}
+                {enrichment.count > 0 && enrichment.lastSaleAt && (
+                  <p className="text-[10.5px] text-muted-foreground">
+                    Última venda: {format(new Date(enrichment.lastSaleAt), "dd/MM/yyyy", { locale: ptBR })}
+                    {enrichment.firstSaleAt && enrichment.firstSaleAt !== enrichment.lastSaleAt && (
+                      <> · Primeira: {format(new Date(enrichment.firstSaleAt), "dd/MM/yyyy", { locale: ptBR })}</>
+                    )}
+                  </p>
+                )}
+              </Card>
+            )}
 
             {/* Itens visualizados */}
             <Card className="p-4 space-y-3">
