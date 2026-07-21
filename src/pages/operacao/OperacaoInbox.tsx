@@ -1833,25 +1833,30 @@ function OperacaoInboxInner() {
     }
   }, [shortcutOpen]);
 
-  const { suggestion: spellSuggestion, dismissSuggestion: dismissSpellSuggestion } = useSpellSuggestion(inputText, { debounceMs: 450 });
   const acceptSpellSuggestion = useCallback(() => {
-    if (!spellSuggestion) return;
-    setInputText(spellSuggestion);
-    dismissSpellSuggestion();
-    textareaRef.current?.focus();
-  }, [spellSuggestion, dismissSpellSuggestion]);
+    if (!pendingCorrection) return;
+    const corrected = pendingCorrection.corrected;
+    setInputText(corrected);
+    setPendingCorrection(null);
+    skipCorrectionRef.current = true;
+    sendOverrideRef.current = corrected;
+    handleSend();
+  }, [pendingCorrection, handleSend]);
+
+  const dismissSpellSuggestion = useCallback(() => {
+    const original = pendingCorrection?.original ?? null;
+    setPendingCorrection(null);
+    skipCorrectionRef.current = true;
+    if (original) sendOverrideRef.current = original;
+    handleSend();
+  }, [pendingCorrection, handleSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Quando o dropdown está aberto, deixa ele tratar Enter/setas
     if (shortcutOpen && (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab" || e.key === "Escape")) {
       return;
     }
-    if (e.key === "Tab" && spellSuggestion && !e.shiftKey) {
-      e.preventDefault();
-      acceptSpellSuggestion();
-      return;
-    }
-    if (e.key === "Escape" && spellSuggestion) {
+    if (e.key === "Escape" && pendingCorrection) {
       e.preventDefault();
       dismissSpellSuggestion();
       return;
