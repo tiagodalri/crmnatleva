@@ -1357,9 +1357,13 @@ export default function Leads() {
                   <div className="flex items-end justify-between gap-2 pt-1">
                     <div className="min-w-0">
                       <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Lucro potencial</p>
-                      <p className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                        {BRL(l.profitPotential)}
-                      </p>
+                      {l.profitPotential > 0 ? (
+                        <p className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                          {BRL(l.profitPotential)}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground/70 leading-tight">Custo não informado</p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Pacote</p>
@@ -1367,6 +1371,7 @@ export default function Leads() {
                         {l.totalValue > 0 ? BRL(l.totalValue) : "·"}
                       </p>
                     </div>
+
                   </div>
                   <div className="flex items-center gap-1.5 pt-1 border-t border-border/30 text-[9.5px] text-muted-foreground">
                     {l.ctaCount > 0 && <span className="text-accent font-semibold">{l.ctaCount} CTA</span>}
