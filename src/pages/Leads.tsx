@@ -1472,9 +1472,11 @@ export default function Leads() {
         events={events}
         proposalClicks={proposalClicks}
         enrichment={selected ? leadConversion(selected) : null}
+        waLink={selected ? leadWa(selected) : null}
         onClose={() => setSelected(null)}
         onDelete={(l) => setToDelete(l)}
       />
+
 
       {/* Confirm delete */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
