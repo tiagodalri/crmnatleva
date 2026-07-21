@@ -571,6 +571,48 @@ export default function Leads() {
     return conversions[`e:${e}`] || conversions[`p:${p}`] || null;
   };
 
+  // Cruzamento com WhatsApp: 1 registro por telefone (mais recente)
+  useEffect(() => {
+    (async () => {
+      const phones = Array.from(new Set(leads.map((l) => normPhone(l.phone)).filter((p) => p && p.length >= 8)));
+      if (!phones.length) { setWaLinks({}); return; }
+      const phonesSet = new Set(phones);
+      const { data: convData } = await (supabase as any)
+        .from("conversations")
+        .select("id, phone, profile_picture_url, last_message_at, is_group")
+        .eq("is_group", false)
+        .not("phone", "is", null)
+        .order("last_message_at", { ascending: false })
+        .limit(5000);
+      const out: Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }> = {};
+      for (const c of (convData || [])) {
+        const p = normPhone(c.phone);
+        if (!p || !phonesSet.has(p)) continue;
+        const prev = out[p];
+        if (!prev || (c.last_message_at && (!prev.lastMessageAt || new Date(c.last_message_at) > new Date(prev.lastMessageAt)))) {
+          out[p] = { conversationId: c.id, photo: c.profile_picture_url || null, lastMessageAt: c.last_message_at || null };
+        }
+      }
+      // Fallback fotos via zapi_contacts
+      const missingPhoto = Object.entries(out).filter(([, v]) => !v.photo).map(([p]) => p);
+      if (missingPhoto.length) {
+        const { data: zc } = await (supabase as any)
+          .from("zapi_contacts")
+          .select("phone, profile_picture_url")
+          .not("profile_picture_url", "is", null)
+          .limit(5000);
+        for (const z of (zc || [])) {
+          const p = normPhone(z.phone);
+          if (out[p] && !out[p].photo && z.profile_picture_url) out[p].photo = z.profile_picture_url;
+        }
+      }
+      setWaLinks(out);
+    })();
+  }, [leads]);
+
+  const leadWa = (l: LeadAggregate) => waLinks[normPhone(l.phone)] || null;
+
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return periodLeads.filter((l) => {
