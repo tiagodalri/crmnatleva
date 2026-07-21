@@ -763,17 +763,18 @@ export default function Leads() {
 
   // Insight: top items no período
   const topItems = useMemo(() => {
-    const counts = new Map<string, { title: string; kind: "product" | "proposal"; slug: string | null; views: number }>();
+    const counts = new Map<string, { title: string; kind: "product" | "proposal"; refId: string; slug: string | null; views: number }>();
     for (const l of periodLeads) {
       for (const it of l.items) {
         const k = `${it.kind}:${it.refId}`;
         const prev = counts.get(k);
         if (prev) prev.views += it.views;
-        else counts.set(k, { title: it.title, kind: it.kind, slug: it.slug, views: it.views });
+        else counts.set(k, { title: it.title, kind: it.kind, refId: it.refId, slug: it.slug, views: it.views });
       }
     }
     return Array.from(counts.values()).sort((a, b) => b.views - a.views).slice(0, 3);
   }, [periodLeads]);
+
 
   // Insight: top UTM sources (Prateleira)
   const topUtms = useMemo(() => {
