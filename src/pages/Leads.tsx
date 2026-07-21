@@ -604,8 +604,9 @@ export default function Leads() {
     return Math.round(((curr - prev) / prev) * 100);
   };
 
-  // Insight: converted leads (lead → cliente → venda)
-  const convertedLeads = useMemo(() => periodLeads.filter((l) => leadConversion(l)), [periodLeads, conversions]);
+  // Insight: converted leads (lead → cliente → venda). "Converted" = tem venda real.
+  const isConverted = (l: LeadAggregate) => (leadConversion(l)?.count ?? 0) > 0;
+  const convertedLeads = useMemo(() => periodLeads.filter(isConverted), [periodLeads, conversions]);
   const conversionValue = convertedLeads.reduce((s, l) => s + (leadConversion(l)?.value || 0), 0);
   const conversionRate = totalLeads > 0 ? (convertedLeads.length / totalLeads) * 100 : 0;
 
@@ -614,7 +615,7 @@ export default function Leads() {
     const cutoff = Date.now() - 24 * 3600 * 1000;
     return periodLeads
       .filter((l) => (l.ctaCount > 0 || l.whatsappCount > 0)
-        && !leadConversion(l)
+        && !isConverted(l)
         && new Date(l.lastAt).getTime() < cutoff)
       .sort((a, b) => b.profitPotential - a.profitPotential)
       .slice(0, 5);
