@@ -1313,6 +1313,7 @@ export default function Leads() {
         lead={selected}
         events={events}
         proposalClicks={proposalClicks}
+        enrichment={selected ? leadConversion(selected) : null}
         onClose={() => setSelected(null)}
         onDelete={(l) => setToDelete(l)}
       />
