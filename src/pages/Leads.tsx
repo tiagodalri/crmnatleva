@@ -1656,6 +1656,9 @@ export default function Leads() {
                   const wa = waLinks[l.key];
                   const conv = conversions[l.key];
                   const isClient = (conv?.count ?? 0) > 0;
+                  const online = isOnline(l.lastAt);
+                  const top = l.items[0];
+                  const sourceLabel = top?.kind === "proposal" ? "Proposta" : top?.kind === "product" ? "Prateleira" : null;
                   return (
                     <button
                       key={l.key}
@@ -1663,15 +1666,20 @@ export default function Leads() {
                       onClick={() => { setSelected(l); setDrill(null); }}
                       className="w-full flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/40 text-left transition"
                     >
-                      <WhatsAppAvatar
-                        src={wa?.photo || null}
-                        name={l.name || l.email || "?"}
-                        phone={normPhone(l.phone) || undefined}
-                        size={32}
-                        className="w-8 h-8 text-[11px] flex-shrink-0"
-                      />
+                      <div className="relative flex-shrink-0">
+                        <WhatsAppAvatar
+                          src={wa?.photo || null}
+                          name={l.name || l.email || "?"}
+                          phone={normPhone(l.phone) || undefined}
+                          size={32}
+                          className="w-8 h-8 text-[11px]"
+                        />
+                        {online && (
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse" title="Online agora" />
+                        )}
+                      </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-[12px] font-semibold text-foreground truncate">
                             {l.name || l.email || "Lead anônimo"}
                           </p>
@@ -1685,7 +1693,17 @@ export default function Leads() {
                               WA
                             </Badge>
                           )}
+                          {sourceLabel && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 border-border/50 text-muted-foreground">
+                              {sourceLabel}
+                            </Badge>
+                          )}
                         </div>
+                        {top?.title && (
+                          <p className="text-[10.5px] text-foreground/80 truncate">
+                            {online ? "vendo: " : "último item: "}<span className="font-medium">{top.title}</span>
+                          </p>
+                        )}
                         <p className="text-[10px] text-muted-foreground truncate">
                           {(l.email || "sem email")} · {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
                         </p>
@@ -1699,6 +1717,7 @@ export default function Leads() {
                         </p>
                       </div>
                     </button>
+
                   );
                 })}
               </div>
