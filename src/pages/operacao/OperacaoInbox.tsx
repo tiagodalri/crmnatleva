@@ -1576,14 +1576,9 @@ function OperacaoInboxInner() {
       await supabase.from("chat_messages").insert({ conversation_id: selectedId, sender_type: "atendente", message_type: "text", content: text, read_status: "sent" });
       await supabase.from("conversations").update({ last_message_preview: text, last_message_at: nowIso, unread_count: 0 }).eq("id", selectedId);
 
-      if (selected?.source === "whatsapp" && selected?.phone) {
-        try {
-          const { data: connData } = await supabase.from("whatsapp_connections" as any).select("id").eq("status", "active").limit(1).maybeSingle();
-          if (connData) {
-            await supabase.functions.invoke("send-whatsapp-official", { body: { to: selected.phone, message: text, connection_id: (connData as any).id } });
-          }
-        } catch (err) { console.error("Error sending via official API:", err); }
-      }
+      // Envio via WhatsApp neste branch é feito pelo fluxo Z-API principal (selectedId startsWith "wa_").
+      // O caminho "WhatsApp Official Cloud API" foi removido: tabela whatsapp_connections nunca existiu
+      // e as edge functions oficiais foram deletadas.
 
       // Reload from unified table
       const { data } = await (supabase.from("conversation_messages" as any).select("*").eq("conversation_id", selectedId).order("created_at") as any);

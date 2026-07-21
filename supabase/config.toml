@@ -39,8 +39,6 @@ project_id = "mexlhkqcmiaktjxsyvod"
     verify_jwt = true
   [functions.concierge-resolve-place]
     verify_jwt = false
-  [functions.connect-whatsapp]
-    verify_jwt = false
   [functions.correct-message]
     verify_jwt = true
   [functions.cover-image-search]
@@ -48,8 +46,6 @@ project_id = "mexlhkqcmiaktjxsyvod"
   [functions.create-portal-access]
     verify_jwt = false
   [functions.data-cleanup]
-    verify_jwt = false
-  [functions.disconnect-whatsapp]
     verify_jwt = false
   [functions.execute-flow]
     verify_jwt = true
@@ -143,8 +139,6 @@ project_id = "mexlhkqcmiaktjxsyvod"
     verify_jwt = true
   [functions.send-scheduled-messages]
     verify_jwt = false
-  [functions.send-whatsapp-official]
-    verify_jwt = true
   [functions.simulator-ai]
     verify_jwt = true
   [functions.simulator-create-proposal]
@@ -153,14 +147,8 @@ project_id = "mexlhkqcmiaktjxsyvod"
     verify_jwt = true
   [functions.smart-upload-process]
     verify_jwt = true
-  [functions.sync-whatsapp-numbers]
-    verify_jwt = false
-  [functions.test-whatsapp-connection]
-    verify_jwt = false
   [functions.web-search]
     verify_jwt = true
-  [functions.whatsapp-official-webhook]
-    verify_jwt = false
   [functions.youtube-transcribe]
     verify_jwt = true
   [functions.zapi-heartbeat]
