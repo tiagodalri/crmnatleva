@@ -1118,7 +1118,7 @@ export default function Leads() {
       </Card>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2.5 animate-in fade-in duration-300">
         <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)}
           onClick={() => setDrill({ title: "Total de leads no período", hint: "Todos os leads únicos considerados no período selecionado.", leads: periodLeads })} />
         <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined}
@@ -1908,8 +1908,8 @@ function Kpi({ icon: Icon, label, value, fullValue, hint, tone, delta, onClick }
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick!(); } } : undefined}
       className={cn(
-        "p-3 flex items-start gap-2.5 rounded-2xl border-border/40 transition",
-        clickable && "cursor-pointer hover:border-primary/40 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "p-3 flex items-start gap-2.5 rounded-2xl border-border/40 transition-all duration-200",
+        clickable && "cursor-pointer hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         tone === "hot" && "border-accent/40 bg-accent/5",
         tone === "live" && "border-emerald-500/40 bg-emerald-500/5",
         tone === "value" && "border-sky-500/30 bg-sky-500/5",
@@ -1926,10 +1926,10 @@ function Kpi({ icon: Icon, label, value, fullValue, hint, tone, delta, onClick }
       )}>
         <Icon className="w-4 h-4" />
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="flex items-center gap-1 flex-wrap">
           <p
-            className="text-base sm:text-lg font-bold text-foreground leading-tight tabular-nums whitespace-nowrap"
+            className="text-sm sm:text-base xl:text-[17px] font-bold text-foreground leading-tight tabular-nums whitespace-nowrap"
             title={fullValue || value}
           >{value}</p>
           {typeof delta === "number" && (
