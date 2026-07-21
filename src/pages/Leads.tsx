@@ -1750,8 +1750,9 @@ export default function Leads() {
                             </Badge>
                           )}
                           {wa && (
-                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 h-4 px-1">
-                              WA
+                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 h-4 px-1 gap-1" title={whatsappIntensity(wa.messageCount).label}>
+                              <WhatsAppIcon className="w-2.5 h-2.5" />
+                              {wa.messageCount > 0 ? wa.messageCount : "contato"}
                             </Badge>
                           )}
                           {sourceLabel && (
@@ -1766,7 +1767,7 @@ export default function Leads() {
                           </p>
                         )}
                         <p className="text-[10px] text-muted-foreground truncate">
-                          {(l.email || "sem email")} · {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
+                          {(l.email || "sem email")} · {formatWhen(l.lastAt)}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
