@@ -687,16 +687,192 @@ export default function Leads() {
         </p>
       </div>
 
+      {/* Period filter pills */}
+      <Card className="p-2.5 flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mr-1 flex items-center gap-1">
+          <CalendarRange className="w-3 h-3" /> Período:
+        </span>
+        {(["today", "yesterday", "7d", "30d", "all"] as Period[]).map((p) => (
+          <FilterChip key={p} active={period === p} onClick={() => setPeriod(p)}>
+            {PERIOD_LABEL[p]}
+          </FilterChip>
+        ))}
+        <Popover open={customOpen} onOpenChange={setCustomOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "h-8 px-3 rounded-lg text-[11px] font-medium transition-colors",
+                period === "custom" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {period === "custom" && customFrom && customTo
+                ? `${format(customFrom, "dd/MM")} → ${format(customTo, "dd/MM")}`
+                : "Personalizado"}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto p-3 space-y-2">
+            <Calendar
+              mode="range"
+              locale={ptBR}
+              selected={{ from: customFrom, to: customTo }}
+              onSelect={(range: any) => {
+                setCustomFrom(range?.from);
+                setCustomTo(range?.to || range?.from);
+              }}
+              numberOfMonths={1}
+              className="rounded-md border p-2 pointer-events-auto"
+            />
+            <div className="flex justify-end gap-2 pt-1 border-t">
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
+                setCustomFrom(undefined); setCustomTo(undefined); setPeriod("all"); setCustomOpen(false);
+              }}>Limpar</Button>
+              <Button size="sm" className="h-7 text-xs" disabled={!customFrom || !customTo} onClick={() => {
+                setPeriod("custom"); setCustomOpen(false);
+              }}>Aplicar</Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </Card>
+
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
-        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} />
+        <Kpi icon={Users} label="Total de leads" value={totalLeads.toLocaleString("pt-BR")} delta={pct(totalLeads, prevTotal)} />
         <Kpi icon={Wifi} label="Online agora" value={onlineNow.toLocaleString("pt-BR")} tone={onlineNow > 0 ? "live" : undefined} />
-        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} />
+        <Kpi icon={TrendingUp} label="Leads quentes" value={hotLeads.toLocaleString("pt-BR")} hint="clicaram CTA ou WhatsApp" tone={hotLeads > 0 ? "hot" : undefined} delta={pct(hotLeads, prevHot)} />
         <Kpi icon={FileText} label="Viram proposta" value={propostaLeads.toLocaleString("pt-BR")} hint="propostas personalizadas" />
-        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" />
+        <Kpi icon={DollarSign} label="Pipeline" value={BRL(pipelineValue)} hint="valor total visualizado" tone="value" delta={pct(pipelineValue, prevPipeline)} />
         <Kpi icon={Flame} label="Lucro potencial" value={BRL(profitPotential)} hint="estimativa com margem real" tone="profit" />
         <Kpi icon={TrendingUp} label="Ticket médio" value={BRL(avgTicket)} hint="por lead" />
       </div>
+
+      {/* Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Conversão em venda */}
+        <Card className="p-4 space-y-2 border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.05] to-transparent">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            Conversão em venda
+          </div>
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Leads convertidos</p>
+              <p className="text-lg font-bold text-foreground tabular-nums">{convertedLeads.length}</p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Taxa</p>
+              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                {conversionRate.toFixed(1)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Vendido</p>
+              <p className="text-lg font-bold text-foreground tabular-nums">{BRL(conversionValue)}</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground pt-1">
+            leads do período que viraram cliente com venda registrada
+          </p>
+        </Card>
+
+        {/* Origem: Prateleira vs Proposta */}
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            Origem com melhor retorno
+          </div>
+          <div className="space-y-2 pt-1">
+            <OriginBar label="Prateleira" tone="prateleira" leads={prateleiraLeads.length} pipeline={prateleiraPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
+            <OriginBar label="Proposta" tone="proposal" leads={proposalLeads.length} pipeline={proposalPipeline} maxPipeline={Math.max(prateleiraPipeline, proposalPipeline, 1)} />
+          </div>
+          {topUtms.length > 0 && (
+            <div className="pt-2 border-t border-border/30">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">Top UTM (Prateleira)</p>
+              <div className="flex flex-wrap gap-1">
+                {topUtms.map(([src, count]) => (
+                  <Badge key={src} className="text-[9.5px] border-0 bg-sky-500/12 text-sky-600 dark:text-sky-400">
+                    {src} · {count}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Produtos/propostas em alta */}
+        <Card className="p-4 space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+            <Eye className="w-3.5 h-3.5 text-violet-500" />
+            Em alta no período
+          </div>
+          <div className="space-y-1.5 pt-1">
+            {topItems.length === 0 ? (
+              <p className="text-[10.5px] text-muted-foreground">Sem visualizações no período.</p>
+            ) : topItems.map((it, i) => (
+              <div key={i} className="flex items-center gap-2 py-1 border-b border-border/20 last:border-0">
+                <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4">{i + 1}</span>
+                {it.kind === "proposal"
+                  ? <FileText className="w-3 h-3 text-violet-500 flex-shrink-0" />
+                  : <PackageOpen className="w-3 h-3 text-sky-500 flex-shrink-0" />}
+                <span className="text-[11px] text-foreground truncate flex-1" title={it.title}>{it.title}</span>
+                <span className="text-[10px] font-semibold text-muted-foreground tabular-nums">{it.views}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Quentes sem retorno */}
+      {hotStale.length > 0 && (
+        <Card className="p-4 space-y-2 border-amber-500/30 bg-amber-500/[0.04]">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              Quentes sem retorno
+              <Badge className="text-[9px] border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                {hotStale.length}
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground hidden sm:block">
+              engajaram há mais de 24h e ainda não compraram · toca no WhatsApp
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
+            {hotStale.map((l) => (
+              <div key={l.key} className="p-2.5 rounded-lg border border-amber-500/25 bg-card space-y-1.5">
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[11.5px] font-semibold text-foreground truncate">{l.name || l.email || "Sem nome"}</p>
+                  {l.phone && (
+                    <a
+                      href={`https://wa.me/${normPhone(l.phone)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-shrink-0 inline-flex items-center gap-0.5 text-[9.5px] font-semibold text-emerald-600 hover:text-emerald-700"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MessageCircle className="w-3 h-3" /> WhatsApp
+                    </a>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate">{l.items[0]?.title || "·"}</p>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{BRL(l.profitPotential)}</span>
+                  <span className="text-muted-foreground">{formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelected(l)}
+                  className="w-full text-[10px] text-primary hover:underline pt-0.5"
+                >
+                  ver detalhes →
+                </button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+
 
       {/* Top leads */}
       {ranked.length > 0 && (
