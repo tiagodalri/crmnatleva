@@ -42,6 +42,77 @@ import { LeadsOriginMap, type LeadMapPin } from "@/components/leads/LeadsOriginM
 import { LeadsConversionFunnel } from "@/components/leads/LeadsConversionFunnel";
 import { CustomerSinceBadge } from "@/components/clients/CustomerSinceBadge";
 import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+
+// Data relativa + data exata juntas ("há cerca de 1 mês · 15/06/2026")
+function formatWhen(iso: string | Date | null | undefined): string {
+  if (!iso) return "·";
+  const d = iso instanceof Date ? iso : new Date(iso);
+  if (isNaN(d.getTime())) return "·";
+  return `${formatDistanceToNow(d, { locale: ptBR, addSuffix: true })} · ${format(d, "dd/MM/yyyy", { locale: ptBR })}`;
+}
+
+// Classificação de intensidade da conversa no WhatsApp
+function whatsappIntensity(count: number | null | undefined): { label: string; tone: "cold" | "warm" | "hot" } {
+  const n = count ?? 0;
+  if (n >= 15) return { label: `${n} mensagens · conversamos bastante`, tone: "hot" };
+  if (n >= 5) return { label: `${n} mensagens trocadas`, tone: "warm" };
+  if (n > 0) return { label: `${n} ${n === 1 ? "mensagem" : "mensagens"} · contato inicial`, tone: "cold" };
+  return { label: "contato aberto", tone: "cold" };
+}
+
+// Ordenação usada na tabela principal e nas modais de drill-down
+type SortKey = "recent" | "oldest" | "valueDesc" | "valueAsc";
+const SORT_LABEL: Record<SortKey, string> = {
+  recent: "Mais recente",
+  oldest: "Mais antigo",
+  valueDesc: "Valor (maior→menor)",
+  valueAsc: "Valor (menor→maior)",
+};
+function sortLeads<T extends { totalValue: number; lastAt: string }>(list: T[], key: SortKey): T[] {
+  const arr = [...list];
+  arr.sort((a, b) => {
+    if (key === "valueDesc") return b.totalValue - a.totalValue;
+    if (key === "valueAsc") return a.totalValue - b.totalValue;
+    const av = new Date(a.lastAt).getTime();
+    const bv = new Date(b.lastAt).getTime();
+    return key === "oldest" ? av - bv : bv - av;
+  });
+  return arr;
+}
+
+function SortMenu({ value, onChange }: { value: SortKey; onChange: (k: SortKey) => void }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Ordenar</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as SortKey)}
+        className="h-6 text-[10.5px] rounded-md border border-border/50 bg-background px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+      >
+        {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+          <option key={k} value={k}>{SORT_LABEL[k]}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SortHeader({ label, activeAsc, activeDesc, onClick }: { label: string; activeAsc: boolean; activeDesc: boolean; onClick: () => void }) {
+  const active = activeAsc || activeDesc;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 text-[10.5px] uppercase tracking-wider font-medium transition ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+    >
+      {label}
+      <span className="text-[9px] leading-none">{activeDesc ? "▼" : activeAsc ? "▲" : "↕"}</span>
+    </button>
+  );
+}
+
+
 
 type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 const PERIOD_LABEL: Record<Period, string> = {
@@ -268,7 +339,9 @@ export default function Leads() {
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customOpen, setCustomOpen] = useState(false);
   const [conversions, setConversions] = useState<Record<string, LeadEnrichment>>({});
-  const [waLinks, setWaLinks] = useState<Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }>>({});
+  const [waLinks, setWaLinks] = useState<Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null; messageCount: number }>>({});
+  const [tableSort, setTableSort] = useState<SortKey>("recent");
+  const [drillSort, setDrillSort] = useState<SortKey>("recent");
   // Drill-down: cada KPI/insight clicável abre esta modal com a lista real que compõe o número.
   const [drill, setDrill] = useState<{ title: string; hint?: string; leads: LeadAggregate[] } | null>(null);
 
@@ -658,18 +731,23 @@ export default function Leads() {
       const phonesSet = new Set(phones);
       const { data: convData } = await (supabase as any)
         .from("conversations")
-        .select("id, phone, profile_picture_url, last_message_at, is_group")
+        .select("id, phone, profile_picture_url, last_message_at, is_group, interaction_count")
         .eq("is_group", false)
         .not("phone", "is", null)
         .order("last_message_at", { ascending: false })
         .limit(5000);
-      const out: Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }> = {};
+      const out: Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null; messageCount: number }> = {};
       for (const c of (convData || [])) {
         const p = normPhone(c.phone);
         if (!p || !phonesSet.has(p)) continue;
         const prev = out[p];
         if (!prev || (c.last_message_at && (!prev.lastMessageAt || new Date(c.last_message_at) > new Date(prev.lastMessageAt)))) {
-          out[p] = { conversationId: c.id, photo: c.profile_picture_url || null, lastMessageAt: c.last_message_at || null };
+          out[p] = {
+            conversationId: c.id,
+            photo: c.profile_picture_url || null,
+            lastMessageAt: c.last_message_at || null,
+            messageCount: Number(c.interaction_count ?? 0),
+          };
         }
       }
       // Fallback fotos via zapi_contacts
@@ -1283,7 +1361,7 @@ export default function Leads() {
                   ) : (
                     <span className="text-muted-foreground/70">sem valor</span>
                   )}
-                  <span className="text-muted-foreground">{formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}</span>
+                  <span className="text-muted-foreground truncate ml-2" title={format(new Date(l.lastAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}>{formatWhen(l.lastAt)}</span>
                 </div>
 
                 <button
@@ -1444,6 +1522,12 @@ export default function Leads() {
 
       {/* Tabela */}
       <Card className="overflow-hidden">
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/40 bg-muted/20">
+          <p className="text-[11px] text-muted-foreground tabular-nums">
+            {filtered.length} lead{filtered.length === 1 ? "" : "s"}
+          </p>
+          <SortMenu value={tableSort} onChange={setTableSort} />
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/30 border-b border-border/40">
@@ -1460,9 +1544,15 @@ export default function Leads() {
                 <th className="text-left p-3 font-medium">Origem</th>
                 <th className="text-left p-3 font-medium">O que viu</th>
                 <th className="text-left p-3 font-medium">Tempo total</th>
-                <th className="text-left p-3 font-medium">Valor / Lucro</th>
+                <th className="text-left p-3 font-medium">
+                  <SortHeader label="Valor / Lucro" activeAsc={tableSort === "valueAsc"} activeDesc={tableSort === "valueDesc"}
+                    onClick={() => setTableSort(tableSort === "valueDesc" ? "valueAsc" : "valueDesc")} />
+                </th>
                 <th className="text-left p-3 font-medium">Ações</th>
-                <th className="text-left p-3 font-medium">Última visita</th>
+                <th className="text-left p-3 font-medium">
+                  <SortHeader label="Última visita" activeAsc={tableSort === "oldest"} activeDesc={tableSort === "recent"}
+                    onClick={() => setTableSort(tableSort === "recent" ? "oldest" : "recent")} />
+                </th>
                 <th className="p-3"></th>
               </tr>
             </thead>
@@ -1473,7 +1563,7 @@ export default function Leads() {
                 <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">
                   {leads.length === 0 ? "Nenhum lead ainda. Compartilhe páginas da Prateleira ou envie propostas personalizadas para começar." : "Nenhum lead bate com os filtros."}
                 </td></tr>
-              ) : filtered.map((l) => {
+              ) : sortLeads(filtered, tableSort).map((l) => {
                 const online = isOnline(l.lastAt);
                 const ua = parseUA(l.userAgent);
                 const o = originLabel(l);
@@ -1520,8 +1610,9 @@ export default function Leads() {
                               </Badge>
                             )}
                             {wa && (
-                              <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-4 px-1" title="Já é contato no WhatsApp">
-                                <MessageCircle className="w-2.5 h-2.5" /> WA
+                              <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-4 px-1" title={whatsappIntensity(wa.messageCount).label}>
+                                <WhatsAppIcon className="w-2.5 h-2.5" />
+                                {wa.messageCount > 0 ? `${wa.messageCount}` : "contato"}
                               </Badge>
                             )}
                           </div>
@@ -1597,8 +1688,8 @@ export default function Leads() {
                         )}
                       </div>
                     </td>
-                    <td className="p-3 align-top text-[10.5px] text-muted-foreground">
-                      {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
+                    <td className="p-3 align-top text-[10.5px] text-muted-foreground whitespace-nowrap">
+                      {formatWhen(l.lastAt)}
                     </td>
                     <td className="p-3 align-top">
                       <div className="flex items-center gap-1 justify-end">
@@ -1643,17 +1734,20 @@ export default function Leads() {
             {drill?.hint && (
               <p className="text-[11px] text-muted-foreground pt-1">{drill.hint}</p>
             )}
-            <p className="text-[10.5px] text-muted-foreground pt-1 tabular-nums">
-              {drill?.leads.length ?? 0} registro{(drill?.leads.length ?? 0) === 1 ? "" : "s"}
-            </p>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <p className="text-[10.5px] text-muted-foreground tabular-nums">
+                {drill?.leads.length ?? 0} registro{(drill?.leads.length ?? 0) === 1 ? "" : "s"}
+              </p>
+              <SortMenu value={drillSort} onChange={setDrillSort} />
+            </div>
           </DialogHeader>
           <ScrollArea className="flex-1 pr-3">
             {drill && drill.leads.length === 0 ? (
               <p className="text-[11px] text-muted-foreground py-6 text-center">Nenhum lead nesta lista.</p>
             ) : (
               <div className="space-y-1.5">
-                {drill?.leads.map((l) => {
-                  const wa = waLinks[l.key];
+                {drill && sortLeads(drill.leads, drillSort).map((l) => {
+                  const wa = waLinks[normPhone(l.phone)];
                   const conv = conversions[l.key];
                   const isClient = (conv?.count ?? 0) > 0;
                   const online = isOnline(l.lastAt);
@@ -1689,8 +1783,9 @@ export default function Leads() {
                             </Badge>
                           )}
                           {wa && (
-                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 h-4 px-1">
-                              WA
+                            <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 h-4 px-1 gap-1" title={whatsappIntensity(wa.messageCount).label}>
+                              <WhatsAppIcon className="w-2.5 h-2.5" />
+                              {wa.messageCount > 0 ? wa.messageCount : "contato"}
                             </Badge>
                           )}
                           {sourceLabel && (
@@ -1705,7 +1800,7 @@ export default function Leads() {
                           </p>
                         )}
                         <p className="text-[10px] text-muted-foreground truncate">
-                          {(l.email || "sem email")} · {formatDistanceToNow(new Date(l.lastAt), { locale: ptBR, addSuffix: true })}
+                          {(l.email || "sem email")} · {formatWhen(l.lastAt)}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -1890,7 +1985,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   events: EventRow[];
   proposalClicks: ProposalClickRow[];
   enrichment: LeadEnrichment | null;
-  waLink: { conversationId: string; photo: string | null; lastMessageAt: string | null } | null;
+  waLink: { conversationId: string; photo: string | null; lastMessageAt: string | null; messageCount: number } | null;
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
@@ -1929,8 +2024,9 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                 </Badge>
               )}
               {waLink && (
-                <Badge className="text-[9.5px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-5 px-1.5 flex-shrink-0" title="Já é contato no WhatsApp">
-                  <MessageCircle className="w-2.5 h-2.5" /> WhatsApp
+                <Badge className="text-[9.5px] border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1 h-5 px-1.5 flex-shrink-0" title={whatsappIntensity(waLink.messageCount).label}>
+                  <WhatsAppIcon className="w-2.5 h-2.5" />
+                  {waLink.messageCount > 0 ? `${waLink.messageCount} msg` : "WhatsApp"}
                 </Badge>
               )}
             </span>
@@ -1953,7 +2049,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                 <Info icon={MapPin} label="Localização" value={lead.city ? `${lead.city}${lead.country ? `, ${lead.country}` : ""}` : "·"} />
                 <Info icon={Smartphone} label="Dispositivo" value={`${ua.os} · ${ua.browser}${lead.device ? ` (${lead.device})` : ""}`} />
                 <Info icon={Activity} label="Primeira visita" value={format(new Date(lead.firstAt), "dd/MM/yyyy HH:mm", { locale: ptBR })} />
-                <Info icon={Activity} label="Última visita" value={formatDistanceToNow(new Date(lead.lastAt), { locale: ptBR, addSuffix: true })} />
+                <Info icon={Activity} label="Última visita" value={formatWhen(lead.lastAt)} />
                 {lead.utmSource && <Info icon={Target} label="UTM" value={`${lead.utmSource}${lead.utmCampaign ? ` · ${lead.utmCampaign}` : ""}`} />}
               </div>
             </Card>
@@ -1962,12 +2058,17 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
             {waLink && (
               <Card className="p-3 border-emerald-500/25 bg-emerald-500/[0.03]">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground flex-wrap">
+                    <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600" />
                     Conversa WhatsApp ativa
+                    {waLink.messageCount > 0 && (
+                      <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                        {whatsappIntensity(waLink.messageCount).label}
+                      </span>
+                    )}
                     {waLink.lastMessageAt && (
                       <span className="text-[10px] font-normal text-muted-foreground">
-                        última: {formatDistanceToNow(new Date(waLink.lastMessageAt), { locale: ptBR, addSuffix: true })}
+                        última: {formatWhen(waLink.lastMessageAt)}
                       </span>
                     )}
                   </div>
@@ -2084,7 +2185,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                         {p.subtitle || "·"} · {p.views} {p.views === 1 ? "visualização" : "visualizações"} · {formatTime(p.activeSeconds)} ativo
                       </p>
                       <p className="text-[10px] text-muted-foreground/70">
-                        Última vez {formatDistanceToNow(new Date(p.lastAt), { locale: ptBR, addSuffix: true })}
+                        Última vez {formatWhen(p.lastAt)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
