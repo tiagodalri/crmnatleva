@@ -2229,6 +2229,19 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
                           {p.whatsapp && <Badge className="text-[9px] border-0 bg-emerald-500/15 text-emerald-600">WhatsApp</Badge>}
                         </div>
                       )}
+                      {p.kind === "proposal" && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewProposal(p.refId);
+                          }}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                          title="Ver a proposta como o cliente vê, sem disparar captura de lead"
+                        >
+                          <Eye className="w-2.5 h-2.5" /> visualizar proposta
+                        </button>
+                      )}
                       {p.slug && (
                         <Link
                           to={p.kind === "proposal" ? `/p/${p.slug}` : `/produtos/${p.slug}/editar`}
