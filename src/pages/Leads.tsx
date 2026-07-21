@@ -1062,10 +1062,23 @@ export default function Leads() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
-            {hotStale.map((l) => (
+            {hotStale.map((l) => {
+              const wa = leadWa(l);
+              const isClient = (leadConversion(l)?.count ?? 0) > 0;
+              return (
               <div key={l.key} className="p-2.5 rounded-lg border border-amber-500/25 bg-card space-y-1.5">
                 <div className="flex items-center justify-between gap-1">
-                  <p className="text-[11.5px] font-semibold text-foreground truncate">{l.name || l.email || "Sem nome"}</p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <WhatsAppAvatar
+                      src={wa?.photo || null}
+                      name={l.name || l.email || "?"}
+                      phone={normPhone(l.phone) || undefined}
+                      size={22}
+                      className="w-[22px] h-[22px] text-[9px] flex-shrink-0"
+                    />
+                    <p className="text-[11.5px] font-semibold text-foreground truncate">{l.name || l.email || "Sem nome"}</p>
+                    {isClient && <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
+                  </div>
                   {l.phone && (
                     <a
                       href={`https://wa.me/${normPhone(l.phone)}`}
@@ -1074,7 +1087,7 @@ export default function Leads() {
                       className="flex-shrink-0 inline-flex items-center gap-0.5 text-[9.5px] font-semibold text-emerald-600 hover:text-emerald-700"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <MessageCircle className="w-3 h-3" /> WhatsApp
+                      <MessageCircle className="w-3 h-3" />
                     </a>
                   )}
                 </div>
@@ -1091,7 +1104,9 @@ export default function Leads() {
                   ver detalhes →
                 </button>
               </div>
-            ))}
+              );
+            })}
+
           </div>
         </Card>
       )}
