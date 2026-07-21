@@ -398,9 +398,13 @@ export default function Leads() {
       const key = (v.email || "").toLowerCase().trim() || `anon-pp:${v.id}`;
       const lead = ensure(key, {
         email: v.email, name: v.name, phone: v.phone, city: v.city, region: v.region,
-        country: v.country, device: v.device_type, userAgent: v.user_agent,
+        country: v.country, lat: v.lat, lng: v.lng,
+        device: v.device_type, userAgent: v.user_agent,
         firstAt: v.first_viewed_at, lastAt: v.last_active_at,
       });
+      if (v.lat != null && v.lng != null && new Date(v.last_active_at) >= new Date(lead.lastAt)) {
+        lead.lat = v.lat; lead.lng = v.lng;
+      }
       if (new Date(v.first_viewed_at) < new Date(lead.firstAt)) lead.firstAt = v.first_viewed_at;
       if (new Date(v.last_active_at) > new Date(lead.lastAt)) lead.lastAt = v.last_active_at;
       lead.proposalsViewed += 1;
