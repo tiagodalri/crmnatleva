@@ -154,6 +154,8 @@ type ProposalMini = {
   destinations: string[] | null;
   client_name: string | null;
   total_value: number | null;
+  internal_cost: number | null;
+  internal_profit: number | null;
 };
 
 type ProposalClickRow = {
