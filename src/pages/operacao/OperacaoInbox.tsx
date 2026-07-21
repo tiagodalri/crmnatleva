@@ -4027,8 +4027,8 @@ function OperacaoInboxInner() {
                   ) : isMobile ? (
                     /* ─── WhatsApp-style mobile composer ─── */
                     <>
-                    {spellSuggestion && (
-                      <SpellSuggestionBar suggestion={spellSuggestion} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
+                    {pendingCorrection && (
+                      <SpellSuggestionBar variant="sendConfirm" suggestion={pendingCorrection.corrected} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
                     )}
                     <div className="relative flex items-end gap-2 w-full flex-nowrap">
                       <SlashCommandDropdown open={shortcutOpen} query={shortcutQuery} onSelect={handleSelectShortcut} onClose={() => { setShortcutOpen(false); setShortcutQuery(""); }} />
@@ -4121,8 +4121,8 @@ function OperacaoInboxInner() {
                     </>
                   ) : (
                     <>
-                    {spellSuggestion && (
-                      <SpellSuggestionBar suggestion={spellSuggestion} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
+                    {pendingCorrection && (
+                      <SpellSuggestionBar variant="sendConfirm" suggestion={pendingCorrection.corrected} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
                     )}
                     <div className="relative flex items-end gap-2">
                       <SlashCommandDropdown open={shortcutOpen} query={shortcutQuery} onSelect={handleSelectShortcut} onClose={() => { setShortcutOpen(false); setShortcutQuery(""); }} />
