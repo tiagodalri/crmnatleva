@@ -1701,16 +1701,19 @@ export default function Leads() {
             {drill?.hint && (
               <p className="text-[11px] text-muted-foreground pt-1">{drill.hint}</p>
             )}
-            <p className="text-[10.5px] text-muted-foreground pt-1 tabular-nums">
-              {drill?.leads.length ?? 0} registro{(drill?.leads.length ?? 0) === 1 ? "" : "s"}
-            </p>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <p className="text-[10.5px] text-muted-foreground tabular-nums">
+                {drill?.leads.length ?? 0} registro{(drill?.leads.length ?? 0) === 1 ? "" : "s"}
+              </p>
+              <SortMenu value={drillSort} onChange={setDrillSort} />
+            </div>
           </DialogHeader>
           <ScrollArea className="flex-1 pr-3">
             {drill && drill.leads.length === 0 ? (
               <p className="text-[11px] text-muted-foreground py-6 text-center">Nenhum lead nesta lista.</p>
             ) : (
               <div className="space-y-1.5">
-                {drill?.leads.map((l) => {
+                {drill && sortLeads(drill.leads, drillSort).map((l) => {
                   const wa = waLinks[l.key];
                   const conv = conversions[l.key];
                   const isClient = (conv?.count ?? 0) > 0;
