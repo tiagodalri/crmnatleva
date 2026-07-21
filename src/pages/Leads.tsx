@@ -1921,7 +1921,7 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
               </div>
               <div className="space-y-2">
                 {lead.items.map((p) => (
-                  <div key={`${p.kind}-${p.viewerId}`} className="flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/30">
+                  <div key={`${p.kind}-${p.refId}`} className="flex items-center gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/30">
                     {p.cover ? (
                       <img src={p.cover} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                     ) : (
