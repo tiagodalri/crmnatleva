@@ -40,6 +40,7 @@ import { toast } from "@/hooks/use-toast";
 import { LeadsOriginMap, type LeadMapPin } from "@/components/leads/LeadsOriginMap";
 import { LeadsConversionFunnel } from "@/components/leads/LeadsConversionFunnel";
 import { CustomerSinceBadge } from "@/components/clients/CustomerSinceBadge";
+import { WhatsAppAvatar } from "@/components/inbox/WhatsAppAvatar";
 
 type Period = "today" | "yesterday" | "7d" | "30d" | "all" | "custom";
 const PERIOD_LABEL: Record<Period, string> = {
@@ -258,6 +259,8 @@ export default function Leads() {
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customOpen, setCustomOpen] = useState(false);
   const [conversions, setConversions] = useState<Record<string, LeadEnrichment>>({});
+  const [waLinks, setWaLinks] = useState<Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }>>({});
+
 
   const fetchAll = async () => {
     setLoading(true);
@@ -568,6 +571,48 @@ export default function Leads() {
     return conversions[`e:${e}`] || conversions[`p:${p}`] || null;
   };
 
+  // Cruzamento com WhatsApp: 1 registro por telefone (mais recente)
+  useEffect(() => {
+    (async () => {
+      const phones = Array.from(new Set(leads.map((l) => normPhone(l.phone)).filter((p) => p && p.length >= 8)));
+      if (!phones.length) { setWaLinks({}); return; }
+      const phonesSet = new Set(phones);
+      const { data: convData } = await (supabase as any)
+        .from("conversations")
+        .select("id, phone, profile_picture_url, last_message_at, is_group")
+        .eq("is_group", false)
+        .not("phone", "is", null)
+        .order("last_message_at", { ascending: false })
+        .limit(5000);
+      const out: Record<string, { conversationId: string; photo: string | null; lastMessageAt: string | null }> = {};
+      for (const c of (convData || [])) {
+        const p = normPhone(c.phone);
+        if (!p || !phonesSet.has(p)) continue;
+        const prev = out[p];
+        if (!prev || (c.last_message_at && (!prev.lastMessageAt || new Date(c.last_message_at) > new Date(prev.lastMessageAt)))) {
+          out[p] = { conversationId: c.id, photo: c.profile_picture_url || null, lastMessageAt: c.last_message_at || null };
+        }
+      }
+      // Fallback fotos via zapi_contacts
+      const missingPhoto = Object.entries(out).filter(([, v]) => !v.photo).map(([p]) => p);
+      if (missingPhoto.length) {
+        const { data: zc } = await (supabase as any)
+          .from("zapi_contacts")
+          .select("phone, profile_picture_url")
+          .not("profile_picture_url", "is", null)
+          .limit(5000);
+        for (const z of (zc || [])) {
+          const p = normPhone(z.phone);
+          if (out[p] && !out[p].photo && z.profile_picture_url) out[p].photo = z.profile_picture_url;
+        }
+      }
+      setWaLinks(out);
+    })();
+  }, [leads]);
+
+  const leadWa = (l: LeadAggregate) => waLinks[normPhone(l.phone)] || null;
+
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return periodLeads.filter((l) => {
@@ -727,6 +772,24 @@ export default function Leads() {
       .map(([source, s]) => ({ source, ...s }))
       .sort((a, b) => b.soldValue - a.soldValue || b.leads - a.leads);
   }, [periodLeads, conversions]);
+
+  // Insight: horário de pico de engajamento (0-23h) — usa items dos leads no período
+  const peakHours = useMemo(() => {
+    const buckets = new Array(24).fill(0);
+    for (const l of periodLeads) {
+      for (const it of l.items) {
+        const h = new Date(it.lastAt).getHours();
+        if (h >= 0 && h < 24) buckets[h] += Math.max(1, it.views || 1);
+      }
+    }
+    const max = Math.max(...buckets, 1);
+    const total = buckets.reduce((s, v) => s + v, 0);
+    const peakIdx = buckets.indexOf(Math.max(...buckets));
+    return { buckets, max, total, peakIdx };
+  }, [periodLeads]);
+
+
+
 
 
   const handleDelete = async () => {
@@ -955,7 +1018,49 @@ export default function Leads() {
         </Card>
       </div>
 
+      {/* Horário de pico */}
+      {peakHours.total > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+              <Clock className="w-4 h-4 text-primary" />
+              Horário de pico de engajamento
+              <Badge className="text-[9px] border-0 bg-primary/12 text-primary">
+                pico às {String(peakHours.peakIdx).padStart(2, "0")}h
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              quando os leads mais visualizam e engajam · {peakHours.total} interações no período
+            </p>
+          </div>
+          <div className="flex items-end gap-[2px] h-16">
+            {peakHours.buckets.map((v, h) => {
+              const pct = v / peakHours.max;
+              const isPeak = h === peakHours.peakIdx && v > 0;
+              return (
+                <div key={h} className="flex-1 flex flex-col items-center justify-end gap-1 group">
+                  <div
+                    className={cn(
+                      "w-full rounded-t transition-colors",
+                      isPeak ? "bg-primary" : v > 0 ? "bg-primary/40" : "bg-muted/40",
+                    )}
+                    style={{ height: `${Math.max(pct * 100, v > 0 ? 6 : 2)}%` }}
+                    title={`${String(h).padStart(2, "0")}h · ${v} interação${v === 1 ? "" : "ões"}`}
+                  />
+                  {h % 3 === 0 && (
+                    <span className={cn("text-[8.5px] tabular-nums", isPeak ? "text-primary font-semibold" : "text-muted-foreground/70")}>
+                      {String(h).padStart(2, "0")}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {/* Mapa de origem dos leads */}
+
       <Card className="p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
@@ -999,10 +1104,23 @@ export default function Leads() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
-            {hotStale.map((l) => (
+            {hotStale.map((l) => {
+              const wa = leadWa(l);
+              const isClient = (leadConversion(l)?.count ?? 0) > 0;
+              return (
               <div key={l.key} className="p-2.5 rounded-lg border border-amber-500/25 bg-card space-y-1.5">
                 <div className="flex items-center justify-between gap-1">
-                  <p className="text-[11.5px] font-semibold text-foreground truncate">{l.name || l.email || "Sem nome"}</p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <WhatsAppAvatar
+                      src={wa?.photo || null}
+                      name={l.name || l.email || "?"}
+                      phone={normPhone(l.phone) || undefined}
+                      size={22}
+                      className="w-[22px] h-[22px] text-[9px] flex-shrink-0"
+                    />
+                    <p className="text-[11.5px] font-semibold text-foreground truncate">{l.name || l.email || "Sem nome"}</p>
+                    {isClient && <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
+                  </div>
                   {l.phone && (
                     <a
                       href={`https://wa.me/${normPhone(l.phone)}`}
@@ -1011,7 +1129,7 @@ export default function Leads() {
                       className="flex-shrink-0 inline-flex items-center gap-0.5 text-[9.5px] font-semibold text-emerald-600 hover:text-emerald-700"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <MessageCircle className="w-3 h-3" /> WhatsApp
+                      <MessageCircle className="w-3 h-3" />
                     </a>
                   )}
                 </div>
@@ -1028,7 +1146,9 @@ export default function Leads() {
                   ver detalhes →
                 </button>
               </div>
-            ))}
+              );
+            })}
+
           </div>
         </Card>
       )}
@@ -1055,6 +1175,8 @@ export default function Leads() {
               const l = r.lead;
               const o = originLabel(l);
               const top = l.items.find((it) => it.value === l.topValue) || l.items[0];
+              const wa = leadWa(l);
+              const isClient = (leadConversion(l)?.count ?? 0) > 0;
               return (
                 <button
                   key={l.key}
@@ -1071,12 +1193,21 @@ export default function Leads() {
                           {idx + 1}
                         </span>
                       )}
+                      <WhatsAppAvatar
+                        src={wa?.photo || null}
+                        name={l.name || l.email || "?"}
+                        phone={normPhone(l.phone) || undefined}
+                        size={22}
+                        className="w-[22px] h-[22px] text-[9px] flex-shrink-0"
+                      />
                       <p className="text-[12px] font-semibold text-foreground truncate">
                         {l.name || l.email || "Sem nome"}
                       </p>
+                      {isClient && <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
                     </div>
                     <OriginBadge tone={o.tone} label={o.label} />
                   </div>
+
                   <p className="text-[10px] text-muted-foreground truncate">
                     {top?.title || "·"}
                   </p>
@@ -1194,6 +1325,8 @@ export default function Leads() {
                 const ua = parseUA(l.userAgent);
                 const o = originLabel(l);
                 const topItem = l.items[0];
+                const wa = leadWa(l);
+                const isClient = (leadConversion(l)?.count ?? 0) > 0;
                 return (
                   <tr
                     key={l.key}
@@ -1209,18 +1342,43 @@ export default function Leads() {
                     </td>
                     <td className="p-3 align-top">
                       <div className="flex items-start gap-2">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full mt-1.5 flex-shrink-0",
-                          online ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/30",
-                        )} />
+                        <div className="relative flex-shrink-0">
+                          <WhatsAppAvatar
+                            src={wa?.photo || null}
+                            name={l.name || l.email || "?"}
+                            phone={normPhone(l.phone) || undefined}
+                            size={36}
+                            className="w-9 h-9 text-[11px]"
+                          />
+                          <span
+                            className={cn(
+                              "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-background",
+                              online ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/30",
+                            )}
+                            title={online ? "Online agora" : "Offline"}
+                          />
+                        </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-foreground truncate">{l.name || "Sem nome"}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-foreground truncate">{l.name || "Sem nome"}</p>
+                            {isClient && (
+                              <Badge className="text-[9px] border-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 gap-0.5 h-4 px-1">
+                                <CheckCircle2 className="w-2.5 h-2.5" /> Cliente
+                              </Badge>
+                            )}
+                            {wa && (
+                              <Badge className="text-[9px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-4 px-1" title="Já é contato no WhatsApp">
+                                <MessageCircle className="w-2.5 h-2.5" /> WA
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-[10.5px] text-muted-foreground truncate">
                             {l.city ? `${l.city}${l.country ? `, ${l.country}` : ""}` : ua.os}
                           </p>
                         </div>
                       </div>
                     </td>
+
                     <td className="p-3 align-top">
                       <p className="text-[11px] text-foreground truncate max-w-[200px]" title={l.email}>{l.email || "·"}</p>
                       {l.phone && <p className="text-[10.5px] text-muted-foreground">{l.phone}</p>}
@@ -1314,9 +1472,11 @@ export default function Leads() {
         events={events}
         proposalClicks={proposalClicks}
         enrichment={selected ? leadConversion(selected) : null}
+        waLink={selected ? leadWa(selected) : null}
         onClose={() => setSelected(null)}
         onDelete={(l) => setToDelete(l)}
       />
+
 
       {/* Confirm delete */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
@@ -1456,14 +1616,37 @@ function OriginBadge({ tone, label }: { tone: "prateleira" | "proposal" | "both"
   );
 }
 
-function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelete }: {
+function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose, onDelete }: {
   lead: LeadAggregate | null;
   events: EventRow[];
   proposalClicks: ProposalClickRow[];
   enrichment: LeadEnrichment | null;
+  waLink: { conversationId: string; photo: string | null; lastMessageAt: string | null } | null;
   onClose: () => void;
   onDelete: (l: LeadAggregate) => void;
 }) {
+  const [waPreview, setWaPreview] = useState<Array<{ id: string; content: string | null; sender_type: string | null; created_at: string; message_type: string | null }>>([]);
+  const [waLoading, setWaLoading] = useState(false);
+
+  useEffect(() => {
+    if (!lead || !waLink) { setWaPreview([]); return; }
+    let cancelled = false;
+    (async () => {
+      setWaLoading(true);
+      const { data } = await (supabase as any)
+        .from("conversation_messages")
+        .select("id, content, sender_type, created_at, message_type")
+        .eq("conversation_id", waLink.conversationId)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (!cancelled) {
+        setWaPreview((data || []).slice().reverse());
+        setWaLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lead?.key, waLink?.conversationId]);
+
   if (!lead) return null;
 
   const emailLc = (lead.email || "").toLowerCase();
@@ -1474,20 +1657,37 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelet
   const prClicks = prateleiraEvents.filter((e) => e.event_type === "click");
   const sectionViews = prateleiraEvents.filter((e) => e.event_type === "section_view");
   const ua = parseUA(lead.userAgent);
+  const isClient = (enrichment?.count ?? 0) > 0;
 
   return (
     <Dialog open={!!lead} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2 pr-6">
-            <span className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              {lead.name || lead.email || "Lead"}
+            <span className="flex items-center gap-2 min-w-0">
+              <WhatsAppAvatar
+                src={waLink?.photo || null}
+                name={lead.name || lead.email || "?"}
+                phone={normPhone(lead.phone) || undefined}
+                size={32}
+                className="w-8 h-8 text-[11px] flex-shrink-0"
+              />
+              <span className="truncate">{lead.name || lead.email || "Lead"}</span>
+              {isClient && (
+                <Badge className="text-[9.5px] border-0 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 gap-0.5 h-5 px-1.5 flex-shrink-0">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Cliente
+                </Badge>
+              )}
+              {waLink && (
+                <Badge className="text-[9.5px] border-0 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-0.5 h-5 px-1.5 flex-shrink-0" title="Já é contato no WhatsApp">
+                  <MessageCircle className="w-2.5 h-2.5" /> WhatsApp
+                </Badge>
+              )}
             </span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="h-8 text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
               onClick={() => onDelete(lead)}
             >
               <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Excluir
@@ -1507,6 +1707,69 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, onClose, onDelet
                 {lead.utmSource && <Info icon={Target} label="UTM" value={`${lead.utmSource}${lead.utmCampaign ? ` · ${lead.utmCampaign}` : ""}`} />}
               </div>
             </Card>
+
+            {/* Prévia da conversa WhatsApp */}
+            {waLink && (
+              <Card className="p-4 space-y-3 border-emerald-500/25 bg-emerald-500/[0.03]">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    Prévia da conversa
+                    {waLink.lastMessageAt && (
+                      <span className="text-[10px] font-normal text-muted-foreground">
+                        última: {formatDistanceToNow(new Date(waLink.lastMessageAt), { locale: ptBR, addSuffix: true })}
+                      </span>
+                    )}
+                  </div>
+                  <Link
+                    to={`/operacao/inbox?conversation=${waLink.conversationId}`}
+                    className="text-[10.5px] text-primary hover:underline inline-flex items-center gap-0.5"
+                  >
+                    Abrir conversa completa <ExternalLink className="w-2.5 h-2.5" />
+                  </Link>
+                </div>
+                {waLoading ? (
+                  <p className="text-[10.5px] text-muted-foreground animate-pulse">Carregando mensagens...</p>
+                ) : waPreview.length === 0 ? (
+                  <p className="text-[10.5px] text-muted-foreground">Ainda sem mensagens registradas.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {waPreview.map((m) => {
+                      const mine = m.sender_type === "atendente";
+                      const preview =
+                        m.message_type && m.message_type !== "text"
+                          ? `[${m.message_type}]`
+                          : (m.content || "").slice(0, 180);
+                      return (
+                        <div
+                          key={m.id}
+                          className={cn(
+                            "text-[11px] px-2.5 py-1.5 rounded-md border",
+                            mine
+                              ? "border-emerald-500/25 bg-emerald-500/10 ml-6"
+                              : "border-border/40 bg-background mr-6",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <span className="text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              {mine ? "Você" : "Cliente"}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground tabular-nums">
+                              {format(new Date(m.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                            </span>
+                          </div>
+                          <p className="text-foreground whitespace-pre-wrap break-words">
+                            {preview || <span className="text-muted-foreground italic">·</span>}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            )}
+
+
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               <MiniKpi label="Prateleira" value={lead.productsViewed} />
