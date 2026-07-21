@@ -1201,8 +1201,9 @@ export default function Leads() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, hint, tone }: {
-  icon: any; label: string; value: string; hint?: string; tone?: "hot" | "live" | "value" | "profit";
+function Kpi({ icon: Icon, label, value, hint, tone, delta }: {
+  icon: any; label: string; value: string; hint?: string;
+  tone?: "hot" | "live" | "value" | "profit"; delta?: number | null;
 }) {
   return (
     <Card className={cn(
@@ -1223,11 +1224,45 @@ function Kpi({ icon: Icon, label, value, hint, tone }: {
         <Icon className="w-4 h-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-lg font-bold text-foreground leading-tight truncate">{value}</p>
+          {typeof delta === "number" && (
+            <span className={cn(
+              "text-[9.5px] font-semibold px-1 py-0.5 rounded inline-flex items-center gap-0.5 tabular-nums",
+              delta >= 0
+                ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                : "bg-destructive/12 text-destructive",
+            )}>
+              {delta >= 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+              {Math.abs(delta)}%
+            </span>
+          )}
+        </div>
         <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">{label}</p>
         {hint && <p className="text-[9px] text-muted-foreground/70 mt-0.5 leading-tight truncate">{hint}</p>}
       </div>
     </Card>
+  );
+}
+
+function OriginBar({ label, tone, leads, pipeline, maxPipeline }: {
+  label: string; tone: "prateleira" | "proposal"; leads: number; pipeline: number; maxPipeline: number;
+}) {
+  const pct = maxPipeline > 0 ? Math.max(2, (pipeline / maxPipeline) * 100) : 0;
+  const barColor = tone === "proposal" ? "bg-violet-500" : "bg-sky-500";
+  const textColor = tone === "proposal" ? "text-violet-600 dark:text-violet-400" : "text-sky-600 dark:text-sky-400";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className={cn("font-semibold", textColor)}>{label}</span>
+        <span className="text-muted-foreground tabular-nums">
+          {leads} lead{leads === 1 ? "" : "s"} · <span className="font-semibold text-foreground">{BRL(pipeline)}</span>
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted/60 overflow-hidden">
+        <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
   );
 }
 
