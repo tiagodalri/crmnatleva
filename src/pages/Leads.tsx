@@ -2012,6 +2012,8 @@ function LeadDetail({ lead, events, proposalClicks, enrichment, waLink, onClose,
   onDelete: (l: LeadAggregate) => void;
 }) {
   // Preview de conversa removido a pedido — mantemos apenas o botão de abrir no Inbox.
+  const [previewProposal, setPreviewProposal] = useState<string | null>(null);
+
 
 
   if (!lead) return null;
