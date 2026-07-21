@@ -1133,6 +1133,8 @@ export default function Leads() {
               const l = r.lead;
               const o = originLabel(l);
               const top = l.items.find((it) => it.value === l.topValue) || l.items[0];
+              const wa = leadWa(l);
+              const isClient = (leadConversion(l)?.count ?? 0) > 0;
               return (
                 <button
                   key={l.key}
@@ -1149,12 +1151,21 @@ export default function Leads() {
                           {idx + 1}
                         </span>
                       )}
+                      <WhatsAppAvatar
+                        src={wa?.photo || null}
+                        name={l.name || l.email || "?"}
+                        phone={normPhone(l.phone) || undefined}
+                        size={22}
+                        className="w-[22px] h-[22px] text-[9px] flex-shrink-0"
+                      />
                       <p className="text-[12px] font-semibold text-foreground truncate">
                         {l.name || l.email || "Sem nome"}
                       </p>
+                      {isClient && <CheckCircle2 className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
                     </div>
                     <OriginBadge tone={o.tone} label={o.label} />
                   </div>
+
                   <p className="text-[10px] text-muted-foreground truncate">
                     {top?.title || "·"}
                   </p>
