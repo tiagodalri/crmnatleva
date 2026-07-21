@@ -773,6 +773,24 @@ export default function Leads() {
       .sort((a, b) => b.soldValue - a.soldValue || b.leads - a.leads);
   }, [periodLeads, conversions]);
 
+  // Insight: horário de pico de engajamento (0-23h) — usa items dos leads no período
+  const peakHours = useMemo(() => {
+    const buckets = new Array(24).fill(0);
+    for (const l of periodLeads) {
+      for (const it of l.items) {
+        const h = new Date(it.lastAt).getHours();
+        if (h >= 0 && h < 24) buckets[h] += Math.max(1, it.views || 1);
+      }
+    }
+    const max = Math.max(...buckets, 1);
+    const total = buckets.reduce((s, v) => s + v, 0);
+    const peakIdx = buckets.indexOf(Math.max(...buckets));
+    return { buckets, max, total, peakIdx };
+  }, [periodLeads]);
+
+
+
+
 
   const handleDelete = async () => {
     if (!toDelete) return;
