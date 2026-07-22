@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plane, Hotel, Map as MapIcon, Car, Package,
-  PlaneTakeoff, Sparkles, Clock,
+  PlaneTakeoff, Sparkles, Clock, Ticket,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,15 +13,17 @@ import { LoadingState } from "@/components/ui/loading-state";
 const BookingSearchPage = lazy(() => import("@/pages/booking-rapidapi/BookingSearchPage"));
 const FlightsSearchPage = lazy(() => import("@/pages/booking-rapidapi/FlightsSearchPage"));
 const GoogleFlightsSearchPage = lazy(() => import("@/pages/google-flights/GoogleFlightsSearchPage"));
+const AttractionsSearchPage = lazy(() => import("@/pages/booking-rapidapi/AttractionsSearchPage"));
 
 // IMPORTANTE · usamos `secao` (não `tab`) pra não conflitar com o ?tab=
 // interno do Google Flights (list/calendar/discover) e demais filhos.
-type Secao = "aereo" | "aereo-hotel" | "hotel" | "passeios" | "carros" | "pacotes";
+type Secao = "aereo" | "aereo-hotel" | "hotel" | "ingressos" | "passeios" | "carros" | "pacotes";
 
 const SECOES: { key: Secao; label: string; icon: typeof Plane; available: boolean }[] = [
   { key: "aereo", label: "Aéreo", icon: Plane, available: true },
   { key: "aereo-hotel", label: "Aéreo + Hotel", icon: PlaneTakeoff, available: false },
   { key: "hotel", label: "Hotel", icon: Hotel, available: true },
+  { key: "ingressos", label: "Ingressos", icon: Ticket, available: true },
   { key: "passeios", label: "Passeios", icon: MapIcon, available: false },
   { key: "carros", label: "Carros", icon: Car, available: false },
   { key: "pacotes", label: "Pacotes", icon: Package, available: false },
