@@ -46,12 +46,14 @@ function normalizeLocations(raw: any): AttractionLocation[] {
           ? d.results
           : [];
 
-  return pool
+  const mapped = pool
     .map((it: any): AttractionLocation | null => {
       const id = it?.id ?? it?.destId ?? it?.cityUfi ?? it?.ufi;
       if (id === undefined || id === null) return null;
-      const cityName = it?.cityName ?? it?.name ?? it?.b_name ?? it?.label;
-      const country = it?.country ?? it?.countryName ?? it?.cc1;
+      const cityName =
+        it?.cityName ?? it?.name ?? it?.b_name ?? it?.label ?? it?.title;
+      const country =
+        it?.country ?? it?.countryName ?? it?.cc1 ?? it?.countryCode;
       const label = [cityName, country].filter(Boolean).join(", ") || String(id);
       return {
         id: String(id),
@@ -59,11 +61,22 @@ function normalizeLocations(raw: any): AttractionLocation[] {
         cityName,
         country,
         productCount: it?.productCount ?? it?.nrHotels ?? it?.count,
-        productType: it?.productType ?? it?.type ?? it?.destType,
+        productType: it?.productType ?? it?.type ?? it?.destType ?? it?.taxonomySlug,
         label,
       };
     })
     .filter((v): v is AttractionLocation => v !== null);
+
+  // Dedup por cityUfi (a API costuma devolver 10 sugestões de produto pra mesma cidade)
+  const seen = new Set<string>();
+  const deduped: AttractionLocation[] = [];
+  for (const item of mapped) {
+    const key = item.cityUfi ? String(item.cityUfi) : item.id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(item);
+  }
+  return deduped;
 }
 
 export function useAttractionLocationSearch(query: string, enabled = true) {
