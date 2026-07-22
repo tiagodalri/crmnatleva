@@ -190,17 +190,10 @@ export default function Buscador() {
             description="Cotação combinada de voo e hospedagem na mesma busca, com economia automática. Estamos integrando."
           />
         )}
-        {secao === "passeios" && (
-          <ComingSoon
-            title="Passeios e Experiências"
-            description="Tours, ingressos e atividades nos principais destinos · em desenvolvimento."
-          />
-        )}
         {secao === "carros" && (
-          <ComingSoon
-            title="Aluguel de Carros"
-            description="Cotação de locação por destino, datas e categoria de veículo."
-          />
+          <Suspense fallback={<div className="p-6"><LoadingState /></div>}>
+            <CarsSearchPage />
+          </Suspense>
         )}
         {secao === "pacotes" && (
           <ComingSoon
