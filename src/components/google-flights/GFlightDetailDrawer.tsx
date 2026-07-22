@@ -803,7 +803,15 @@ export function GFlightDetailDrawer({ itinerary, searchInput, onClose }: Props) 
                           <div className="flex items-center gap-1.5">
                             {(p as any).meta?.synthetic && (
                               <Badge className="text-[9px] border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 gap-1">
-                                <AlertCircle className="h-2.5 w-2.5" /> Tarifa estimada · reserve no site da cia
+                                {provLoading ? (
+                                  <>
+                                    <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando mais opções...
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="h-2.5 w-2.5" /> Tarifa estimada · reserve no site da cia
+                                  </>
+                                )}
                               </Badge>
                             )}
                             {isCheapest && (
