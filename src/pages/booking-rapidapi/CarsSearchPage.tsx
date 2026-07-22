@@ -37,6 +37,7 @@ import { CarLocationAutocomplete } from "@/components/booking-rapidapi/CarLocati
 import { CarDetailDrawer } from "@/components/booking-rapidapi/CarDetailDrawer";
 import {
   useSearchCarRentals,
+  prefetchCarDetailBundle,
   type CarLocation,
   type CarVehicle,
 } from "@/hooks/useBookingCars";
