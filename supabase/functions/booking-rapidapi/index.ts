@@ -644,21 +644,21 @@ function buildParams(
       return p;
     }
     case "getAttractionAvailabilityCalendar": {
-      assertParams(input, ["slug"]);
+      assertParams(input, ["id"]);
       return {
-        slug: String(input.slug),
-        currency_code: String(input.currency_code ?? defaults.currency_code),
+        id: String(input.id),
         languagecode: String(input.languagecode ?? defaults.locale),
       };
     }
     case "getAttractionAvailability": {
-      assertParams(input, ["slug", "date"]);
-      return {
+      assertParams(input, ["slug"]);
+      const p: Record<string, string> = {
         slug: String(input.slug),
-        date: String(input.date),
         currency_code: String(input.currency_code ?? defaults.currency_code),
         languagecode: String(input.languagecode ?? defaults.locale),
       };
+      if (input.date) p.date = String(input.date);
+      return p;
     }
     case "getAttractionDetails": {
       assertParams(input, ["slug"]);
@@ -673,7 +673,6 @@ function buildParams(
       return {
         id: String(input.id),
         page: String(input.page ?? 1),
-        languagecode: String(input.languagecode ?? defaults.locale),
       };
     }
 
