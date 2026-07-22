@@ -49,14 +49,30 @@ function stripInlineTags(s: unknown): string {
 }
 
 function formatDisplayMoney(p: any): string {
-  if (!p) return "";
+  if (p == null) return "";
   if (typeof p === "string") return p;
   if (typeof p === "number") return String(p);
-  // { value, currency } | { amount, currency } | { display: "..." }
-  const disp = p?.display ?? p?.price ?? p?.text;
+  if (typeof p !== "object") return "";
+  // Common Booking shapes:
+  // { display: "US$59" } | { displayValue: "US$59", rawValue: 59 }
+  // { value, currency } | { amount, currency }
+  // { price: <anything above> } | { primaryPrice: { price } }
+  const disp = p.display ?? p.displayValue ?? p.text ?? p.label ?? p.displayPrice;
   if (typeof disp === "string") return disp;
-  const value = p?.value ?? p?.amount;
-  const currency = p?.currency ?? "";
+  if (disp && typeof disp === "object") {
+    const nested = formatDisplayMoney(disp);
+    if (nested) return nested;
+  }
+  if (p.price && p.price !== p) {
+    const nested = formatDisplayMoney(p.price);
+    if (nested) return nested;
+  }
+  if (p.primaryPrice) {
+    const nested = formatDisplayMoney(p.primaryPrice);
+    if (nested) return nested;
+  }
+  const value = p.value ?? p.amount ?? p.rawValue;
+  const currency = p.currency ?? "";
   if (typeof value === "number") {
     try {
       return new Intl.NumberFormat("pt-BR", {
@@ -69,6 +85,14 @@ function formatDisplayMoney(p: any): string {
     }
   }
   return "";
+}
+
+// Garante que qualquer valor que entre no JSX vire string segura
+function safeText(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return formatDisplayMoney(v);
 }
 
 function specIconFor(icon?: string) {
@@ -181,7 +205,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-6 py-3 flex-row items-center justify-between space-y-0">
           <DialogTitle className="text-base font-semibold truncate pr-4">
-            {vehicleObj?.makeAndModel ?? vehicle?.name ?? "Detalhes do veículo"}
+            {safeText(vehicleObj?.makeAndModel) || safeText(vehicle?.name) || "Detalhes do veículo"}
           </DialogTitle>
           <Button
             variant="ghost"
@@ -227,7 +251,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
             {/* Grupo/classe + cancelamento */}
             <div className="flex flex-wrap gap-2">
               {(vehicleObj?.carClass || vehicle?.category) && (
-                <Badge variant="outline">{vehicleObj?.carClass ?? vehicle?.category}</Badge>
+                <Badge variant="outline">{safeText(vehicleObj?.carClass) || safeText(vehicle?.category)}</Badge>
               )}
               {vehicleObj?.groupOrSimilar && (
                 <Badge variant="outline">{stripInlineTags(vehicleObj.groupOrSimilar)}</Badge>
@@ -295,7 +319,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         </div>
                         <div className="text-sm font-medium flex items-start gap-1.5">
                           <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-champagne-logo" />
-                          <span>{d.name ?? parts ?? "—"}</span>
+                          <span>{safeText(d.name) || parts || "—"}</span>
                         </div>
                         {parts && <div className="text-xs text-muted-foreground pl-5">{parts}</div>}
                         {(d.iataCode || d.location_type) && (
@@ -326,7 +350,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         <div className="min-w-0">
                           <div className="font-medium flex items-center gap-1.5">
                             <Plus className="h-3.5 w-3.5 text-champagne-logo shrink-0" />
-                            {ex?.name}
+                            {safeText(ex?.name)}
                           </div>
                           {ex?.detail && (
                             <div className="text-xs text-muted-foreground pl-5">{stripInlineTags(ex.detail)}</div>
@@ -355,9 +379,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                   {packages.map((pkg: any, i: number) => {
                     const c = pkg?.content ?? {};
                     const price =
-                      c?.price?.displayPrice ??
-                      formatDisplayMoney(c?.price?.displayPrice) ??
-                      c?.price?.label;
+                      formatDisplayMoney(c?.price?.displayPrice) ||
+                      formatDisplayMoney(c?.price) ||
+                      safeText(c?.price?.label);
                     const annotation = c?.price?.priceAnnotation?.text;
                     return (
                       <Card key={pkg?.id ?? i} className="p-3 space-y-1.5">
@@ -368,7 +392,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           </div>
                           {price && (
                             <div className="text-sm font-bold text-champagne-logo shrink-0">
-                              {typeof price === "string" ? price : formatDisplayMoney(price)}
+                              {price}
                             </div>
                           )}
                         </div>
@@ -407,15 +431,15 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <div className="rounded-lg border border-border/60 divide-y">
                   {[...otherFees, ...payableFees].map((f: any, i: number) => {
                     const price =
-                      f?.displayPrice ||
+                      formatDisplayMoney(f?.displayPrice) ||
                       formatDisplayMoney(f?.price) ||
-                      (f?.price?.amount ? `${f?.price?.currency ?? ""} ${f.price.amount}` : "");
+                      "";
                     const included = f?.includedInPrice === true;
                     const alwaysPayable = f?.alwaysPayable === true;
                     return (
                       <div key={i} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
                         <div className="min-w-0">
-                          <div className="font-medium">{f?.name}</div>
+                          <div className="font-medium">{safeText(f?.name)}</div>
                           <div className="flex flex-wrap gap-1 pt-0.5">
                             {included ? (
                               <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">
@@ -481,7 +505,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        {supplierName ?? "Locadora"}
+                        {safeText(supplierName) || "Locadora"}
                       </div>
                       {typeof supplierRatingAvg === "number" && (
                         <div className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -503,10 +527,10 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         return (
                           <div key={i} className="space-y-1">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground">{b?.title}</span>
+                              <span className="text-muted-foreground">{safeText(b?.title)}</span>
                               <span className="font-semibold">
                                 {score.toFixed(1)}
-                                {b?.localisedRating && <span className="text-muted-foreground font-normal"> · {b.localisedRating}</span>}
+                                {b?.localisedRating && <span className="text-muted-foreground font-normal"> · {safeText(b.localisedRating)}</span>}
                               </span>
                             </div>
                             <Progress value={Math.max(0, Math.min(100, (score / 10) * 100))} className="h-1.5" />
@@ -536,7 +560,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                             <div>
                               <div className="font-medium text-foreground">
                                 {x.label}
-                                {x.data?.title && <span className="text-muted-foreground font-normal"> · {x.data.title}</span>}
+                                {x.data?.title && <span className="text-muted-foreground font-normal"> · {safeText(x.data.title)}</span>}
                               </div>
                               {x.data?.hours && <div className="text-muted-foreground">{stripInlineTags(x.data.hours)}</div>}
                               {x.data?.subtitle && <div className="text-muted-foreground">{stripInlineTags(x.data.subtitle)}</div>}
@@ -598,7 +622,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           <span className="font-medium">{stripInlineTags(sec.subtotal?.title) || "Subtotal"}</span>
                           <span className="font-semibold">
                             {formatDisplayMoney(sec.subtotal?.primaryPrice?.price) ||
-                              stripInlineTags(sec.subtotal?.primaryPrice?.title)}
+                              safeText(sec.subtotal?.primaryPrice?.title)}
                           </span>
                         </div>
                       )}
