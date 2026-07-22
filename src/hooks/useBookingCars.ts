@@ -262,6 +262,8 @@ function normalizeCarSearch(raw: any): {
       name: isNew ? c?.title : (v?.v_name ?? v?.name ?? v?.group),
       category: isNew ? c?.subtitle : (v?.group ?? v?.car_class ?? v?.category),
       transmission,
+      fuelType,
+      seatCategory,
       seats,
       bags: n(v?.suitcases?.big ?? v?.baggage ?? v?.bags),
       doors,
