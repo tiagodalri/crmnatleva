@@ -657,9 +657,9 @@ function buildParams(
       };
     }
     case "getAttractionReviews": {
-      assertParams(input, ["slug"]);
+      assertParams(input, ["id"]);
       return {
-        slug: String(input.slug),
+        id: String(input.id),
         page: String(input.page ?? 1),
         languagecode: String(input.languagecode ?? defaults.locale),
       };
