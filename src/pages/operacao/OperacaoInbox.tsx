@@ -4047,9 +4047,6 @@ function OperacaoInboxInner() {
                     </>
                   ) : (
                     <>
-                    {pendingCorrection && (
-                      <SpellSuggestionBar variant="sendConfirm" suggestion={pendingCorrection.corrected} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
-                    )}
                     <div className="relative flex items-end gap-2">
                       <SlashCommandDropdown open={shortcutOpen} query={shortcutQuery} onSelect={handleSelectShortcut} onClose={() => { setShortcutOpen(false); setShortcutQuery(""); }} />
                       <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
