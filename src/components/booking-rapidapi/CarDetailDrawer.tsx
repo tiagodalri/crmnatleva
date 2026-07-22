@@ -49,14 +49,30 @@ function stripInlineTags(s: unknown): string {
 }
 
 function formatDisplayMoney(p: any): string {
-  if (!p) return "";
+  if (p == null) return "";
   if (typeof p === "string") return p;
   if (typeof p === "number") return String(p);
-  // { value, currency } | { amount, currency } | { display: "..." }
-  const disp = p?.display ?? p?.price ?? p?.text;
+  if (typeof p !== "object") return "";
+  // Common Booking shapes:
+  // { display: "US$59" } | { displayValue: "US$59", rawValue: 59 }
+  // { value, currency } | { amount, currency }
+  // { price: <anything above> } | { primaryPrice: { price } }
+  const disp = p.display ?? p.displayValue ?? p.text ?? p.label ?? p.displayPrice;
   if (typeof disp === "string") return disp;
-  const value = p?.value ?? p?.amount;
-  const currency = p?.currency ?? "";
+  if (disp && typeof disp === "object") {
+    const nested = formatDisplayMoney(disp);
+    if (nested) return nested;
+  }
+  if (p.price && p.price !== p) {
+    const nested = formatDisplayMoney(p.price);
+    if (nested) return nested;
+  }
+  if (p.primaryPrice) {
+    const nested = formatDisplayMoney(p.primaryPrice);
+    if (nested) return nested;
+  }
+  const value = p.value ?? p.amount ?? p.rawValue;
+  const currency = p.currency ?? "";
   if (typeof value === "number") {
     try {
       return new Intl.NumberFormat("pt-BR", {
@@ -69,6 +85,14 @@ function formatDisplayMoney(p: any): string {
     }
   }
   return "";
+}
+
+// Garante que qualquer valor que entre no JSX vire string segura
+function safeText(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return formatDisplayMoney(v);
 }
 
 function specIconFor(icon?: string) {
@@ -355,9 +379,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                   {packages.map((pkg: any, i: number) => {
                     const c = pkg?.content ?? {};
                     const price =
-                      c?.price?.displayPrice ??
-                      formatDisplayMoney(c?.price?.displayPrice) ??
-                      c?.price?.label;
+                      formatDisplayMoney(c?.price?.displayPrice) ||
+                      formatDisplayMoney(c?.price) ||
+                      safeText(c?.price?.label);
                     const annotation = c?.price?.priceAnnotation?.text;
                     return (
                       <Card key={pkg?.id ?? i} className="p-3 space-y-1.5">
@@ -368,7 +392,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           </div>
                           {price && (
                             <div className="text-sm font-bold text-champagne-logo shrink-0">
-                              {typeof price === "string" ? price : formatDisplayMoney(price)}
+                              {price}
                             </div>
                           )}
                         </div>
@@ -407,9 +431,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <div className="rounded-lg border border-border/60 divide-y">
                   {[...otherFees, ...payableFees].map((f: any, i: number) => {
                     const price =
-                      f?.displayPrice ||
+                      formatDisplayMoney(f?.displayPrice) ||
                       formatDisplayMoney(f?.price) ||
-                      (f?.price?.amount ? `${f?.price?.currency ?? ""} ${f.price.amount}` : "");
+                      "";
                     const included = f?.includedInPrice === true;
                     const alwaysPayable = f?.alwaysPayable === true;
                     return (
