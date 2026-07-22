@@ -207,9 +207,15 @@ export default function UnifiedFlightsSearchPage() {
           </Select>
         </div>
 
-        {/* Origem · destino · datas · buscar */}
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_1fr_auto_auto_auto]">
-          <div className="space-y-1">
+        {/*
+          Origem · destino · datas · buscar
+          Layout progressivo: empilha no mobile, Origem+Destino lado a lado a
+          partir de md (768px), datas quebram junto até haver espaço real (xl,
+          1280px) pra tudo caber numa linha só. Evita o colapso do autocomplete
+          entre 1024–1279px que gerava o campo "espremido" com o X cortado.
+        */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1 flex-1 min-w-[220px] basis-full md:basis-[260px]">
             <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Origem
             </Label>
@@ -221,12 +227,12 @@ export default function UnifiedFlightsSearchPage() {
             />
           </div>
 
-          <div className="hidden lg:flex items-end pb-1">
+          <div className="hidden xl:flex items-end pb-1">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="h-9 w-9 rounded-full"
+              className="h-9 w-9 rounded-full shrink-0"
               onClick={handleSwap}
               disabled={!from || !to}
               aria-label="Inverter origem e destino"
@@ -235,7 +241,7 @@ export default function UnifiedFlightsSearchPage() {
             </Button>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1 min-w-[220px] basis-full md:basis-[260px]">
             <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Destino
             </Label>
@@ -247,15 +253,17 @@ export default function UnifiedFlightsSearchPage() {
             />
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 basis-full sm:basis-[150px] sm:flex-none">
             <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Ida
             </Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full lg:w-[150px] justify-start font-normal h-10">
-                  <CalIcon className="mr-2 h-4 w-4" />
-                  {outboundDate ? format(outboundDate, "dd MMM", { locale: ptBR }) : "Selecione"}
+                <Button variant="outline" className="w-full justify-start font-normal h-10">
+                  <CalIcon className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {outboundDate ? format(outboundDate, "dd MMM", { locale: ptBR }) : "Selecione"}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-auto p-0">
@@ -271,15 +279,17 @@ export default function UnifiedFlightsSearchPage() {
           </div>
 
           {tripMode === "round" && (
-            <div className="space-y-1">
+            <div className="space-y-1 basis-full sm:basis-[150px] sm:flex-none">
               <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Volta
               </Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full lg:w-[150px] justify-start font-normal h-10">
-                    <CalIcon className="mr-2 h-4 w-4" />
-                    {returnDate ? format(returnDate, "dd MMM", { locale: ptBR }) : "Selecione"}
+                  <Button variant="outline" className="w-full justify-start font-normal h-10">
+                    <CalIcon className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="truncate">
+                      {returnDate ? format(returnDate, "dd MMM", { locale: ptBR }) : "Selecione"}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-auto p-0">
@@ -295,14 +305,14 @@ export default function UnifiedFlightsSearchPage() {
             </div>
           )}
 
-          <div className="space-y-1">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground opacity-0">
+          <div className="space-y-1 basis-full sm:basis-auto sm:flex-none">
+            <Label className="hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground opacity-0">
               Buscar
             </Label>
             <Button
               onClick={handleSearch}
               disabled={!canSearch || search.isAllLoading}
-              className="h-10 w-full lg:w-auto gap-2"
+              className="h-10 w-full sm:w-auto gap-2"
             >
               <Search className="h-4 w-4" />
               {search.isAllLoading ? "Buscando…" : "Buscar voos"}
