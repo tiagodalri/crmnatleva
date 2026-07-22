@@ -676,6 +676,59 @@ export function useFlightBookingDetails(
   });
 }
 
+// ------------------------------------------------------------------
+// Prefetch preditivo de getBookingDetails · dispara silenciosamente
+// em background pros top N resultados assim que a lista carrega,
+// pra que clicar num card abra o drawer com providers já em cache.
+// ------------------------------------------------------------------
+export function prefetchGFlightBookingDetails(
+  qc: QueryClient,
+  input: SearchGFlightsInput,
+  bookingToken: string,
+) {
+  if (!input || !bookingToken) return;
+  qc.prefetchQuery({
+    queryKey: ["gflights", "getBookingDetails", "v3-token", input, bookingToken],
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: false,
+    queryFn: async (): Promise<GBookingDetailsResponse> => {
+      const empty: GBookingDetailsResponse = { providers: [], bag_info: null };
+      try {
+        const data = await invokeGFlights<any>("getBookingDetails", {
+          ...input,
+          booking_token: bookingToken,
+        });
+        const raw = data?.data;
+        const arr = flatProviders(raw);
+        const providers = arr.map(mapProvider).filter((p) => p.id || p.title);
+        const rawBag = data?.bag_info ?? raw?.bag_info ?? null;
+        let bag_info: GBagInfo | null = null;
+        if (rawBag && typeof rawBag === "object") {
+          const norm = (b: any) => {
+            if (!b || typeof b !== "object") return undefined;
+            return {
+              included: !!(b.included ?? b.is_included),
+              price: typeof b.price === "number" ? b.price : (b.price ? Number(b.price) : undefined),
+              description: b.description ?? b.text ?? b.label ?? undefined,
+            };
+          };
+          bag_info = {
+            carry_on: norm(rawBag.carry_on ?? rawBag.cabin) ?? null,
+            checked: norm(rawBag.checked ?? rawBag.hold) ?? null,
+            raw: rawBag,
+          };
+        }
+        return { providers, bag_info };
+      } catch {
+        return empty;
+      }
+    },
+  }).catch(() => {});
+}
+
+
+
 
 // --------------------------------------------------------------------
 // 7) fetchBookingURL · resolve deeplink real do provider via getBookingURL.
