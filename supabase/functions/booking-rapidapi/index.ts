@@ -676,6 +676,54 @@ function buildParams(
         languagecode: String(input.languagecode ?? defaults.locale),
       };
     }
+
+    // ============================================================
+    // Car Rental V2 (booking-com15 · /api/v2/cars/*)
+    // ============================================================
+    case "carsSearchDestination": {
+      const q = input.query ?? input.term ?? input.q;
+      assertParams({ query: q }, ["query"]);
+      return {
+        query: String(q),
+      };
+    }
+    case "searchCarRentals": {
+      assertParams(input, [
+        "pick_up_latitude",
+        "pick_up_longitude",
+        "drop_off_latitude",
+        "drop_off_longitude",
+        "pick_up_date",
+        "pick_up_time",
+        "drop_off_date",
+        "drop_off_time",
+      ]);
+      return {
+        pick_up_latitude: String(input.pick_up_latitude),
+        pick_up_longitude: String(input.pick_up_longitude),
+        drop_off_latitude: String(input.drop_off_latitude),
+        drop_off_longitude: String(input.drop_off_longitude),
+        pick_up_date: String(input.pick_up_date),
+        pick_up_time: String(input.pick_up_time ?? "10:00"),
+        drop_off_date: String(input.drop_off_date),
+        drop_off_time: String(input.drop_off_time ?? "10:00"),
+        driver_age: String(input.driver_age ?? 30),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        location: String(input.location ?? "BR"),
+      };
+    }
+    case "carVehicleDetails":
+    case "carSupplierDetails":
+    case "carBookingSummary": {
+      assertParams(input, ["vehicle_id", "search_key"]);
+      return {
+        vehicle_id: String(input.vehicle_id),
+        search_key: String(input.search_key),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        units: String(input.units ?? "metric"),
+      };
+    }
+
     default:
       throw new Error(`Ação desconhecida: ${action}`);
   }
