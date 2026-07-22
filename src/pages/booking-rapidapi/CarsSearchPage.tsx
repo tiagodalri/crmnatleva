@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
@@ -36,6 +37,7 @@ import { CarLocationAutocomplete } from "@/components/booking-rapidapi/CarLocati
 import { CarDetailDrawer } from "@/components/booking-rapidapi/CarDetailDrawer";
 import {
   useSearchCarRentals,
+  prefetchCarDetailBundle,
   type CarLocation,
   type CarVehicle,
 } from "@/hooks/useBookingCars";
@@ -282,6 +284,23 @@ export default function CarsSearchPage() {
     });
     return list;
   }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, sortBy]);
+
+  // Prefetch preditivo · dispara em background os 3 endpoints de detalhe
+  // pros 3 primeiros veículos, pra que abrir o drawer seja instantâneo.
+  const qc = useQueryClient();
+  const prefetchedRef = useRef<Set<string>>(new Set());
+  const searchKey = data?.searchKey;
+  useEffect(() => {
+    if (!searchKey) return;
+    const top = filteredSorted.slice(0, 3);
+    for (const v of top) {
+      const cacheKey = `${searchKey}::${v.id}`;
+      if (prefetchedRef.current.has(cacheKey)) continue;
+      prefetchedRef.current.add(cacheKey);
+      prefetchCarDetailBundle(qc, searchKey, v.id);
+    }
+  }, [searchKey, filteredSorted, qc]);
+
 
   const dateLabel = dateRange?.from
     ? dateRange.to

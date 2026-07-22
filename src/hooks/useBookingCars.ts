@@ -1,5 +1,5 @@
 // Hooks para Car Rental V2 (Booking.com via RapidAPI · BETA)
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const FUNCTION_NAME = "booking-rapidapi";
@@ -426,3 +426,45 @@ export function useCarBookingSummary(
     },
   });
 }
+
+// ------------------------------------------------------------------
+// Prefetch preditivo · dispara em background as 3 chamadas de detalhe
+// pro veículo, pra quando o usuário clicar no card o drawer abrir
+// instantâneo em vez de esperar 3-5s de cada endpoint.
+// ------------------------------------------------------------------
+export function prefetchCarDetailBundle(
+  qc: QueryClient,
+  searchKey: string | null | undefined,
+  vehicleId: string | null | undefined,
+) {
+  if (!searchKey || !vehicleId) return;
+  const staleTime = 15 * 60 * 1000;
+
+  qc.prefetchQuery({
+    queryKey: ["booking-cars", "vehicleDetails", searchKey, vehicleId],
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const env = await invokeCar<any>("carVehicleDetails", { searchKey, vehicleId });
+      return (env?.data ?? env ?? null) as any;
+    },
+  }).catch(() => {});
+
+  qc.prefetchQuery({
+    queryKey: ["booking-cars", "supplierDetails", searchKey, vehicleId],
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const env = await invokeCar<any>("carSupplierDetails", { searchKey, vehicleId });
+      return (env?.data ?? env ?? null) as any;
+    },
+  }).catch(() => {});
+
+  qc.prefetchQuery({
+    queryKey: ["booking-cars", "bookingSummary", searchKey, vehicleId],
+    staleTime,
+    queryFn: async () => {
+      const env = await invokeCar<any>("carBookingSummary", { searchKey, vehicleId });
+      return (env?.data ?? env ?? null) as any;
+    },
+  }).catch(() => {});
+}
+
