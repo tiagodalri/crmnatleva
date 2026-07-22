@@ -16,17 +16,23 @@
 const DEFAULT_PUBLIC_HOST = "https://adm.natleva.com";
 
 export function getPublicHost(): string {
-  const currentOrigin = getCurrentBrowserOrigin();
-  if (currentOrigin && !isLocalOrigin(currentOrigin)) return currentOrigin;
-
+  // 1. Override manual (útil pra testes locais apontarem pra staging real)
   try {
     const override = typeof window !== "undefined" ? localStorage.getItem("natleva.publicHost") : null;
     if (override) return stripTrailingSlash(override);
   } catch { /* noop */ }
 
+  // 2. Se o app está rodando no PRÓPRIO domínio público (adm.natleva.com),
+  //    usa o origin corrente. Caso contrário (preview Lovable, crmnatleva.lovable.app,
+  //    localhost, etc), NUNCA vaza o domínio interno em links compartilhados.
+  const currentOrigin = getCurrentBrowserOrigin();
+  if (currentOrigin && isPublicProductionOrigin(currentOrigin)) return currentOrigin;
+
+  // 3. Build-time env
   const envHost = (import.meta as any)?.env?.VITE_PUBLIC_SITE_URL as string | undefined;
   if (envHost) return stripTrailingSlash(envHost);
 
+  // 4. Fallback institucional
   return DEFAULT_PUBLIC_HOST;
 }
 
@@ -35,8 +41,10 @@ function getCurrentBrowserOrigin() {
   return stripTrailingSlash(window.location.origin);
 }
 
-function isLocalOrigin(origin: string) {
-  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+function isPublicProductionOrigin(origin: string) {
+  // Só o domínio institucional do cliente é aceito como "público".
+  // Preview/staging da Lovable e localhost caem no fallback DEFAULT_PUBLIC_HOST.
+  return /^https:\/\/adm\.natleva\.com$/i.test(origin);
 }
 
 function stripTrailingSlash(s: string) {
