@@ -187,6 +187,10 @@ export default function CarsSearchPage() {
   );
   const [freeCancellationOnly, setFreeCancellationOnly] = useState(false);
   const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [fuelFilter, setFuelFilter] = useState<string>("all");
+  const [seatFilter, setSeatFilter] = useState<string>("all");
+  const [selectedVehicle, setSelectedVehicle] = useState<CarVehicle | null>(null);
 
   const effectiveDropOff = sameLocation ? pickUp : dropOff;
 
