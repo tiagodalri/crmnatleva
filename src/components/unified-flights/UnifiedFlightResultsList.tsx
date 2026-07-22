@@ -1,5 +1,4 @@
-import { AlertCircle, Plane } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle, Plane, Loader2, Check } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UnifiedFlightCard } from "./UnifiedFlightCard";
 import type { UnifiedFlightOffer } from "./unifiedFlightTypes";
