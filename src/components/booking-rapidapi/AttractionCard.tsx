@@ -1,4 +1,4 @@
-import { Star, Clock, ShieldCheck, ImageOff } from "lucide-react";
+import { Star, Clock, ShieldCheck, ImageOff, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -106,8 +106,8 @@ export function AttractionCard({ product, onClick, className }: Props) {
               {price || "Consultar"}
             </div>
           </div>
-          <span className="text-[11px] text-champagne-logo font-medium whitespace-nowrap">
-            Ver detalhes →
+          <span className="text-[11px] text-champagne-logo font-medium whitespace-nowrap inline-flex items-center gap-1">
+            Ver detalhes <ArrowRight className="h-3 w-3" />
           </span>
         </div>
       </div>

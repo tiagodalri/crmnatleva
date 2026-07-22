@@ -197,7 +197,7 @@ export default function AttractionsSearchPage() {
             {isFetching ? (
               <span className="inline-flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Buscando atrações...
+                Buscando atrações…
               </span>
             ) : products.length > 0 ? (
               <>

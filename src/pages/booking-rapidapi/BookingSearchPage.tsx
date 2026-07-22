@@ -3,7 +3,7 @@ import { format, addDays } from "date-fns";
 import {
   Search,
   Sparkles,
-  Info,
+  
   Cloud,
   SlidersHorizontal,
   Layers,
@@ -338,15 +338,6 @@ export default function BookingSearchPage() {
 
       return true;
     });
-    // DEBUG
-    console.log(
-      "[PAY_FILTER] filtered",
-      "total:", groupedHotels.length,
-      "after:", filtered.length,
-      "modalities:", Array.from(filtersState.paymentModalities),
-      "freeOnly:", filtersState.freeCancellationOnly,
-      "summariesLoaded:", paymentSummaries?.size ?? 0,
-    );
     return filtered;
   }, [groupedHotels, nameQuery, paymentFilterActive, paymentSummaries, filtersState]);
 
@@ -431,28 +422,19 @@ export default function BookingSearchPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto max-w-7xl px-4 py-4 sm:py-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Layers className="h-6 w-6 text-primary" />
-            Busca Unificada de Hotéis
+            Busca de Hotéis
             <BetaBadge />
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Busca em <strong>Booking.com</strong> + <strong>Hotels.com</strong>.
-            Preços do Hotels.com convertidos automaticamente pra BRL.
+            Resultados combinados de Booking.com e Hotels.com, com preços já convertidos para BRL.
           </p>
         </div>
       </div>
-
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Cada fonte tem seu próprio card visual. Hotels.com identificado pelo badge rosa.
-          Respostas cacheadas por até 24h.
-        </AlertDescription>
-      </Alert>
 
       {/* Formulário */}
       <Card className="p-4 space-y-4">
@@ -504,7 +486,7 @@ export default function BookingSearchPage() {
           </div>
           <Button onClick={handleSearch} disabled={!canSearch || isAnyLoading} size="lg">
             <Search className="h-4 w-4 mr-2" />
-            {isAnyLoading ? "Buscando..." : "Buscar hotéis"}
+            {isAnyLoading ? "Buscando…" : "Buscar hotéis"}
           </Button>
         </div>
       </Card>

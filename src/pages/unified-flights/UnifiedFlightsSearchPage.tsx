@@ -143,7 +143,7 @@ export default function UnifiedFlightsSearchPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-7xl space-y-5 p-4 md:p-6">
+    <div className="container mx-auto max-w-7xl px-4 py-4 sm:py-6 space-y-4">
       {/* Cabeçalho */}
       <div className="space-y-1">
         <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ export default function UnifiedFlightsSearchPage() {
               className="h-10 w-full lg:w-auto gap-2"
             >
               <Search className="h-4 w-4" />
-              {search.isAllLoading ? "Buscando…" : "Buscar"}
+              {search.isAllLoading ? "Buscando…" : "Buscar voos"}
             </Button>
           </div>
         </div>
