@@ -115,6 +115,26 @@ export default function UnifiedFlightsSearchPage() {
   const { data: trend = [], isLoading: trendLoading } = usePriceGraph(detailSearchInput, showTrends && !!snapshot);
   const { data: calendarDays = [], isLoading: calLoading } = useCalendarPicker(detailSearchInput, showTrends && !!snapshot);
 
+  // Prefetch preditivo · assim que a lista de resultados carrega,
+  // dispara em background getBookingDetails pros top 5 do Google
+  // pra que clicar no card abra o drawer instantâneo (cache-hit).
+  const qc = useQueryClient();
+  const prefetchedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!detailSearchInput) return;
+    if (search.googleLoading) return; // espera Google terminar
+    const topGoogle = filteredOffers
+      .filter((o) => o.source === "google" && o.raw_google?.booking_token)
+      .slice(0, 5);
+    for (const o of topGoogle) {
+      const tok = o.raw_google!.booking_token as string;
+      const cacheKey = `${detailSearchInput.departure_id}-${detailSearchInput.arrival_id}-${tok}`;
+      if (prefetchedRef.current.has(cacheKey)) continue;
+      prefetchedRef.current.add(cacheKey);
+      prefetchGFlightBookingDetails(qc, detailSearchInput, tok);
+    }
+  }, [filteredOffers, detailSearchInput, search.googleLoading, qc]);
+
   function handleCalendarSelect(dateISO: string) {
     const d = parseISO(dateISO);
     if (!isValid(d) || !snapshot) return;
