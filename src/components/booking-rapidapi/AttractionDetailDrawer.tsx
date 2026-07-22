@@ -1,4 +1,5 @@
-import { Star, Clock, MapPin, ShieldCheck, Loader2, X, Calendar } from "lucide-react";
+import { useState } from "react";
+import { Star, Clock, MapPin, ShieldCheck, Loader2, X, Calendar, Copy, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,10 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   useAttractionDetails,
   useAttractionReviews,
   useAttractionAvailabilityCalendar,
+  useAttractionAvailability,
 } from "@/hooks/useBookingAttractions";
 import {
   formatAttractionPrice,
