@@ -117,13 +117,78 @@ export default function AttractionsSearchPage() {
           </div>
           <div className="flex-1">
             <h2 className="text-sm font-semibold flex items-center gap-2">
-              Ingressos e Atrações <BetaBadge />
+              Ingressos e Passeios <BetaBadge />
             </h2>
             <p className="text-xs text-muted-foreground">
               Tours, ingressos e experiências pelo mundo · fonte Booking.com
             </p>
           </div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Destino ou atração</Label>
+            <AttractionDestinationAutocomplete
+              value={destination}
+              onChange={setDestination}
+            />
+          </div>
+          <div className="space-y-1.5 md:min-w-[260px]">
+            <Label className="text-xs">Período</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "h-11 w-full justify-start text-left font-normal gap-2",
+                    !dateRange?.from && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                  {dateLabel}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  disabled={{ before: new Date() }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                {dateRange?.from && (
+                  <div className="flex justify-end p-2 border-t">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setDateRange(undefined)}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex items-end">
+            <Button
+              onClick={handleSearch}
+              disabled={!destination || isFetching}
+              className="w-full md:w-auto h-11 gap-2 bg-champagne-logo hover:bg-champagne-logo/90 text-white"
+            >
+              {isFetching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              Buscar ingressos
+            </Button>
+          </div>
+        </div>
+      </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
           <div className="space-y-1.5">
