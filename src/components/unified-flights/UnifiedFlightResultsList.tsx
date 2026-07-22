@@ -124,15 +124,20 @@ export function UnifiedFlightResultsList({
           </p>
         </div>
       ) : (
-        offers.map((o) => (
-          <UnifiedFlightCard
+        offers.map((o, idx) => (
+          <div
             key={o.id}
-            offer={o}
-            isBest={o.id === bestId}
-            isCheapest={o.id === cheapestId}
-            isFastest={o.id === fastestId}
-            onSelect={onSelect}
-          />
+            className="animate-fade-in"
+            style={{ animationDelay: `${Math.min(idx, 8) * 30}ms`, animationFillMode: "both" }}
+          >
+            <UnifiedFlightCard
+              offer={o}
+              isBest={o.id === bestId}
+              isCheapest={o.id === cheapestId}
+              isFastest={o.id === fastestId}
+              onSelect={onSelect}
+            />
+          </div>
         ))
       )}
     </div>
