@@ -60,6 +60,12 @@ const CACHE_TTL: Record<string, number> = {
   getAttractionAvailability: 60 * 30,               // 30min
   getAttractionDetails: 60 * 60 * 24,               // 1 dia
   getAttractionReviews: 60 * 60 * 24,               // 1 dia
+  // ---- Car Rental V2 ----
+  carsSearchDestination: 60 * 60 * 24 * 7,          // 7 dias
+  searchCarRentals: 60 * 30,                        // 30min · preços mudam
+  carVehicleDetails: 60 * 60,                       // 1h
+  carSupplierDetails: 60 * 60 * 24,                 // 1 dia
+  carBookingSummary: 60 * 30,                       // 30min
 };
 
 const ACTION_ENDPOINTS: Record<string, string> = {
