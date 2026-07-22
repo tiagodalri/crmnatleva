@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Plane, Hotel, Map as MapIcon, Car, Package,
+  Plane, Hotel, Car, Package,
   PlaneTakeoff, Sparkles, Clock, Ticket,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ const BookingSearchPage = lazy(() => import("@/pages/booking-rapidapi/BookingSea
 const FlightsSearchPage = lazy(() => import("@/pages/booking-rapidapi/FlightsSearchPage"));
 const GoogleFlightsSearchPage = lazy(() => import("@/pages/google-flights/GoogleFlightsSearchPage"));
 const AttractionsSearchPage = lazy(() => import("@/pages/booking-rapidapi/AttractionsSearchPage"));
+const CarsSearchPage = lazy(() => import("@/pages/booking-rapidapi/CarsSearchPage"));
 
 // IMPORTANTE · usamos `secao` (não `tab`) pra não conflitar com o ?tab=
 // interno do Google Flights (list/calendar/discover) e demais filhos.
