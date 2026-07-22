@@ -715,13 +715,15 @@ export function GFlightDetailDrawer({ itinerary, searchInput, onClose }: Props) 
                 </div>
               )}
 
-              {provLoading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full" />
-                  ))}
+              {provLoading && (
+                <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-primary">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                  <span className="font-medium">Comparando preços em canais de venda...</span>
+                  <span className="text-muted-foreground hidden sm:inline">· pode levar até 15s</span>
                 </div>
-              ) : providersSorted.length === 0 ? (
+              )}
+
+              {!provLoading && providersSorted.length === 0 ? (
                 <div className="py-6 px-4 bg-muted/20 rounded-md border border-dashed border-border flex flex-col items-center text-center space-y-3">
                   <AlertCircle className="h-10 w-10 text-amber-500" />
                   <div className="space-y-1">
