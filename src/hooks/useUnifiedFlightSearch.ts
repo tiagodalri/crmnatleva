@@ -103,6 +103,7 @@ export function useUnifiedFlightSearch(
     googleError: google.isError ? (google.error as Error) : null,
     bookingError: booking.isError ? (booking.error as Error) : null,
     hasAny: offers.length > 0,
+    priceInsight: google.data?.price_insight ?? null,
     refetchGoogle: () => { void google.refetch(); },
     refetchBooking: () => { void booking.refetch(); },
   };
