@@ -131,12 +131,6 @@ export default function Buscador() {
             <AttractionsSearchPage />
           </Suspense>
         )}
-        {secao === "aereo-hotel" && (
-          <ComingSoon
-            title="Aéreo + Hotel"
-            description="Cotação combinada de voo e hospedagem na mesma busca, com economia automática. Estamos integrando."
-          />
-        )}
         {secao === "carros" && (
           <Suspense fallback={<div className="p-6"><LoadingState /></div>}>
             <CarsSearchPage />
