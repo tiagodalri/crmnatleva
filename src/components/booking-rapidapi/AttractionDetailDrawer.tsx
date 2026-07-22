@@ -31,12 +31,20 @@ export function AttractionDetailDrawer({ product, open, onOpenChange }: Props) {
   const slug = product?.slug ?? null;
   const productId = product?.id ?? null;
 
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
   const { data: details, isLoading: loadingDetails, error: detailsError } =
     useAttractionDetails(slug, open && !!slug);
   const { data: reviews } = useAttractionReviews(productId, open && !!productId);
   const { data: calendar } = useAttractionAvailabilityCalendar(
     slug,
     open && !!slug,
+  );
+  const { data: slots, isLoading: loadingSlots } = useAttractionAvailability(
+    slug,
+    selectedDate,
+    open && !!slug && !!selectedDate,
   );
 
   const merged = { ...(product ?? {}), ...(details ?? {}) } as any;
