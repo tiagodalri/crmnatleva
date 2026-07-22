@@ -15,8 +15,14 @@ async function invokeAttraction<T = unknown>(
   action: string,
   params: Record<string, unknown> = {},
 ): Promise<T> {
+  // Strip undefined/null/empty-string fields so we never send `id: undefined`
+  const cleanParams: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue;
+    cleanParams[k] = v;
+  }
   const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
-    body: { action, ...params },
+    body: { action, ...cleanParams },
   });
   if (error) throw new Error(error.message || "Erro desconhecido");
   if (data?.error) {
@@ -28,6 +34,7 @@ async function invokeAttraction<T = unknown>(
   }
   return data as T;
 }
+
 
 /**
  * Normaliza a resposta variável do endpoint searchLocation em uma lista plana.
@@ -205,16 +212,18 @@ export function useAttractionAvailabilityCalendar(
   id: string | null,
   enabled = true,
 ) {
+  const safeId = typeof id === "string" && id.trim().length > 0 ? id : null;
   return useQuery({
-    queryKey: ["booking-attractions", "calendar", id],
-    enabled: enabled && !!id,
+    queryKey: ["booking-attractions", "calendar", safeId],
+    enabled: enabled && !!safeId,
     staleTime: 30 * 60 * 1000,
     retry: false,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>(
         "getAttractionAvailabilityCalendar",
-        { id },
+        { id: safeId },
       );
+
       const d = envelope?.data ?? envelope ?? {};
       const days: any[] = Array.isArray(d?.days)
         ? d.days
