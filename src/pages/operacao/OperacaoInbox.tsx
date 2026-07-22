@@ -1785,32 +1785,9 @@ function OperacaoInboxInner() {
     }
   }, [shortcutOpen]);
 
-  const acceptSpellSuggestion = useCallback(() => {
-    if (!pendingCorrection) return;
-    const corrected = pendingCorrection.corrected;
-    setInputText(corrected);
-    setPendingCorrection(null);
-    skipCorrectionRef.current = true;
-    sendOverrideRef.current = corrected;
-    handleSend();
-  }, [pendingCorrection, handleSend]);
-
-  const dismissSpellSuggestion = useCallback(() => {
-    const original = pendingCorrection?.original ?? null;
-    setPendingCorrection(null);
-    skipCorrectionRef.current = true;
-    if (original) sendOverrideRef.current = original;
-    handleSend();
-  }, [pendingCorrection, handleSend]);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Quando o dropdown está aberto, deixa ele tratar Enter/setas
     if (shortcutOpen && (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab" || e.key === "Escape")) {
-      return;
-    }
-    if (e.key === "Escape" && pendingCorrection) {
-      e.preventDefault();
-      dismissSpellSuggestion();
       return;
     }
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -3979,9 +3956,6 @@ function OperacaoInboxInner() {
                   ) : isMobile ? (
                     /* ─── WhatsApp-style mobile composer ─── */
                     <>
-                    {pendingCorrection && (
-                      <SpellSuggestionBar variant="sendConfirm" suggestion={pendingCorrection.corrected} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
-                    )}
                     <div className="relative flex items-end gap-2 w-full flex-nowrap">
                       <SlashCommandDropdown open={shortcutOpen} query={shortcutQuery} onSelect={handleSelectShortcut} onClose={() => { setShortcutOpen(false); setShortcutQuery(""); }} />
                       {/* Pill input with embedded actions */}
