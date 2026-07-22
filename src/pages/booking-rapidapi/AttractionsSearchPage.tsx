@@ -190,31 +190,6 @@ export default function AttractionsSearchPage() {
         </div>
       </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Destino ou atração</Label>
-            <AttractionDestinationAutocomplete
-              value={destination}
-              onChange={setDestination}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              onClick={handleSearch}
-              disabled={!destination || isFetching}
-              className="w-full md:w-auto h-11 gap-2 bg-champagne-logo hover:bg-champagne-logo/90 text-white"
-            >
-              {isFetching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-              Buscar ingressos
-            </Button>
-          </div>
-        </div>
-      </Card>
-
       {/* Toolbar de resultados */}
       {committed && (
         <div className="flex flex-wrap items-center justify-between gap-3 px-1">
