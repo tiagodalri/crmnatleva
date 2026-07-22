@@ -15,6 +15,7 @@ import {
   normalizeBookingOffer,
   type UnifiedFlightOffer,
 } from "@/components/unified-flights/unifiedFlightTypes";
+import type { GPriceInsight } from "@/components/google-flights/gflightsTypes";
 
 export interface UnifiedSearchInput {
   fromIata: string;
