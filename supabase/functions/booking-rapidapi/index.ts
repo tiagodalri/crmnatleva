@@ -607,6 +607,63 @@ function buildParams(
     case "getCurrency":
     case "getLanguages":
       return {};
+
+    // ============================================================
+    // Attractions / Ingressos (booking-com15 · /api/v1/attraction/*)
+    // ============================================================
+    case "searchAttractionLocation": {
+      assertParams(input, ["query"]);
+      return {
+        query: String(input.query),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "searchAttractions": {
+      assertParams(input, ["id"]);
+      const p: Record<string, string> = {
+        id: String(input.id),
+        sortBy: String(input.sortBy ?? "trending"),
+        page: String(input.page ?? 1),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+      if (input.startDate) p.startDate = String(input.startDate);
+      if (input.endDate) p.endDate = String(input.endDate);
+      return p;
+    }
+    case "getAttractionAvailabilityCalendar": {
+      assertParams(input, ["slug"]);
+      return {
+        slug: String(input.slug),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "getAttractionAvailability": {
+      assertParams(input, ["slug", "date"]);
+      return {
+        slug: String(input.slug),
+        date: String(input.date),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "getAttractionDetails": {
+      assertParams(input, ["slug"]);
+      return {
+        slug: String(input.slug),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "getAttractionReviews": {
+      assertParams(input, ["slug"]);
+      return {
+        slug: String(input.slug),
+        page: String(input.page ?? 1),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
     default:
       throw new Error(`Ação desconhecida: ${action}`);
   }
