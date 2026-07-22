@@ -15,8 +15,14 @@ async function invokeAttraction<T = unknown>(
   action: string,
   params: Record<string, unknown> = {},
 ): Promise<T> {
+  // Strip undefined/null/empty-string fields so we never send `id: undefined`
+  const cleanParams: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue;
+    cleanParams[k] = v;
+  }
   const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
-    body: { action, ...params },
+    body: { action, ...cleanParams },
   });
   if (error) throw new Error(error.message || "Erro desconhecido");
   if (data?.error) {
@@ -28,6 +34,7 @@ async function invokeAttraction<T = unknown>(
   }
   return data as T;
 }
+
 
 /**
  * Normaliza a resposta variável do endpoint searchLocation em uma lista plana.
