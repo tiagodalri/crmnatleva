@@ -11,8 +11,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 
 // Páginas reais reaproveitadas dentro das abas
 const BookingSearchPage = lazy(() => import("@/pages/booking-rapidapi/BookingSearchPage"));
-const FlightsSearchPage = lazy(() => import("@/pages/booking-rapidapi/FlightsSearchPage"));
-const GoogleFlightsSearchPage = lazy(() => import("@/pages/google-flights/GoogleFlightsSearchPage"));
+const UnifiedFlightsSearchPage = lazy(() => import("@/pages/unified-flights/UnifiedFlightsSearchPage"));
 const AttractionsSearchPage = lazy(() => import("@/pages/booking-rapidapi/AttractionsSearchPage"));
 const CarsSearchPage = lazy(() => import("@/pages/booking-rapidapi/CarsSearchPage"));
 
@@ -47,63 +46,11 @@ function ComingSoon({ title, description }: { title: string; description: string
   );
 }
 
-function AereoProviderSwitch() {
-  const [params, setParams] = useSearchParams();
-  // Provider isolado num param próprio · `fonte` (não colide com nada).
-  const fonte = (params.get("fonte") as "google" | "rapid") || "google";
-
-  const setFonte = (next: "google" | "rapid") => {
-    const p = new URLSearchParams(params);
-    p.set("fonte", next);
-    p.set("secao", "aereo");
-    setParams(p, { replace: true });
-  };
-
-  return (
-    <div className="container mx-auto max-w-7xl px-4 pt-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground mr-1">
-          Fonte de busca
-        </span>
-        <button
-          type="button"
-          onClick={() => setFonte("google")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-            fonte === "google"
-              ? "bg-champagne-logo/15 border-champagne-logo text-champagne-logo"
-              : "bg-background border-border text-muted-foreground hover:text-foreground"
-          }`}
-          aria-pressed={fonte === "google"}
-        >
-          Google Flights
-        </button>
-        <button
-          type="button"
-          onClick={() => setFonte("rapid")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-            fonte === "rapid"
-              ? "bg-champagne-logo/15 border-champagne-logo text-champagne-logo"
-              : "bg-background border-border text-muted-foreground hover:text-foreground"
-          }`}
-          aria-pressed={fonte === "rapid"}
-        >
-          Busca de Voos
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function AereoTab() {
-  const [params] = useSearchParams();
-  const fonte = (params.get("fonte") as "google" | "rapid") || "google";
   return (
-    <>
-      <AereoProviderSwitch />
-      <Suspense fallback={<div className="p-6"><LoadingState /></div>}>
-        {fonte === "google" ? <GoogleFlightsSearchPage /> : <FlightsSearchPage />}
-      </Suspense>
-    </>
+    <Suspense fallback={<div className="p-6"><LoadingState /></div>}>
+      <UnifiedFlightsSearchPage />
+    </Suspense>
   );
 }
 
