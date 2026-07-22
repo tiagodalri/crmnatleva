@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plane, Hotel, Car, Package,
-  PlaneTakeoff, Sparkles, Clock, Ticket,
+  Sparkles, Clock, Ticket,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
