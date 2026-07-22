@@ -348,6 +348,55 @@ export default function UnifiedFlightsSearchPage() {
         </div>
       )}
 
+      {/* Inteligência de preço · exclusivo Google Flights, só aparece quando existe */}
+      {snapshot && search.priceInsight && (
+        <div className="space-y-3">
+          <GFlightPriceInsightBanner
+            insight={search.priceInsight}
+            tripType={snapshot.returnDate ? "round" : "oneway"}
+            onShowHistory={() => setShowPriceHistory((v) => !v)}
+            showHistory={showPriceHistory}
+          />
+          {showPriceHistory && (
+            <GFlightPriceHistoryChart insight={search.priceInsight} />
+          )}
+        </div>
+      )}
+
+      {/* Calendário e tendência de preço · exclusivo Google Flights */}
+      {snapshot && (
+        <Card className="p-3">
+          <button
+            type="button"
+            onClick={() => setShowTrends((v) => !v)}
+            className="flex items-center justify-between w-full text-sm font-medium hover:text-primary transition"
+          >
+            <span className="inline-flex items-center gap-2">
+              <CalIcon className="h-4 w-4" />
+              {showTrends ? "Ocultar" : "Ver"} calendário e tendência de preços
+              <Badge variant="outline" className="text-[10px]">Google Flights</Badge>
+            </span>
+            <ChevronDown className={cn("h-4 w-4 transition", showTrends && "rotate-180")} />
+          </button>
+          {showTrends && (
+            <div className="grid gap-4 mt-4 lg:grid-cols-2">
+              <GFlightCalendarHeatmap
+                days={calendarDays}
+                isLoading={calLoading}
+                selectedDate={snapshot.outboundDate}
+                onSelectDate={handleCalendarSelect}
+              />
+              <GFlightPriceTrendChart
+                points={trend}
+                isLoading={trendLoading}
+                selectedDate={snapshot.outboundDate}
+                onSelectDate={handleCalendarSelect}
+              />
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Layout · sidebar + resultados */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">
         {snapshot && (
