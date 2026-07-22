@@ -212,16 +212,18 @@ export function useAttractionAvailabilityCalendar(
   id: string | null,
   enabled = true,
 ) {
+  const safeId = typeof id === "string" && id.trim().length > 0 ? id : null;
   return useQuery({
-    queryKey: ["booking-attractions", "calendar", id],
-    enabled: enabled && !!id,
+    queryKey: ["booking-attractions", "calendar", safeId],
+    enabled: enabled && !!safeId,
     staleTime: 30 * 60 * 1000,
     retry: false,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>(
         "getAttractionAvailabilityCalendar",
-        { id },
+        { id: safeId },
       );
+
       const d = envelope?.data ?? envelope ?? {};
       const days: any[] = Array.isArray(d?.days)
         ? d.days
