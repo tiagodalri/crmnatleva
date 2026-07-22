@@ -242,16 +242,35 @@ export default function CarsSearchPage() {
 
   const vehicles = data?.vehicles ?? [];
 
+  // Opções dinâmicas dos filtros (só o que veio nos resultados)
+  const transmissionOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.transmission).filter(Boolean) as string[])),
+    [vehicles],
+  );
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.category).filter(Boolean) as string[])),
+    [vehicles],
+  );
+  const fuelOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.fuelType).filter(Boolean) as string[])),
+    [vehicles],
+  );
+  const seatOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.seatCategory).filter(Boolean) as string[])),
+    [vehicles],
+  );
+
   const filteredSorted = useMemo(() => {
     let list = [...vehicles];
     if (freeCancellationOnly) list = list.filter((v) => v.freeCancellation);
-    if (transmissionFilter !== "all") {
-      list = list.filter(
-        (v) =>
-          (v.transmission ?? "").toLowerCase() ===
-          transmissionFilter.toLowerCase(),
-      );
-    }
+    if (transmissionFilter !== "all")
+      list = list.filter((v) => (v.transmission ?? "").toLowerCase() === transmissionFilter.toLowerCase());
+    if (categoryFilter !== "all")
+      list = list.filter((v) => (v.category ?? "") === categoryFilter);
+    if (fuelFilter !== "all")
+      list = list.filter((v) => (v.fuelType ?? "") === fuelFilter);
+    if (seatFilter !== "all")
+      list = list.filter((v) => (v.seatCategory ?? "") === seatFilter);
     list.sort((a, b) => {
       if (sortBy === "price_asc")
         return (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity);
@@ -262,7 +281,7 @@ export default function CarsSearchPage() {
       return 0;
     });
     return list;
-  }, [vehicles, freeCancellationOnly, transmissionFilter, sortBy]);
+  }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, sortBy]);
 
   const dateLabel = dateRange?.from
     ? dateRange.to
