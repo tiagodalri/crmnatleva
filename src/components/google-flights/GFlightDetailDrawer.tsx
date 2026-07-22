@@ -8,7 +8,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -715,13 +715,15 @@ export function GFlightDetailDrawer({ itinerary, searchInput, onClose }: Props) 
                 </div>
               )}
 
-              {provLoading ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full" />
-                  ))}
+              {provLoading && (
+                <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-primary">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                  <span className="font-medium">Comparando preços em canais de venda...</span>
+                  <span className="text-muted-foreground hidden sm:inline">· pode levar até 15s</span>
                 </div>
-              ) : providersSorted.length === 0 ? (
+              )}
+
+              {!provLoading && providersSorted.length === 0 ? (
                 <div className="py-6 px-4 bg-muted/20 rounded-md border border-dashed border-border flex flex-col items-center text-center space-y-3">
                   <AlertCircle className="h-10 w-10 text-amber-500" />
                   <div className="space-y-1">
@@ -801,7 +803,15 @@ export function GFlightDetailDrawer({ itinerary, searchInput, onClose }: Props) 
                           <div className="flex items-center gap-1.5">
                             {(p as any).meta?.synthetic && (
                               <Badge className="text-[9px] border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 gap-1">
-                                <AlertCircle className="h-2.5 w-2.5" /> Tarifa estimada · reserve no site da cia
+                                {provLoading ? (
+                                  <>
+                                    <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando mais opções...
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="h-2.5 w-2.5" /> Tarifa estimada · reserve no site da cia
+                                  </>
+                                )}
                               </Badge>
                             )}
                             {isCheapest && (
