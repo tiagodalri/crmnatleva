@@ -111,6 +111,16 @@ export default function UnifiedFlightsSearchPage() {
       }
     : null;
 
+  const { data: trend = [], isLoading: trendLoading } = usePriceGraph(detailSearchInput, showTrends && !!snapshot);
+  const { data: calendarDays = [], isLoading: calLoading } = useCalendarPicker(detailSearchInput, showTrends && !!snapshot);
+
+  function handleCalendarSelect(dateISO: string) {
+    const d = parseISO(dateISO);
+    if (!isValid(d) || !snapshot) return;
+    setOutboundDate(d);
+    setSnapshot({ ...snapshot, outboundDate: dateISO });
+  }
+
   return (
     <div className="container mx-auto max-w-7xl space-y-5 p-4 md:p-6">
       {/* Cabeçalho */}
