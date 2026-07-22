@@ -21,9 +21,6 @@ import { useConversationDelegation } from "@/hooks/useConversationDelegation";
 import { useMyDelegations } from "@/hooks/useMyDelegations";
 import { DelegateConversationDialog } from "@/components/inbox/DelegateConversationDialog";
 import { SlashCommandDropdown, type MessageShortcut } from "@/components/inbox/SlashCommandDropdown";
-import { SpellSuggestionBar } from "@/components/inbox/SpellSuggestionBar";
-
-import { localSpellFix } from "@/lib/localSpellFix";
 import { ScheduleMessagePopover } from "@/components/inbox/ScheduleMessagePopover";
 import { ScheduledForConversationButton } from "@/components/inbox/ScheduledForConversationButton";
 import { GroupInfoDialog } from "@/components/inbox/GroupInfoDialog";
@@ -1375,60 +1372,13 @@ function OperacaoInboxInner() {
     }
   }, [rebuildingHistoryAll, ensureWhatsAppWebhookSync]);
 
-  // ─── Correção ortográfica no envio ───
-  // Ref de override permite acceptSpellSuggestion mandar o texto corrigido
-  // sem esperar o setInputText renderizar. skipCorrectionRef pula a checagem
-  // quando o usuário já aprovou (ou dispensou) a sugestão.
-  const sendOverrideRef = useRef<string | null>(null);
-  const skipCorrectionRef = useRef(false);
-  const [pendingCorrection, setPendingCorrection] = useState<{ original: string; corrected: string } | null>(null);
-
-  const runSpellCheck = useCallback(async (text: string): Promise<string | null> => {
-    const trimmed = text.trim();
-    if (trimmed.length < 8) return null;
-    if (trimmed.startsWith("/")) return null;
-    if (!/[a-zA-ZáéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]/.test(trimmed)) return null;
-    try {
-      const invokePromise = supabase.functions.invoke("correct-message", { body: { text: trimmed } });
-      // Teto de 6s · a chamada real fica entre 0.8s e 2s morno, mas cold start
-      // pode passar de 3s. 2.5s era apertado demais e engolia quase toda sugestão.
-      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000));
-      const result: any = await Promise.race([invokePromise, timeout]);
-      if (!result) return null;
-      if (result.error) return null;
-      const corrected = result.data?.corrected;
-      if (typeof corrected !== "string") return null;
-      const c = corrected.trim();
-      if (!c || c === trimmed) return null;
-      return c;
-    } catch {
-      return null;
-    }
-  }, []);
-
   // Send message
   const handleSend = useCallback(async () => {
-    const overrideText = sendOverrideRef.current;
-    sendOverrideRef.current = null;
-    const rawInput = overrideText ?? inputText;
+    const rawInput = inputText;
     if (!rawInput.trim() || !selectedId || isSending) return;
 
-    // Checa correção antes de enviar (uma única vez por envio · rápido, com timeout).
-    if (!skipCorrectionRef.current && !editingMsg && !overrideText) {
-      const raw = rawInput.trim();
-      setIsSending(true);
-      const corrected = await runSpellCheck(raw);
-      setIsSending(false);
-      if (corrected) {
-        setPendingCorrection({ original: raw, corrected });
-        return;
-      }
-    }
-    skipCorrectionRef.current = false;
-
     setIsSending(true);
-    // ─── Local spell fix · síncrono, zero latência, aplicado no envio ───
-    const text = localSpellFix(rawInput.trim());
+    const text = rawInput.trim();
 
     if (editingMsg) {
       const msgToEdit = editingMsg;
@@ -1835,32 +1785,9 @@ function OperacaoInboxInner() {
     }
   }, [shortcutOpen]);
 
-  const acceptSpellSuggestion = useCallback(() => {
-    if (!pendingCorrection) return;
-    const corrected = pendingCorrection.corrected;
-    setInputText(corrected);
-    setPendingCorrection(null);
-    skipCorrectionRef.current = true;
-    sendOverrideRef.current = corrected;
-    handleSend();
-  }, [pendingCorrection, handleSend]);
-
-  const dismissSpellSuggestion = useCallback(() => {
-    const original = pendingCorrection?.original ?? null;
-    setPendingCorrection(null);
-    skipCorrectionRef.current = true;
-    if (original) sendOverrideRef.current = original;
-    handleSend();
-  }, [pendingCorrection, handleSend]);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Quando o dropdown está aberto, deixa ele tratar Enter/setas
     if (shortcutOpen && (e.key === "Enter" || e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab" || e.key === "Escape")) {
-      return;
-    }
-    if (e.key === "Escape" && pendingCorrection) {
-      e.preventDefault();
-      dismissSpellSuggestion();
       return;
     }
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -4029,9 +3956,6 @@ function OperacaoInboxInner() {
                   ) : isMobile ? (
                     /* ─── WhatsApp-style mobile composer ─── */
                     <>
-                    {pendingCorrection && (
-                      <SpellSuggestionBar variant="sendConfirm" suggestion={pendingCorrection.corrected} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
-                    )}
                     <div className="relative flex items-end gap-2 w-full flex-nowrap">
                       <SlashCommandDropdown open={shortcutOpen} query={shortcutQuery} onSelect={handleSelectShortcut} onClose={() => { setShortcutOpen(false); setShortcutQuery(""); }} />
                       {/* Pill input with embedded actions */}
@@ -4123,9 +4047,6 @@ function OperacaoInboxInner() {
                     </>
                   ) : (
                     <>
-                    {pendingCorrection && (
-                      <SpellSuggestionBar variant="sendConfirm" suggestion={pendingCorrection.corrected} onAccept={acceptSpellSuggestion} onDismiss={dismissSpellSuggestion} />
-                    )}
                     <div className="relative flex items-end gap-2">
                       <SlashCommandDropdown open={shortcutOpen} query={shortcutQuery} onSelect={handleSelectShortcut} onClose={() => { setShortcutOpen(false); setShortcutQuery(""); }} />
                       <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
