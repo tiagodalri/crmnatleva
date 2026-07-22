@@ -680,11 +680,11 @@ function buildParams(
     // Car Rental V2 (booking-com15 · /api/v2/cars/*)
     // ============================================================
     case "carsSearchDestination": {
-      const q = input.query ?? input.term ?? input.q;
-      assertParams({ query: q }, ["query"]);
-      return {
-        query: String(q),
-      };
+      const term = input.term ?? input.query ?? input.q;
+      assertParams({ term }, ["term"]);
+      const p: Record<string, string> = { term: String(term) };
+      if (input.countryOfResidence) p.countryOfResidence = String(input.countryOfResidence);
+      return p;
     }
     case "searchCarRentals": {
       assertParams(input, [
