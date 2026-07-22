@@ -285,6 +285,23 @@ export default function CarsSearchPage() {
     return list;
   }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, sortBy]);
 
+  // Prefetch preditivo · dispara em background os 3 endpoints de detalhe
+  // pros 3 primeiros veículos, pra que abrir o drawer seja instantâneo.
+  const qc = useQueryClient();
+  const prefetchedRef = useRef<Set<string>>(new Set());
+  const searchKey = data?.searchKey;
+  useEffect(() => {
+    if (!searchKey) return;
+    const top = filteredSorted.slice(0, 3);
+    for (const v of top) {
+      const cacheKey = `${searchKey}::${v.id}`;
+      if (prefetchedRef.current.has(cacheKey)) continue;
+      prefetchedRef.current.add(cacheKey);
+      prefetchCarDetailBundle(qc, searchKey, v.id);
+    }
+  }, [searchKey, filteredSorted, qc]);
+
+
   const dateLabel = dateRange?.from
     ? dateRange.to
       ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} · ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
