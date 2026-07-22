@@ -111,12 +111,12 @@ const ACTION_ENDPOINTS: Record<string, string> = {
   getCurrency: "/api/v1/meta/getCurrency",
   getLanguages: "/api/v1/meta/getLanguages",
   // ---- Attractions / Ingressos ----
-  searchAttractionLocation: "/api/v1/attraction/searchLocation",
+  searchAttractionLocation: "/api/v1/attraction/searchAttractionLocation",
   searchAttractions: "/api/v1/attraction/searchAttractions",
   getAttractionAvailabilityCalendar: "/api/v1/attraction/getAvailabilityCalendar",
   getAttractionAvailability: "/api/v1/attraction/getAvailability",
-  getAttractionDetails: "/api/v1/attraction/getDetails",
-  getAttractionReviews: "/api/v1/attraction/getReviews",
+  getAttractionDetails: "/api/v1/attraction/getAttractionDetails",
+  getAttractionReviews: "/api/v1/attraction/getAttractionReviews",
 };
 
 function getSupabaseAdmin() {
