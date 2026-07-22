@@ -103,6 +103,13 @@ const ACTION_ENDPOINTS: Record<string, string> = {
   getSeatMap: "/api/v1/flights/getSeatMap",
   getCurrency: "/api/v1/meta/getCurrency",
   getLanguages: "/api/v1/meta/getLanguages",
+  // ---- Attractions / Ingressos ----
+  searchAttractionLocation: "/api/v1/attraction/searchLocation",
+  searchAttractions: "/api/v1/attraction/searchAttractions",
+  getAttractionAvailabilityCalendar: "/api/v1/attraction/getAvailabilityCalendar",
+  getAttractionAvailability: "/api/v1/attraction/getAvailability",
+  getAttractionDetails: "/api/v1/attraction/getDetails",
+  getAttractionReviews: "/api/v1/attraction/getReviews",
 };
 
 function getSupabaseAdmin() {
