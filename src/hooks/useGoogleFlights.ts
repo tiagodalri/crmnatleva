@@ -1,7 +1,7 @@
 // Hooks do módulo Google Flights BETA (DataCrawler via RapidAPI)
 // Isolado: não toca em useBookingRapidApi nem em outros módulos de voo.
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { addDays, format, parseISO, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import type {
