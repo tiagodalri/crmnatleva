@@ -54,12 +54,15 @@ function SkeletonGrid() {
 
 export default function AttractionsSearchPage() {
   const [destination, setDestination] = useState<AttractionLocation | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [sortBy, setSortBy] = useState("trending");
   const [page, setPage] = useState(1);
   const [committed, setCommitted] = useState<{
     id: string;
     sortBy: string;
     page: number;
+    startDate?: string;
+    endDate?: string;
   } | null>(null);
   const [selected, setSelected] = useState<AttractionProduct | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -70,26 +73,39 @@ export default function AttractionsSearchPage() {
           id: committed.id,
           sortBy: committed.sortBy,
           page: committed.page,
+          startDate: committed.startDate,
+          endDate: committed.endDate,
         }
       : null,
     !!committed,
   );
 
+  const buildDates = () => ({
+    startDate: dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+    endDate: dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+  });
+
   const handleSearch = () => {
     if (!destination) return;
     setPage(1);
-    setCommitted({ id: destination.id, sortBy, page: 1 });
+    setCommitted({ id: destination.id, sortBy, page: 1, ...buildDates() });
   };
 
   const handleSort = (value: string) => {
     setSortBy(value);
     if (destination) {
       setPage(1);
-      setCommitted({ id: destination.id, sortBy: value, page: 1 });
+      setCommitted({ id: destination.id, sortBy: value, page: 1, ...buildDates() });
     }
   };
 
   const products = data?.products ?? [];
+
+  const dateLabel = dateRange?.from
+    ? dateRange.to
+      ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} · ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
+      : format(dateRange.from, "dd MMM yyyy", { locale: ptBR })
+    : "Datas (opcional)";
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-4 sm:py-6 space-y-4">
