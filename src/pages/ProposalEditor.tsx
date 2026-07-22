@@ -591,25 +591,40 @@ export default function ProposalEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existing]);
 
-  // Espelha rascunho local em todo keystroke para nunca perder
-  // — funciona offline, sem internet, com queda de luz. Limpa quando persiste.
+  // Espelha rascunho local — SEM travar cada keystroke.
+  // Usa os valores debounced (250ms) para o snapshot pesado (JSON.stringify +
+  // localStorage.setItem), e ainda joga o próprio setItem/setState num
+  // requestIdleCallback pra não bloquear digitação em máquinas mais lentas.
+  // A garantia de "nunca perder" é mantida: um flush síncrono no unmount /
+  // visibilitychange (já existe abaixo, no autosave) cobre o caso extremo.
   useEffect(() => {
     if (!hydratedRef.current && !isNew) return;
     if (promotedNewProposalRef.current) return;
-    try {
-      const now = new Date();
-      localStorage.setItem(
-        LOCAL_DRAFT_KEY,
-        JSON.stringify({
-          form,
-          items,
-          visualOverrides,
-          savedAt: now.toISOString(),
-        })
-      );
-      setLocalDraftAt(now);
-    } catch { /* ignore quota */ }
-  }, [LOCAL_DRAFT_KEY, isNew, form, items, visualOverrides]);
+
+    const run = () => {
+      try {
+        const now = new Date();
+        localStorage.setItem(
+          LOCAL_DRAFT_KEY,
+          JSON.stringify({
+            form: debouncedForm,
+            items: debouncedItems,
+            visualOverrides: debouncedVisualOverrides,
+            savedAt: now.toISOString(),
+          })
+        );
+        setLocalDraftAt(now);
+      } catch { /* ignore quota */ }
+    };
+
+    const w: any = typeof window !== "undefined" ? window : null;
+    if (w?.requestIdleCallback) {
+      const handle = w.requestIdleCallback(run, { timeout: 500 });
+      return () => { try { w.cancelIdleCallback?.(handle); } catch { /* noop */ } };
+    }
+    const t = setTimeout(run, 0);
+    return () => clearTimeout(t);
+  }, [LOCAL_DRAFT_KEY, isNew, debouncedForm, debouncedItems, debouncedVisualOverrides]);
 
   // Auto-populate items from AI proposal_structure
   useEffect(() => {
