@@ -123,6 +123,12 @@ const ACTION_ENDPOINTS: Record<string, string> = {
   getAttractionAvailability: "/api/v1/attraction/getAvailability",
   getAttractionDetails: "/api/v1/attraction/getAttractionDetails",
   getAttractionReviews: "/api/v1/attraction/getAttractionReviews",
+  // ---- Car Rental V2 ----
+  carsSearchDestination: "/api/v2/cars/searchDestination",
+  searchCarRentals: "/api/v2/cars/searchCarRentals",
+  carVehicleDetails: "/api/v2/cars/vehicleDetails",
+  carSupplierDetails: "/api/v2/cars/supplierDetails",
+  carBookingSummary: "/api/v2/cars/bookingSummary",
 };
 
 function getSupabaseAdmin() {
