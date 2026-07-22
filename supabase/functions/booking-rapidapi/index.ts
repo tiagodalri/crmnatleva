@@ -117,7 +117,7 @@ const ACTION_ENDPOINTS: Record<string, string> = {
   getCurrency: "/api/v1/meta/getCurrency",
   getLanguages: "/api/v1/meta/getLanguages",
   // ---- Attractions / Ingressos ----
-  searchAttractionLocation: "/api/v1/attraction/searchAttractionLocation",
+  searchAttractionLocation: "/api/v1/attraction/searchLocation",
   searchAttractions: "/api/v1/attraction/searchAttractions",
   getAttractionAvailabilityCalendar: "/api/v1/attraction/getAvailabilityCalendar",
   getAttractionAvailability: "/api/v1/attraction/getAvailability",
