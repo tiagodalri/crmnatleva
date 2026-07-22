@@ -53,6 +53,13 @@ const CACHE_TTL: Record<string, number> = {
   getSeatMap: 60 * 60 * 24,                     // 1 dia
   getCurrency: 60 * 60 * 24 * 30,       // 30 dias
   getLanguages: 60 * 60 * 24 * 30,      // 30 dias
+  // ---- Attractions / Ingressos ----
+  searchAttractionLocation: 60 * 60 * 24 * 7,       // 7 dias
+  searchAttractions: 60 * 60,                       // 1h
+  getAttractionAvailabilityCalendar: 60 * 60,       // 1h
+  getAttractionAvailability: 60 * 30,               // 30min
+  getAttractionDetails: 60 * 60 * 24,               // 1 dia
+  getAttractionReviews: 60 * 60 * 24,               // 1 dia
 };
 
 const ACTION_ENDPOINTS: Record<string, string> = {
