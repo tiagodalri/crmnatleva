@@ -64,9 +64,12 @@ function formatBRL(v: number | undefined, currency = "BRL") {
   }
 }
 
-function VehicleCard({ vehicle }: { vehicle: CarVehicle }) {
+function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () => void }) {
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+    <Card
+      onClick={onClick}
+      className="overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer"
+    >
       <div className="aspect-[16/10] bg-muted flex items-center justify-center overflow-hidden">
         {vehicle.image ? (
           <img
