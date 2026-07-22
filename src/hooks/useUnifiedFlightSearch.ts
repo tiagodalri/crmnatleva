@@ -15,6 +15,7 @@ import {
   normalizeBookingOffer,
   type UnifiedFlightOffer,
 } from "@/components/unified-flights/unifiedFlightTypes";
+import type { GPriceInsight } from "@/components/google-flights/gflightsTypes";
 
 export interface UnifiedSearchInput {
   fromIata: string;
@@ -29,13 +30,14 @@ export interface UnifiedSearchResult {
   offers: UnifiedFlightOffer[];
   googleCount: number;
   bookingCount: number;
-  isLoading: boolean;                // true se ALGUMA fonte está carregando
-  isAllLoading: boolean;             // true se AS DUAS estão carregando
+  isLoading: boolean;
+  isAllLoading: boolean;
   googleLoading: boolean;
   bookingLoading: boolean;
   googleError: Error | null;
   bookingError: Error | null;
   hasAny: boolean;
+  priceInsight: GPriceInsight | null;
   refetchGoogle: () => void;
   refetchBooking: () => void;
 }
@@ -101,6 +103,7 @@ export function useUnifiedFlightSearch(
     googleError: google.isError ? (google.error as Error) : null,
     bookingError: booking.isError ? (booking.error as Error) : null,
     hasAny: offers.length > 0,
+    priceInsight: google.data?.price_insight ?? null,
     refetchGoogle: () => { void google.refetch(); },
     refetchBooking: () => { void booking.refetch(); },
   };

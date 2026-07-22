@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { BetaBadge } from "@/components/booking-rapidapi/BetaBadge";
 import { CarLocationAutocomplete } from "@/components/booking-rapidapi/CarLocationAutocomplete";
+import { CarDetailDrawer } from "@/components/booking-rapidapi/CarDetailDrawer";
 import {
   useSearchCarRentals,
   type CarLocation,
@@ -63,9 +64,12 @@ function formatBRL(v: number | undefined, currency = "BRL") {
   }
 }
 
-function VehicleCard({ vehicle }: { vehicle: CarVehicle }) {
+function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () => void }) {
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+    <Card
+      onClick={onClick}
+      className="overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer"
+    >
       <div className="aspect-[16/10] bg-muted flex items-center justify-center overflow-hidden">
         {vehicle.image ? (
           <img
@@ -183,6 +187,10 @@ export default function CarsSearchPage() {
   );
   const [freeCancellationOnly, setFreeCancellationOnly] = useState(false);
   const [transmissionFilter, setTransmissionFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [fuelFilter, setFuelFilter] = useState<string>("all");
+  const [seatFilter, setSeatFilter] = useState<string>("all");
+  const [selectedVehicle, setSelectedVehicle] = useState<CarVehicle | null>(null);
 
   const effectiveDropOff = sameLocation ? pickUp : dropOff;
 
@@ -234,16 +242,35 @@ export default function CarsSearchPage() {
 
   const vehicles = data?.vehicles ?? [];
 
+  // Opções dinâmicas dos filtros (só o que veio nos resultados)
+  const transmissionOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.transmission).filter(Boolean) as string[])),
+    [vehicles],
+  );
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.category).filter(Boolean) as string[])),
+    [vehicles],
+  );
+  const fuelOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.fuelType).filter(Boolean) as string[])),
+    [vehicles],
+  );
+  const seatOptions = useMemo(
+    () => Array.from(new Set(vehicles.map((v) => v.seatCategory).filter(Boolean) as string[])),
+    [vehicles],
+  );
+
   const filteredSorted = useMemo(() => {
     let list = [...vehicles];
     if (freeCancellationOnly) list = list.filter((v) => v.freeCancellation);
-    if (transmissionFilter !== "all") {
-      list = list.filter(
-        (v) =>
-          (v.transmission ?? "").toLowerCase() ===
-          transmissionFilter.toLowerCase(),
-      );
-    }
+    if (transmissionFilter !== "all")
+      list = list.filter((v) => (v.transmission ?? "").toLowerCase() === transmissionFilter.toLowerCase());
+    if (categoryFilter !== "all")
+      list = list.filter((v) => (v.category ?? "") === categoryFilter);
+    if (fuelFilter !== "all")
+      list = list.filter((v) => (v.fuelType ?? "") === fuelFilter);
+    if (seatFilter !== "all")
+      list = list.filter((v) => (v.seatCategory ?? "") === seatFilter);
     list.sort((a, b) => {
       if (sortBy === "price_asc")
         return (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity);
@@ -254,7 +281,7 @@ export default function CarsSearchPage() {
       return 0;
     });
     return list;
-  }, [vehicles, freeCancellationOnly, transmissionFilter, sortBy]);
+  }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, sortBy]);
 
   const dateLabel = dateRange?.from
     ? dateRange.to
@@ -431,11 +458,64 @@ export default function CarsSearchPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all" className="text-xs">Todas</SelectItem>
-                    <SelectItem value="automatic" className="text-xs">Automática</SelectItem>
-                    <SelectItem value="manual" className="text-xs">Manual</SelectItem>
+                    {transmissionOptions.length > 0
+                      ? transmissionOptions.map((o) => (
+                          <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                        ))
+                      : (
+                        <>
+                          <SelectItem value="automatic" className="text-xs">Automática</SelectItem>
+                          <SelectItem value="manual" className="text-xs">Manual</SelectItem>
+                        </>
+                      )}
                   </SelectContent>
                 </Select>
               </div>
+
+              {categoryOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">Categoria</Label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">Todas</SelectItem>
+                      {categoryOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {fuelOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">Combustível</Label>
+                  <Select value={fuelFilter} onValueChange={setFuelFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                      {fuelOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {seatOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">Assentos</Label>
+                  <Select value={seatFilter} onValueChange={setSeatFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                      {seatOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <Checkbox
@@ -514,10 +594,16 @@ export default function CarsSearchPage() {
             {filteredSorted.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredSorted.map((v) => (
-                  <VehicleCard key={v.id} vehicle={v} />
+                  <VehicleCard key={v.id} vehicle={v} onClick={() => setSelectedVehicle(v)} />
                 ))}
               </div>
             )}
+
+            <CarDetailDrawer
+              vehicle={selectedVehicle}
+              open={!!selectedVehicle}
+              onOpenChange={(o) => { if (!o) setSelectedVehicle(null); }}
+            />
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
-import { Star, Clock, MapPin, ShieldCheck, Loader2, X, Calendar } from "lucide-react";
+import { useState } from "react";
+import { Star, Clock, MapPin, ShieldCheck, Loader2, X, Calendar, Copy, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,10 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   useAttractionDetails,
   useAttractionReviews,
   useAttractionAvailabilityCalendar,
+  useAttractionAvailability,
 } from "@/hooks/useBookingAttractions";
 import {
   formatAttractionPrice,
@@ -27,12 +31,20 @@ export function AttractionDetailDrawer({ product, open, onOpenChange }: Props) {
   const slug = product?.slug ?? null;
   const productId = product?.id ?? null;
 
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
   const { data: details, isLoading: loadingDetails, error: detailsError } =
     useAttractionDetails(slug, open && !!slug);
   const { data: reviews } = useAttractionReviews(productId, open && !!productId);
   const { data: calendar } = useAttractionAvailabilityCalendar(
     slug,
     open && !!slug,
+  );
+  const { data: slots, isLoading: loadingSlots } = useAttractionAvailability(
+    slug,
+    selectedDate,
+    open && !!slug && !!selectedDate,
   );
 
   const merged = { ...(product ?? {}), ...(details ?? {}) } as any;
@@ -178,24 +190,164 @@ export function AttractionDetailDrawer({ product, open, onOpenChange }: Props) {
               )}
 
             {availableDays.length > 0 && (
-              <section className="space-y-2">
+              <section className="space-y-3">
                 <h4 className="text-sm font-semibold flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-champagne-logo" />
                   Próximas datas disponíveis
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {availableDays.map((d) => (
-                    <span
-                      key={d.date}
-                      className="text-xs bg-muted/60 border border-border/60 rounded px-2 py-1"
-                    >
-                      {new Date(d.date + "T00:00:00").toLocaleDateString(
-                        "pt-BR",
-                        { day: "2-digit", month: "short" },
-                      )}
-                    </span>
-                  ))}
+                  {availableDays.map((d) => {
+                    const isSel = selectedDate === d.date;
+                    return (
+                      <button
+                        type="button"
+                        key={d.date}
+                        onClick={() => setSelectedDate(isSel ? null : d.date)}
+                        className={cn(
+                          "text-xs rounded px-2 py-1 border transition",
+                          isSel
+                            ? "bg-champagne-logo text-white border-champagne-logo"
+                            : "bg-muted/60 border-border/60 hover:border-champagne-logo hover:text-champagne-logo",
+                        )}
+                      >
+                        {new Date(d.date + "T00:00:00").toLocaleDateString(
+                          "pt-BR",
+                          { day: "2-digit", month: "short" },
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {selectedDate && (
+                  <div className="space-y-2 pt-2 border-t border-border/60">
+                    <div className="text-xs text-muted-foreground">
+                      Horários e preços em{" "}
+                      <span className="font-medium text-foreground">
+                        {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
+                          day: "2-digit", month: "long", year: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    {loadingSlots && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Buscando horários…
+                      </div>
+                    )}
+
+                    {!loadingSlots && (!slots || slots.length === 0) && (
+                      <div className="text-xs text-muted-foreground">
+                        Nenhum horário retornado para essa data.
+                      </div>
+                    )}
+
+                    {!loadingSlots && slots && slots.length > 0 && (
+                      <div className="space-y-3">
+                        {slots.map((s, si) => {
+                          const timeLabel = s.fullDay
+                            ? "Dia inteiro"
+                            : (s.start ?? "").slice(11, 16) || (s.start ?? "Horário");
+                          return (
+                            <div
+                              key={(s.timeSlotId ?? "") + si}
+                              className="border border-border/60 rounded-lg p-3 space-y-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm font-semibold flex items-center gap-2">
+                                  <Clock className="h-3.5 w-3.5 text-champagne-logo" />
+                                  {timeLabel}
+                                </div>
+                              </div>
+
+                              {(s.timeSlotOffers ?? []).map((offer, oi) => {
+                                const benefitLabels: string[] = [];
+                                if (offer.benefits) {
+                                  if (offer.benefits.skipTheLine) benefitLabels.push("Sem fila");
+                                  if (offer.benefits.freeAudioGuide) benefitLabels.push("Áudio-guia grátis");
+                                  if (offer.benefits.freeCancellation) benefitLabels.push("Cancelamento grátis");
+                                  if (offer.benefits.mobileTicket) benefitLabels.push("Ingresso no celular");
+                                }
+                                const copyKey = `${s.timeSlotId ?? si}-${offer.id ?? oi}`;
+                                const buildCopy = () => {
+                                  const linhas: string[] = [];
+                                  linhas.push(`${product?.name ?? "Atração"}`);
+                                  linhas.push(`Data: ${new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR")}`);
+                                  linhas.push(`Horário: ${timeLabel}`);
+                                  if (benefitLabels.length) linhas.push(`Inclui: ${benefitLabels.join(" · ")}`);
+                                  for (const it of offer.items ?? []) {
+                                    const val = it.price?.publicAmount ?? it.price?.chargeAmount;
+                                    const cur = it.price?.currency ?? "BRL";
+                                    const label = it.label ?? it.constraint?.label ?? "Ingresso";
+                                    if (typeof val === "number") {
+                                      const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: cur }).format(val);
+                                      linhas.push(`· ${label}: ${money}`);
+                                    } else {
+                                      linhas.push(`· ${label}`);
+                                    }
+                                  }
+                                  if (offer.items?.[0]?.cancellationPolicy?.hasFreeCancellation) {
+                                    linhas.push("Cancelamento grátis");
+                                  }
+                                  return linhas.join("\n");
+                                };
+                                const handleCopy = async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(buildCopy());
+                                    setCopiedKey(copyKey);
+                                    toast.success("Copiado para a proposta");
+                                    setTimeout(() => setCopiedKey((k) => (k === copyKey ? null : k)), 2000);
+                                  } catch {
+                                    toast.error("Não foi possível copiar");
+                                  }
+                                };
+
+                                return (
+                                  <div key={copyKey} className="space-y-2 pt-1">
+                                    {benefitLabels.length > 0 && (
+                                      <div className="flex flex-wrap gap-1">
+                                        {benefitLabels.map((b) => (
+                                          <Badge key={b} variant="outline" className="text-[10px]">
+                                            {b}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {(offer.items ?? []).length > 0 && (
+                                      <ul className="text-sm space-y-1">
+                                        {offer.items!.map((it, ii) => {
+                                          const val = it.price?.publicAmount ?? it.price?.chargeAmount;
+                                          const cur = it.price?.currency ?? "BRL";
+                                          const money = typeof val === "number"
+                                            ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: cur }).format(val)
+                                            : "";
+                                          return (
+                                            <li key={ii} className="flex items-center justify-between gap-3">
+                                              <span className="text-muted-foreground">
+                                                {it.label ?? it.constraint?.label ?? "Ingresso"}
+                                              </span>
+                                              <span className="font-semibold">{money || "Consultar"}</span>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                    <div className="flex justify-end">
+                                      <Button size="sm" variant="outline" className="h-7 gap-1" onClick={handleCopy}>
+                                        {copiedKey === copyKey ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                        Copiar para proposta
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             )}
 

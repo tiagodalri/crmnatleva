@@ -106,6 +106,8 @@ export interface CarVehicle {
   name?: string;
   category?: string;
   transmission?: string;
+  fuelType?: string;
+  seatCategory?: string;
   seats?: number;
   bags?: number;
   doors?: number;
@@ -217,13 +219,20 @@ function normalizeCarSearch(raw: any): {
 
     // Transmission via vehicleSpecs icon
     let transmission: string | undefined;
+    let fuelType: string | undefined;
+    let seatCategory: string | undefined;
     if (Array.isArray(c?.vehicleSpecs)) {
-      const t = c.vehicleSpecs.find((x: any) =>
-        String(x?.icon ?? "").startsWith("TRANSMISSION_"),
-      );
-      if (t) transmission = t.text ?? t.accessibility;
+      for (const x of c.vehicleSpecs) {
+        const icon = String(x?.icon ?? "");
+        const text = x?.text ?? x?.accessibility;
+        if (!text) continue;
+        if (icon.startsWith("TRANSMISSION_") && !transmission) transmission = text;
+        else if ((icon.startsWith("FUEL_") || icon.includes("FUEL")) && !fuelType) fuelType = text;
+        else if ((icon.startsWith("PASSENGERS_") || icon.startsWith("SEAT")) && !seatCategory) seatCategory = text;
+      }
     }
     if (!transmission) transmission = v?.transmission;
+    if (!fuelType) fuelType = v?.fuel_type ?? v?.fuelType;
 
     // Free cancellation via badges
     let freeCancellation = false;
@@ -253,6 +262,8 @@ function normalizeCarSearch(raw: any): {
       name: isNew ? c?.title : (v?.v_name ?? v?.name ?? v?.group),
       category: isNew ? c?.subtitle : (v?.group ?? v?.car_class ?? v?.category),
       transmission,
+      fuelType,
+      seatCategory,
       seats,
       bags: n(v?.suitcases?.big ?? v?.baggage ?? v?.bags),
       doors,
@@ -351,6 +362,67 @@ export function useSearchCarRentals(
         currency_code: params.currency ?? "BRL",
       });
       return normalizeCarSearch(envelope);
+    },
+  });
+}
+
+// -------- Detail endpoints (Vehicle · Supplier · Booking Summary) --------
+export function useCarVehicleDetails(
+  searchKey: string | null | undefined,
+  vehicleId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-cars", "vehicleDetails", searchKey, vehicleId],
+    enabled: enabled && !!searchKey && !!vehicleId,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const envelope = await invokeCar<any>("carVehicleDetails", {
+        searchKey,
+        vehicleId,
+      });
+      return (envelope?.data ?? envelope ?? null) as any;
+    },
+  });
+}
+
+export function useCarSupplierDetails(
+  searchKey: string | null | undefined,
+  vehicleId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-cars", "supplierDetails", searchKey, vehicleId],
+    enabled: enabled && !!searchKey && !!vehicleId,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const envelope = await invokeCar<any>("carSupplierDetails", {
+        searchKey,
+        vehicleId,
+      });
+      return (envelope?.data ?? envelope ?? null) as any;
+    },
+  });
+}
+
+export function useCarBookingSummary(
+  searchKey: string | null | undefined,
+  vehicleId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-cars", "bookingSummary", searchKey, vehicleId],
+    enabled: enabled && !!searchKey && !!vehicleId,
+    staleTime: 15 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const envelope = await invokeCar<any>("carBookingSummary", {
+        searchKey,
+        vehicleId,
+      });
+      return (envelope?.data ?? envelope ?? null) as any;
     },
   });
 }

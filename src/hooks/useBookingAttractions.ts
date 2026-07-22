@@ -231,3 +231,64 @@ export function useAttractionAvailabilityCalendar(
     },
   });
 }
+
+// -------- Availability por dia (horários + preços) --------
+export interface AttractionTicketItem {
+  id?: string;
+  label?: string;
+  price?: {
+    chargeAmount?: number;
+    publicAmount?: number;
+    currency?: string;
+  };
+  constraint?: { label?: string; type?: string };
+  ticketsAvailable?: number;
+  minPerReservation?: number;
+  maxPerReservation?: number;
+  cancellationPolicy?: {
+    hasFreeCancellation?: boolean;
+    percentage?: number;
+    period?: string;
+  };
+}
+
+export interface AttractionTimeSlotOffer {
+  id?: string;
+  benefits?: Record<string, boolean | undefined>;
+  languageOptions?: Array<{ label?: string; language?: string; type?: string }>;
+  items?: AttractionTicketItem[];
+  reservationRestrictions?: {
+    adultRequiredForReservation?: boolean;
+    minOfferItemsPerReservation?: number;
+    maxOfferItemsPerReservation?: number;
+  };
+}
+
+export interface AttractionAvailabilitySlot {
+  fullDay?: boolean;
+  start?: string;
+  timeSlotId?: string;
+  timeSlotOffers?: AttractionTimeSlotOffer[];
+}
+
+export function useAttractionAvailability(
+  slug: string | null,
+  date: string | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-attractions", "availability", slug, date],
+    enabled: enabled && !!slug && !!date,
+    staleTime: 15 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const envelope = await invokeAttraction<any>(
+        "getAttractionAvailability",
+        { slug, date },
+      );
+      const d = envelope?.data ?? envelope ?? [];
+      const list: any[] = Array.isArray(d) ? d : Array.isArray(d?.slots) ? d.slots : [];
+      return list as AttractionAvailabilitySlot[];
+    },
+  });
+}

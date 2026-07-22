@@ -36,7 +36,12 @@ import { useUnifiedFlightSearch, type UnifiedSearchInput } from "@/hooks/useUnif
 
 import { GFlightDetailDrawer } from "@/components/google-flights/GFlightDetailDrawer";
 import { FlightDetailDrawer } from "@/components/booking-rapidapi/FlightDetailDrawer";
-import type { SearchGFlightsInput } from "@/hooks/useGoogleFlights";
+import { GFlightPriceInsightBanner } from "@/components/google-flights/GFlightPriceInsightBanner";
+import { GFlightPriceHistoryChart } from "@/components/google-flights/GFlightPriceHistoryChart";
+import { GFlightCalendarHeatmap } from "@/components/google-flights/GFlightCalendarHeatmap";
+import { GFlightPriceTrendChart } from "@/components/google-flights/GFlightPriceTrendChart";
+import { useCalendarPicker, usePriceGraph, type SearchGFlightsInput } from "@/hooks/useGoogleFlights";
+import { ChevronDown } from "lucide-react";
 
 type Cabin = "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
 const CABIN_LABELS: Record<Cabin, string> = {
@@ -58,6 +63,8 @@ export default function UnifiedFlightsSearchPage() {
   const [filters, setFilters] = useState<UnifiedFlightFilters>(DEFAULT_UNIFIED_FILTERS);
   const [snapshot, setSnapshot] = useState<UnifiedSearchInput | null>(null);
   const [selected, setSelected] = useState<UnifiedFlightOffer | null>(null);
+  const [showPriceHistory, setShowPriceHistory] = useState(false);
+  const [showTrends, setShowTrends] = useState(false);
 
   const search = useUnifiedFlightSearch(snapshot, !!snapshot);
 
@@ -103,6 +110,16 @@ export default function UnifiedFlightsSearchPage() {
         trip_type: snapshot.returnDate ? "1" : "2",
       }
     : null;
+
+  const { data: trend = [], isLoading: trendLoading } = usePriceGraph(detailSearchInput, showTrends && !!snapshot);
+  const { data: calendarDays = [], isLoading: calLoading } = useCalendarPicker(detailSearchInput, showTrends && !!snapshot);
+
+  function handleCalendarSelect(dateISO: string) {
+    const d = parseISO(dateISO);
+    if (!isValid(d) || !snapshot) return;
+    setOutboundDate(d);
+    setSnapshot({ ...snapshot, outboundDate: dateISO });
+  }
 
   return (
     <div className="container mx-auto max-w-7xl space-y-5 p-4 md:p-6">
@@ -329,6 +346,55 @@ export default function UnifiedFlightsSearchPage() {
             </Sheet>
           </div>
         </div>
+      )}
+
+      {/* Inteligência de preço · exclusivo Google Flights, só aparece quando existe */}
+      {snapshot && search.priceInsight && (
+        <div className="space-y-3">
+          <GFlightPriceInsightBanner
+            insight={search.priceInsight}
+            tripType={snapshot.returnDate ? "round" : "oneway"}
+            onShowHistory={() => setShowPriceHistory((v) => !v)}
+            showHistory={showPriceHistory}
+          />
+          {showPriceHistory && (
+            <GFlightPriceHistoryChart insight={search.priceInsight} />
+          )}
+        </div>
+      )}
+
+      {/* Calendário e tendência de preço · exclusivo Google Flights */}
+      {snapshot && (
+        <Card className="p-3">
+          <button
+            type="button"
+            onClick={() => setShowTrends((v) => !v)}
+            className="flex items-center justify-between w-full text-sm font-medium hover:text-primary transition"
+          >
+            <span className="inline-flex items-center gap-2">
+              <CalIcon className="h-4 w-4" />
+              {showTrends ? "Ocultar" : "Ver"} calendário e tendência de preços
+              <Badge variant="outline" className="text-[10px]">Google Flights</Badge>
+            </span>
+            <ChevronDown className={cn("h-4 w-4 transition", showTrends && "rotate-180")} />
+          </button>
+          {showTrends && (
+            <div className="grid gap-4 mt-4 lg:grid-cols-2">
+              <GFlightCalendarHeatmap
+                days={calendarDays}
+                isLoading={calLoading}
+                selectedDate={snapshot.outboundDate}
+                onSelectDate={handleCalendarSelect}
+              />
+              <GFlightPriceTrendChart
+                points={trend}
+                isLoading={trendLoading}
+                selectedDate={snapshot.outboundDate}
+                onSelectDate={handleCalendarSelect}
+              />
+            </div>
+          )}
+        </Card>
       )}
 
       {/* Layout · sidebar + resultados */}
