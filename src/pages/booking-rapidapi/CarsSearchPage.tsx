@@ -129,9 +129,9 @@ function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () =
         )}
 
         {vehicle.pickUpAddress && (
-          <div className="text-[11px] text-muted-foreground inline-flex items-start gap-1 line-clamp-2">
+          <div className="text-[11px] text-muted-foreground flex items-start gap-1 min-w-0">
             <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-            <span className="truncate">{vehicle.pickUpAddress}</span>
+            <span className="line-clamp-2 break-words">{vehicle.pickUpAddress}</span>
           </div>
         )}
 
@@ -555,7 +555,7 @@ export default function CarsSearchPage() {
                 {isFetching ? (
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    Buscando veículos...
+                    Buscando veículos…
                   </span>
                 ) : (
                   <>
