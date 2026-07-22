@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { Search, Loader2, Ticket, SlidersHorizontal, AlertCircle } from "lucide-react";
+import { Search, Loader2, Ticket, SlidersHorizontal, AlertCircle, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
