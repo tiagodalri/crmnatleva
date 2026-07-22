@@ -38,8 +38,8 @@ export function AttractionDetailDrawer({ product, open, onOpenChange }: Props) {
     useAttractionDetails(slug, open && !!slug);
   const { data: reviews } = useAttractionReviews(productId, open && !!productId);
   const { data: calendar } = useAttractionAvailabilityCalendar(
-    slug,
-    open && !!slug,
+    productId,
+    open && !!productId,
   );
   const { data: slots, isLoading: loadingSlots } = useAttractionAvailability(
     slug,

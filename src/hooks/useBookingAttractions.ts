@@ -202,18 +202,18 @@ export function useAttractionReviews(id: string | null, enabled = true) {
 }
 
 export function useAttractionAvailabilityCalendar(
-  slug: string | null,
+  id: string | null,
   enabled = true,
 ) {
   return useQuery({
-    queryKey: ["booking-attractions", "calendar", slug],
-    enabled: enabled && !!slug,
+    queryKey: ["booking-attractions", "calendar", id],
+    enabled: enabled && !!id,
     staleTime: 30 * 60 * 1000,
     retry: false,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>(
         "getAttractionAvailabilityCalendar",
-        { slug },
+        { id },
       );
       const d = envelope?.data ?? envelope ?? {};
       const days: any[] = Array.isArray(d?.days)
