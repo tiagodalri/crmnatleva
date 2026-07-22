@@ -1,5 +1,5 @@
 // Hooks para Car Rental V2 (Booking.com via RapidAPI · BETA)
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const FUNCTION_NAME = "booking-rapidapi";
