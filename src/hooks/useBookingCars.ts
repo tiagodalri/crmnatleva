@@ -75,7 +75,7 @@ export function useCarLocationSearch(query: string, enabled = true) {
     retry: false,
     queryFn: async () => {
       const envelope = await invokeCar<any>("carsSearchDestination", {
-        query: trimmed,
+        term: trimmed,
       });
       return normalizeCarLocations(envelope);
     },
