@@ -365,3 +365,64 @@ export function useSearchCarRentals(
     },
   });
 }
+
+// -------- Detail endpoints (Vehicle · Supplier · Booking Summary) --------
+export function useCarVehicleDetails(
+  searchKey: string | null | undefined,
+  vehicleId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-cars", "vehicleDetails", searchKey, vehicleId],
+    enabled: enabled && !!searchKey && !!vehicleId,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const envelope = await invokeCar<any>("carVehicleDetails", {
+        searchKey,
+        vehicleId,
+      });
+      return (envelope?.data ?? envelope ?? null) as any;
+    },
+  });
+}
+
+export function useCarSupplierDetails(
+  searchKey: string | null | undefined,
+  vehicleId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-cars", "supplierDetails", searchKey, vehicleId],
+    enabled: enabled && !!searchKey && !!vehicleId,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const envelope = await invokeCar<any>("carSupplierDetails", {
+        searchKey,
+        vehicleId,
+      });
+      return (envelope?.data ?? envelope ?? null) as any;
+    },
+  });
+}
+
+export function useCarBookingSummary(
+  searchKey: string | null | undefined,
+  vehicleId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-cars", "bookingSummary", searchKey, vehicleId],
+    enabled: enabled && !!searchKey && !!vehicleId,
+    staleTime: 15 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const envelope = await invokeCar<any>("carBookingSummary", {
+        searchKey,
+        vehicleId,
+      });
+      return (envelope?.data ?? envelope ?? null) as any;
+    },
+  });
+}
