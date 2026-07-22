@@ -180,6 +180,11 @@ export default function Buscador() {
             <BookingSearchPage />
           </Suspense>
         )}
+        {secao === "ingressos" && (
+          <Suspense fallback={<div className="p-6"><LoadingState /></div>}>
+            <AttractionsSearchPage />
+          </Suspense>
+        )}
         {secao === "aereo-hotel" && (
           <ComingSoon
             title="Aéreo + Hotel"
