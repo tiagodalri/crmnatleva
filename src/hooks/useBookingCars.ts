@@ -125,6 +125,46 @@ function n(v: any): number | undefined {
   return Number.isFinite(x) ? x : undefined;
 }
 
+function parsePriceString(s?: string): { value?: number; currency?: string } {
+  if (!s || typeof s !== "string") return {};
+  // Ex: "$73", "R$ 1.234,50", "€1,234.50"
+  const symbolMap: Record<string, string> = {
+    $: "USD",
+    "R$": "BRL",
+    "€": "EUR",
+    "£": "GBP",
+  };
+  let currency: string | undefined;
+  for (const [sym, code] of Object.entries(symbolMap)) {
+    if (s.includes(sym)) {
+      currency = code;
+      break;
+    }
+  }
+  const cleaned = s.replace(/[^0-9.,]/g, "");
+  if (!cleaned) return { currency };
+  // If both . and , present, assume the last one is decimal separator
+  let num: number;
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    const lastDot = cleaned.lastIndexOf(".");
+    const lastComma = cleaned.lastIndexOf(",");
+    if (lastComma > lastDot) {
+      num = Number(cleaned.replace(/\./g, "").replace(",", "."));
+    } else {
+      num = Number(cleaned.replace(/,/g, ""));
+    }
+  } else if (cleaned.includes(",")) {
+    // 1,234 → treat as thousands if 3 digits after; else decimal
+    const parts = cleaned.split(",");
+    num = parts[parts.length - 1].length === 3
+      ? Number(cleaned.replace(/,/g, ""))
+      : Number(cleaned.replace(",", "."));
+  } else {
+    num = Number(cleaned);
+  }
+  return { value: Number.isFinite(num) ? num : undefined, currency };
+}
+
 function normalizeCarSearch(raw: any): {
   vehicles: CarVehicle[];
   searchKey?: string;
@@ -134,7 +174,13 @@ function normalizeCarSearch(raw: any): {
   const d = raw?.data ?? raw ?? {};
   const searchKey =
     d?.search_key ?? d?.searchKey ?? raw?.search_key ?? raw?.searchKey;
-  const list: any[] = Array.isArray(d?.search_results)
+
+  // Booking-com15 V2 novo shape: content.items[type=CAR_CARD]
+  const contentItems: any[] = Array.isArray(d?.content?.items) ? d.content.items : [];
+  const carCards = contentItems.filter((i) => i?.type === "CAR_CARD");
+
+  // Legacy shapes (fallback defensivo)
+  const legacyList: any[] = Array.isArray(d?.search_results)
     ? d.search_results
     : Array.isArray(d?.vehicles)
       ? d.vehicles
@@ -142,44 +188,122 @@ function normalizeCarSearch(raw: any): {
         ? d.results
         : [];
 
+  const list = carCards.length > 0 ? carCards : legacyList;
+
   const vehicles = list.map((it: any): CarVehicle => {
-    const v = it?.vehicle_info ?? it?.vehicle ?? it;
-    const p = it?.pricing_info ?? it?.price ?? {};
-    const s = it?.supplier_info ?? it?.supplier ?? {};
-    const r = it?.rating_info ?? {};
+    // Novo shape (CAR_CARD): dados sob it.content
+    const c = it?.content ?? it;
+    const isNew = it?.type === "CAR_CARD";
+    const v = c?.vehicle_info ?? c?.vehicle ?? c;
+    const p = c?.pricing_info ?? c?.pricing ?? c?.price ?? {};
+    const s = c?.supplier_info ?? c?.supplier ?? {};
+    const r = c?.rating_info ?? s?.rating ?? {};
+
+    // Vehicle id
+    const vehicleId =
+      c?.metadata?.vehicleId ?? it?.vehicle_id ?? v?.id ?? crypto.randomUUID();
+
+    // Specs (ex: "5 seats | 4 doors")
+    let seats: number | undefined;
+    let doors: number | undefined;
+    if (typeof c?.specs === "string") {
+      const seatMatch = c.specs.match(/(\d+)\s*seat/i);
+      const doorMatch = c.specs.match(/(\d+)\s*door/i);
+      if (seatMatch) seats = Number(seatMatch[1]);
+      if (doorMatch) doors = Number(doorMatch[1]);
+    }
+    if (seats === undefined) seats = n(v?.seats);
+    if (doors === undefined) doors = n(v?.doors);
+
+    // Transmission via vehicleSpecs icon
+    let transmission: string | undefined;
+    if (Array.isArray(c?.vehicleSpecs)) {
+      const t = c.vehicleSpecs.find((x: any) =>
+        String(x?.icon ?? "").startsWith("TRANSMISSION_"),
+      );
+      if (t) transmission = t.text ?? t.accessibility;
+    }
+    if (!transmission) transmission = v?.transmission;
+
+    // Free cancellation via badges
+    let freeCancellation = false;
+    if (Array.isArray(c?.badges)) {
+      freeCancellation = c.badges.some((b: any) =>
+        String(b?.id ?? "").includes("free-cancellation") ||
+        /free\s*cancellation/i.test(String(b?.text ?? "")),
+      );
+    }
+    if (!freeCancellation) {
+      freeCancellation = Boolean(
+        it?.freebies?.free_cancellation ?? p?.free_cancellation,
+      );
+    }
+
+    // Pricing
+    const priceStr =
+      c?.pricing?.finalPriceDisplay ?? c?.pricing?.finalPrice ?? undefined;
+    const parsedPrice = parsePriceString(priceStr);
+    const totalPrice = parsedPrice.value ?? n(p?.drive_away_price ?? p?.price ?? p?.total);
+    const currency =
+      parsedPrice.currency ?? p?.currency ?? p?.base_currency ?? "BRL";
+
     return {
-      id: String(it?.vehicle_id ?? v?.id ?? crypto.randomUUID()),
+      id: String(vehicleId),
       searchKey: it?.search_key ?? searchKey,
-      name: v?.v_name ?? v?.name ?? v?.group,
-      category: v?.group ?? v?.car_class ?? v?.category,
-      transmission: v?.transmission,
-      seats: n(v?.seats),
+      name: isNew ? c?.title : (v?.v_name ?? v?.name ?? v?.group),
+      category: isNew ? c?.subtitle : (v?.group ?? v?.car_class ?? v?.category),
+      transmission,
+      seats,
       bags: n(v?.suitcases?.big ?? v?.baggage ?? v?.bags),
-      doors: n(v?.doors),
+      doors,
       airConditioning: Boolean(v?.airconditioning ?? v?.air_conditioning),
-      image: v?.image_url ?? v?.image ?? v?.pictureUrl,
+      image: isNew
+        ? c?.imageUrl
+        : (v?.image_url ?? v?.image ?? v?.pictureUrl),
       supplier: {
         name: s?.name,
-        logo: s?.logo_url ?? s?.logo,
-        rating: n(r?.average ?? s?.rating),
-        reviewsCount: n(r?.no_of_ratings ?? s?.reviewsCount),
+        logo: s?.logoUrl ?? s?.logo_url ?? s?.logo,
+        rating: n(r?.score ?? r?.average ?? s?.rating),
+        reviewsCount: (() => {
+          const txt = r?.reviewCountText;
+          if (typeof txt === "string") {
+            const m = txt.match(/(\d[\d.,]*)/);
+            if (m) return Number(m[1].replace(/[.,]/g, ""));
+          }
+          return n(r?.no_of_ratings ?? s?.reviewsCount);
+        })(),
       },
       pricePerDay: n(p?.price_per_day ?? p?.dailyPrice),
-      totalPrice: n(p?.drive_away_price ?? p?.price ?? p?.total),
-      currency: p?.currency ?? p?.base_currency ?? "BRL",
-      freeCancellation: Boolean(
-        it?.freebies?.free_cancellation ?? p?.free_cancellation,
-      ),
-      pickUpAddress: it?.route_info?.pickup?.address ?? it?.pickup?.address,
+      totalPrice,
+      currency,
+      freeCancellation,
+      pickUpAddress:
+        c?.location?.pickup?.location ??
+        it?.route_info?.pickup?.address ??
+        it?.pickup?.address,
       distanceFromLocation:
-        it?.route_info?.pickup?.distance ?? it?.pickup?.distance,
+        c?.location?.pickup?.detail ??
+        it?.route_info?.pickup?.distance ??
+        it?.pickup?.distance,
     };
   });
+
+  // Total: prefere "1047 results" do RESULTS_COUNT
+  let totalCount: number | undefined = d?.count ?? d?.totalCount;
+  if (!totalCount || totalCount === 0) {
+    const rc = contentItems.find((i) => i?.type === "RESULTS_COUNT");
+    const label = rc?.content?.label;
+    if (typeof label === "string") {
+      const m = label.match(/(\d[\d.,]*)/);
+      if (m) totalCount = Number(m[1].replace(/[.,]/g, ""));
+    }
+  }
+  if (!totalCount) totalCount = vehicles.length;
 
   return {
     vehicles,
     searchKey: searchKey ? String(searchKey) : undefined,
-    totalCount: d?.count ?? d?.totalCount ?? vehicles.length,
+    totalCount,
     cache_hit: raw?.__cache === true,
   };
 }
