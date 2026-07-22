@@ -1,0 +1,215 @@
+// Hooks para Attractions/Ingressos (Booking.com via RapidAPI · BETA)
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type {
+  AttractionDetails,
+  AttractionLocation,
+  AttractionProduct,
+  AttractionReview,
+  AttractionSearchResult,
+} from "@/components/booking-rapidapi/attractionTypes";
+
+const FUNCTION_NAME = "booking-rapidapi";
+
+async function invokeAttraction<T = unknown>(
+  action: string,
+  params: Record<string, unknown> = {},
+): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
+    body: { action, ...params },
+  });
+  if (error) throw new Error(error.message || "Erro desconhecido");
+  if (data?.error) {
+    const details =
+      typeof data.details === "object"
+        ? JSON.stringify(data.details)
+        : data.details ?? "";
+    throw new Error(`${data.error}${details ? ` · ${details}` : ""}`);
+  }
+  return data as T;
+}
+
+/**
+ * Normaliza a resposta variável do endpoint searchLocation em uma lista plana.
+ * A API às vezes retorna { data: { destinations: [], products: [] } } ou array direto.
+ */
+function normalizeLocations(raw: any): AttractionLocation[] {
+  if (!raw) return [];
+  const d = raw.data ?? raw;
+  const pool: any[] = Array.isArray(d)
+    ? d
+    : Array.isArray(d?.products)
+      ? d.products
+      : Array.isArray(d?.destinations)
+        ? d.destinations
+        : Array.isArray(d?.results)
+          ? d.results
+          : [];
+
+  return pool
+    .map((it: any): AttractionLocation | null => {
+      const id = it?.id ?? it?.destId ?? it?.cityUfi ?? it?.ufi;
+      if (id === undefined || id === null) return null;
+      const cityName = it?.cityName ?? it?.name ?? it?.b_name ?? it?.label;
+      const country = it?.country ?? it?.countryName ?? it?.cc1;
+      const label = [cityName, country].filter(Boolean).join(", ") || String(id);
+      return {
+        id: String(id),
+        cityUfi: it?.cityUfi ?? it?.ufi,
+        cityName,
+        country,
+        productCount: it?.productCount ?? it?.nrHotels ?? it?.count,
+        productType: it?.productType ?? it?.type ?? it?.destType,
+        label,
+      };
+    })
+    .filter((v): v is AttractionLocation => v !== null);
+}
+
+export function useAttractionLocationSearch(query: string, enabled = true) {
+  const trimmed = query.trim();
+  return useQuery({
+    queryKey: ["booking-attractions", "location", trimmed],
+    enabled: enabled && trimmed.length >= 2,
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const envelope = await invokeAttraction<any>("searchAttractionLocation", {
+        query: trimmed,
+      });
+      return normalizeLocations(envelope);
+    },
+  });
+}
+
+function normalizeSearch(raw: any): AttractionSearchResult {
+  const d = raw?.data ?? raw ?? {};
+  const products: any[] = Array.isArray(d?.products)
+    ? d.products
+    : Array.isArray(d?.searchProducts)
+      ? d.searchProducts
+      : Array.isArray(d?.results)
+        ? d.results
+        : Array.isArray(d)
+          ? d
+          : [];
+  return {
+    products: products.map((p: any): AttractionProduct => ({
+      id: String(p?.id ?? p?.productId ?? p?.slug ?? crypto.randomUUID()),
+      slug: p?.slug ?? p?.productSlug,
+      name: p?.name ?? p?.title ?? p?.productName,
+      shortDescription: p?.shortDescription ?? p?.description,
+      primaryPhoto: p?.primaryPhoto ?? p?.photo ?? p?.image,
+      reviewsStats: p?.reviewsStats ?? p?.reviews,
+      representativePrice: p?.representativePrice ?? p?.price ?? p?.priceInfo,
+      taxonomySlug: p?.taxonomySlug ?? p?.category,
+      ufiDetails: p?.ufiDetails,
+      cancellationPolicy: p?.cancellationPolicy,
+      typicalDurationFormatted:
+        p?.typicalDurationFormatted ?? p?.duration ?? p?.durationText,
+      isBookable: p?.isBookable,
+    })),
+    totalCount: d?.pagination?.totalCount ?? d?.totalCount ?? products.length,
+    cache_hit: raw?.__cache === true,
+  };
+}
+
+export interface AttractionSearchParams {
+  id: string;
+  page?: number;
+  sortBy?: string;
+  startDate?: string;
+  endDate?: string;
+  currency_code?: string;
+  languagecode?: string;
+}
+
+export function useSearchAttractions(
+  params: AttractionSearchParams | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-attractions", "search", params],
+    enabled: enabled && !!params?.id,
+    staleTime: 30 * 60 * 1000,
+    queryFn: async () => {
+      if (!params) throw new Error("Params inválidos");
+      const envelope = await invokeAttraction<any>("searchAttractions", {
+        id: params.id,
+        sortBy: params.sortBy ?? "trending",
+        page: params.page ?? 1,
+        startDate: params.startDate,
+        endDate: params.endDate,
+        currency_code: params.currency_code ?? "BRL",
+        languagecode: params.languagecode ?? "pt-br",
+      });
+      return normalizeSearch(envelope);
+    },
+  });
+}
+
+export function useAttractionDetails(slug: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["booking-attractions", "details", slug],
+    enabled: enabled && !!slug,
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const envelope = await invokeAttraction<any>("getAttractionDetails", {
+        slug,
+      });
+      const d = envelope?.data ?? envelope;
+      return (d ?? null) as AttractionDetails | null;
+    },
+  });
+}
+
+export function useAttractionReviews(slug: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["booking-attractions", "reviews", slug],
+    enabled: enabled && !!slug,
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const envelope = await invokeAttraction<any>("getAttractionReviews", {
+        slug,
+      });
+      const d = envelope?.data ?? envelope ?? {};
+      const list: any[] = Array.isArray(d?.reviews)
+        ? d.reviews
+        : Array.isArray(d?.items)
+          ? d.items
+          : Array.isArray(d)
+            ? d
+            : [];
+      return list as AttractionReview[];
+    },
+  });
+}
+
+export function useAttractionAvailabilityCalendar(
+  slug: string | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["booking-attractions", "calendar", slug],
+    enabled: enabled && !!slug,
+    staleTime: 30 * 60 * 1000,
+    queryFn: async () => {
+      const envelope = await invokeAttraction<any>(
+        "getAttractionAvailabilityCalendar",
+        { slug },
+      );
+      const d = envelope?.data ?? envelope ?? {};
+      const days: any[] = Array.isArray(d?.days)
+        ? d.days
+        : Array.isArray(d?.calendar)
+          ? d.calendar
+          : Array.isArray(d)
+            ? d
+            : [];
+      return days.map((x: any) => ({
+        date: String(x?.date ?? ""),
+        available: x?.available !== false,
+        price: x?.price,
+      }));
+    },
+  });
+}
