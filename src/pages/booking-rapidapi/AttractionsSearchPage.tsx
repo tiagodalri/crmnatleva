@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { Search, Loader2, Ticket, SlidersHorizontal, AlertCircle } from "lucide-react";
+import { Search, Loader2, Ticket, SlidersHorizontal, AlertCircle, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -48,12 +54,15 @@ function SkeletonGrid() {
 
 export default function AttractionsSearchPage() {
   const [destination, setDestination] = useState<AttractionLocation | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [sortBy, setSortBy] = useState("trending");
   const [page, setPage] = useState(1);
   const [committed, setCommitted] = useState<{
     id: string;
     sortBy: string;
     page: number;
+    startDate?: string;
+    endDate?: string;
   } | null>(null);
   const [selected, setSelected] = useState<AttractionProduct | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -64,26 +73,39 @@ export default function AttractionsSearchPage() {
           id: committed.id,
           sortBy: committed.sortBy,
           page: committed.page,
+          startDate: committed.startDate,
+          endDate: committed.endDate,
         }
       : null,
     !!committed,
   );
 
+  const buildDates = () => ({
+    startDate: dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+    endDate: dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+  });
+
   const handleSearch = () => {
     if (!destination) return;
     setPage(1);
-    setCommitted({ id: destination.id, sortBy, page: 1 });
+    setCommitted({ id: destination.id, sortBy, page: 1, ...buildDates() });
   };
 
   const handleSort = (value: string) => {
     setSortBy(value);
     if (destination) {
       setPage(1);
-      setCommitted({ id: destination.id, sortBy: value, page: 1 });
+      setCommitted({ id: destination.id, sortBy: value, page: 1, ...buildDates() });
     }
   };
 
   const products = data?.products ?? [];
+
+  const dateLabel = dateRange?.from
+    ? dateRange.to
+      ? `${format(dateRange.from, "dd MMM", { locale: ptBR })} · ${format(dateRange.to, "dd MMM", { locale: ptBR })}`
+      : format(dateRange.from, "dd MMM yyyy", { locale: ptBR })
+    : "Datas (opcional)";
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-4 sm:py-6 space-y-4">
@@ -95,7 +117,7 @@ export default function AttractionsSearchPage() {
           </div>
           <div className="flex-1">
             <h2 className="text-sm font-semibold flex items-center gap-2">
-              Ingressos e Atrações <BetaBadge />
+              Ingressos e Passeios <BetaBadge />
             </h2>
             <p className="text-xs text-muted-foreground">
               Tours, ingressos e experiências pelo mundo · fonte Booking.com
@@ -103,13 +125,53 @@ export default function AttractionsSearchPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Destino ou atração</Label>
             <AttractionDestinationAutocomplete
               value={destination}
               onChange={setDestination}
             />
+          </div>
+          <div className="space-y-1.5 md:min-w-[260px]">
+            <Label className="text-xs">Período</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "h-11 w-full justify-start text-left font-normal gap-2",
+                    !dateRange?.from && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                  {dateLabel}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  disabled={{ before: new Date() }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                {dateRange?.from && (
+                  <div className="flex justify-end p-2 border-t">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setDateRange(undefined)}
+                    >
+                      Limpar
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="flex items-end">
             <Button

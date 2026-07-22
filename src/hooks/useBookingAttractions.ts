@@ -85,6 +85,7 @@ export function useAttractionLocationSearch(query: string, enabled = true) {
     queryKey: ["booking-attractions", "location", trimmed],
     enabled: enabled && trimmed.length >= 2,
     staleTime: 60 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>("searchAttractionLocation", {
         query: trimmed,
@@ -144,6 +145,7 @@ export function useSearchAttractions(
     queryKey: ["booking-attractions", "search", params],
     enabled: enabled && !!params?.id,
     staleTime: 30 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       if (!params) throw new Error("Params inválidos");
       const envelope = await invokeAttraction<any>("searchAttractions", {
@@ -165,6 +167,7 @@ export function useAttractionDetails(slug: string | null, enabled = true) {
     queryKey: ["booking-attractions", "details", slug],
     enabled: enabled && !!slug,
     staleTime: 60 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>("getAttractionDetails", {
         slug,
@@ -180,6 +183,7 @@ export function useAttractionReviews(id: string | null, enabled = true) {
     queryKey: ["booking-attractions", "reviews", id],
     enabled: enabled && !!id,
     staleTime: 60 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>("getAttractionReviews", {
         id,
@@ -205,6 +209,7 @@ export function useAttractionAvailabilityCalendar(
     queryKey: ["booking-attractions", "calendar", slug],
     enabled: enabled && !!slug,
     staleTime: 30 * 60 * 1000,
+    retry: false,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>(
         "getAttractionAvailabilityCalendar",
