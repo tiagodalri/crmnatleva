@@ -3,7 +3,7 @@ import { format, addDays } from "date-fns";
 import {
   Search,
   Sparkles,
-  Info,
+  
   Cloud,
   SlidersHorizontal,
   Layers,
