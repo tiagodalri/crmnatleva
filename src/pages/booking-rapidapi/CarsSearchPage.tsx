@@ -458,11 +458,64 @@ export default function CarsSearchPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all" className="text-xs">Todas</SelectItem>
-                    <SelectItem value="automatic" className="text-xs">Automática</SelectItem>
-                    <SelectItem value="manual" className="text-xs">Manual</SelectItem>
+                    {transmissionOptions.length > 0
+                      ? transmissionOptions.map((o) => (
+                          <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                        ))
+                      : (
+                        <>
+                          <SelectItem value="automatic" className="text-xs">Automática</SelectItem>
+                          <SelectItem value="manual" className="text-xs">Manual</SelectItem>
+                        </>
+                      )}
                   </SelectContent>
                 </Select>
               </div>
+
+              {categoryOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">Categoria</Label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">Todas</SelectItem>
+                      {categoryOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {fuelOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">Combustível</Label>
+                  <Select value={fuelFilter} onValueChange={setFuelFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                      {fuelOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {seatOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">Assentos</Label>
+                  <Select value={seatFilter} onValueChange={setSeatFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">Todos</SelectItem>
+                      {seatOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <Checkbox
