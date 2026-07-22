@@ -219,13 +219,20 @@ function normalizeCarSearch(raw: any): {
 
     // Transmission via vehicleSpecs icon
     let transmission: string | undefined;
+    let fuelType: string | undefined;
+    let seatCategory: string | undefined;
     if (Array.isArray(c?.vehicleSpecs)) {
-      const t = c.vehicleSpecs.find((x: any) =>
-        String(x?.icon ?? "").startsWith("TRANSMISSION_"),
-      );
-      if (t) transmission = t.text ?? t.accessibility;
+      for (const x of c.vehicleSpecs) {
+        const icon = String(x?.icon ?? "");
+        const text = x?.text ?? x?.accessibility;
+        if (!text) continue;
+        if (icon.startsWith("TRANSMISSION_") && !transmission) transmission = text;
+        else if ((icon.startsWith("FUEL_") || icon.includes("FUEL")) && !fuelType) fuelType = text;
+        else if ((icon.startsWith("PASSENGERS_") || icon.startsWith("SEAT")) && !seatCategory) seatCategory = text;
+      }
     }
     if (!transmission) transmission = v?.transmission;
+    if (!fuelType) fuelType = v?.fuel_type ?? v?.fuelType;
 
     // Free cancellation via badges
     let freeCancellation = false;
