@@ -53,6 +53,13 @@ const CACHE_TTL: Record<string, number> = {
   getSeatMap: 60 * 60 * 24,                     // 1 dia
   getCurrency: 60 * 60 * 24 * 30,       // 30 dias
   getLanguages: 60 * 60 * 24 * 30,      // 30 dias
+  // ---- Attractions / Ingressos ----
+  searchAttractionLocation: 60 * 60 * 24 * 7,       // 7 dias
+  searchAttractions: 60 * 60,                       // 1h
+  getAttractionAvailabilityCalendar: 60 * 60,       // 1h
+  getAttractionAvailability: 60 * 30,               // 30min
+  getAttractionDetails: 60 * 60 * 24,               // 1 dia
+  getAttractionReviews: 60 * 60 * 24,               // 1 dia
 };
 
 const ACTION_ENDPOINTS: Record<string, string> = {
@@ -103,6 +110,13 @@ const ACTION_ENDPOINTS: Record<string, string> = {
   getSeatMap: "/api/v1/flights/getSeatMap",
   getCurrency: "/api/v1/meta/getCurrency",
   getLanguages: "/api/v1/meta/getLanguages",
+  // ---- Attractions / Ingressos ----
+  searchAttractionLocation: "/api/v1/attraction/searchLocation",
+  searchAttractions: "/api/v1/attraction/searchAttractions",
+  getAttractionAvailabilityCalendar: "/api/v1/attraction/getAvailabilityCalendar",
+  getAttractionAvailability: "/api/v1/attraction/getAvailability",
+  getAttractionDetails: "/api/v1/attraction/getDetails",
+  getAttractionReviews: "/api/v1/attraction/getReviews",
 };
 
 function getSupabaseAdmin() {
@@ -593,6 +607,63 @@ function buildParams(
     case "getCurrency":
     case "getLanguages":
       return {};
+
+    // ============================================================
+    // Attractions / Ingressos (booking-com15 · /api/v1/attraction/*)
+    // ============================================================
+    case "searchAttractionLocation": {
+      assertParams(input, ["query"]);
+      return {
+        query: String(input.query),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "searchAttractions": {
+      assertParams(input, ["id"]);
+      const p: Record<string, string> = {
+        id: String(input.id),
+        sortBy: String(input.sortBy ?? "trending"),
+        page: String(input.page ?? 1),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+      if (input.startDate) p.startDate = String(input.startDate);
+      if (input.endDate) p.endDate = String(input.endDate);
+      return p;
+    }
+    case "getAttractionAvailabilityCalendar": {
+      assertParams(input, ["slug"]);
+      return {
+        slug: String(input.slug),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "getAttractionAvailability": {
+      assertParams(input, ["slug", "date"]);
+      return {
+        slug: String(input.slug),
+        date: String(input.date),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "getAttractionDetails": {
+      assertParams(input, ["slug"]);
+      return {
+        slug: String(input.slug),
+        currency_code: String(input.currency_code ?? defaults.currency_code),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
+    case "getAttractionReviews": {
+      assertParams(input, ["slug"]);
+      return {
+        slug: String(input.slug),
+        page: String(input.page ?? 1),
+        languagecode: String(input.languagecode ?? defaults.locale),
+      };
+    }
     default:
       throw new Error(`Ação desconhecida: ${action}`);
   }
