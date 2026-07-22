@@ -63,6 +63,8 @@ export default function UnifiedFlightsSearchPage() {
   const [filters, setFilters] = useState<UnifiedFlightFilters>(DEFAULT_UNIFIED_FILTERS);
   const [snapshot, setSnapshot] = useState<UnifiedSearchInput | null>(null);
   const [selected, setSelected] = useState<UnifiedFlightOffer | null>(null);
+  const [showPriceHistory, setShowPriceHistory] = useState(false);
+  const [showTrends, setShowTrends] = useState(false);
 
   const search = useUnifiedFlightSearch(snapshot, !!snapshot);
 
