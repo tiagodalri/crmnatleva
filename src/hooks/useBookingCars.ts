@@ -106,6 +106,8 @@ export interface CarVehicle {
   name?: string;
   category?: string;
   transmission?: string;
+  fuelType?: string;
+  seatCategory?: string;
   seats?: number;
   bags?: number;
   doors?: number;
