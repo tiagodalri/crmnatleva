@@ -214,9 +214,9 @@ export default function UnifiedFlightsSearchPage() {
           1280px) pra tudo caber numa linha só. Evita o colapso do autocomplete
           entre 1024–1279px que gerava o campo "espremido" com o X cortado.
         */}
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1 flex-1 min-w-[220px] basis-full md:basis-[260px]">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-1.5 flex-1 min-w-[220px] basis-full md:basis-[260px]">
+            <Label className="text-xs text-muted-foreground">
               Origem
             </Label>
             <GFlightAirportAutocomplete
@@ -241,8 +241,8 @@ export default function UnifiedFlightsSearchPage() {
             </Button>
           </div>
 
-          <div className="space-y-1 flex-1 min-w-[220px] basis-full md:basis-[260px]">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="space-y-1.5 flex-1 min-w-[220px] basis-full md:basis-[260px]">
+            <Label className="text-xs text-muted-foreground">
               Destino
             </Label>
             <GFlightAirportAutocomplete
@@ -253,8 +253,8 @@ export default function UnifiedFlightsSearchPage() {
             />
           </div>
 
-          <div className="space-y-1 basis-full sm:basis-[150px] sm:flex-none">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="space-y-1.5 basis-full sm:basis-[150px] sm:flex-none">
+            <Label className="text-xs text-muted-foreground">
               Ida
             </Label>
             <Popover>
@@ -279,8 +279,8 @@ export default function UnifiedFlightsSearchPage() {
           </div>
 
           {tripMode === "round" && (
-            <div className="space-y-1 basis-full sm:basis-[150px] sm:flex-none">
-              <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="space-y-1.5 basis-full sm:basis-[150px] sm:flex-none">
+              <Label className="text-xs text-muted-foreground">
                 Volta
               </Label>
               <Popover>
@@ -305,8 +305,8 @@ export default function UnifiedFlightsSearchPage() {
             </div>
           )}
 
-          <div className="space-y-1 basis-full sm:basis-auto sm:flex-none">
-            <Label className="hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground opacity-0">
+          <div className="space-y-1.5 basis-full sm:basis-auto sm:flex-none">
+            <Label className="hidden sm:block text-xs text-muted-foreground opacity-0">
               Buscar
             </Label>
             <Button
