@@ -36,7 +36,12 @@ import { useUnifiedFlightSearch, type UnifiedSearchInput } from "@/hooks/useUnif
 
 import { GFlightDetailDrawer } from "@/components/google-flights/GFlightDetailDrawer";
 import { FlightDetailDrawer } from "@/components/booking-rapidapi/FlightDetailDrawer";
-import type { SearchGFlightsInput } from "@/hooks/useGoogleFlights";
+import { GFlightPriceInsightBanner } from "@/components/google-flights/GFlightPriceInsightBanner";
+import { GFlightPriceHistoryChart } from "@/components/google-flights/GFlightPriceHistoryChart";
+import { GFlightCalendarHeatmap } from "@/components/google-flights/GFlightCalendarHeatmap";
+import { GFlightPriceTrendChart } from "@/components/google-flights/GFlightPriceTrendChart";
+import { useCalendarPicker, usePriceGraph, type SearchGFlightsInput } from "@/hooks/useGoogleFlights";
+import { ChevronDown } from "lucide-react";
 
 type Cabin = "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
 const CABIN_LABELS: Record<Cabin, string> = {
