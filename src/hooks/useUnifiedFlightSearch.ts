@@ -30,13 +30,14 @@ export interface UnifiedSearchResult {
   offers: UnifiedFlightOffer[];
   googleCount: number;
   bookingCount: number;
-  isLoading: boolean;                // true se ALGUMA fonte está carregando
-  isAllLoading: boolean;             // true se AS DUAS estão carregando
+  isLoading: boolean;
+  isAllLoading: boolean;
   googleLoading: boolean;
   bookingLoading: boolean;
   googleError: Error | null;
   bookingError: Error | null;
   hasAny: boolean;
+  priceInsight: GPriceInsight | null;
   refetchGoogle: () => void;
   refetchBooking: () => void;
 }
