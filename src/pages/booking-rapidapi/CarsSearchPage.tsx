@@ -33,6 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { BetaBadge } from "@/components/booking-rapidapi/BetaBadge";
 import { CarLocationAutocomplete } from "@/components/booking-rapidapi/CarLocationAutocomplete";
+import { CarDetailDrawer } from "@/components/booking-rapidapi/CarDetailDrawer";
 import {
   useSearchCarRentals,
   type CarLocation,
