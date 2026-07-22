@@ -175,14 +175,14 @@ export function useAttractionDetails(slug: string | null, enabled = true) {
   });
 }
 
-export function useAttractionReviews(slug: string | null, enabled = true) {
+export function useAttractionReviews(id: string | null, enabled = true) {
   return useQuery({
-    queryKey: ["booking-attractions", "reviews", slug],
-    enabled: enabled && !!slug,
+    queryKey: ["booking-attractions", "reviews", id],
+    enabled: enabled && !!id,
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
       const envelope = await invokeAttraction<any>("getAttractionReviews", {
-        slug,
+        id,
       });
       const d = envelope?.data ?? envelope ?? {};
       const list: any[] = Array.isArray(d?.reviews)
