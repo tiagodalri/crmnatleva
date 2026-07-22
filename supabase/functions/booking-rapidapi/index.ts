@@ -690,37 +690,63 @@ function buildParams(
       assertParams(input, [
         "pick_up_latitude",
         "pick_up_longitude",
-        "drop_off_latitude",
-        "drop_off_longitude",
         "pick_up_date",
         "pick_up_time",
         "drop_off_date",
         "drop_off_time",
       ]);
-      return {
+      const p: Record<string, string> = {
         pick_up_latitude: String(input.pick_up_latitude),
         pick_up_longitude: String(input.pick_up_longitude),
-        drop_off_latitude: String(input.drop_off_latitude),
-        drop_off_longitude: String(input.drop_off_longitude),
         pick_up_date: String(input.pick_up_date),
-        pick_up_time: String(input.pick_up_time ?? "10:00"),
+        pick_up_time: String(input.pick_up_time),
         drop_off_date: String(input.drop_off_date),
-        drop_off_time: String(input.drop_off_time ?? "10:00"),
-        driver_age: String(input.driver_age ?? 30),
-        currency_code: String(input.currency_code ?? defaults.currency_code),
-        location: String(input.location ?? "BR"),
+        drop_off_time: String(input.drop_off_time),
       };
+      const optional = [
+        "drop_off_latitude",
+        "drop_off_longitude",
+        "driver_age",
+        "pick_up_location_name",
+        "drop_off_location_name",
+        "pick_up_is_point_of_interest",
+        "countryOfResidence",
+        "depotLocationType",
+        "carCategory",
+        "provisionalExtraType",
+        "supplier",
+        "pricePerDayBuckets",
+        "depositBuckets",
+        "seatCategories",
+        "fuelType",
+      ];
+      for (const k of optional) {
+        if (input[k] !== undefined && input[k] !== null && input[k] !== "") {
+          p[k] = String(input[k]);
+        }
+      }
+      return p;
     }
     case "carVehicleDetails":
     case "carSupplierDetails":
     case "carBookingSummary": {
-      assertParams(input, ["vehicle_id", "search_key"]);
-      return {
-        vehicle_id: String(input.vehicle_id),
-        search_key: String(input.search_key),
-        currency_code: String(input.currency_code ?? defaults.currency_code),
-        units: String(input.units ?? "metric"),
+      const searchKey = input.searchKey ?? input.search_key;
+      const vehicleId = input.vehicleId ?? input.vehicle_id;
+      assertParams({ searchKey, vehicleId }, ["searchKey", "vehicleId"]);
+      const p: Record<string, string> = {
+        searchKey: String(searchKey),
+        vehicleId: String(vehicleId),
       };
+      if (action === "carSupplierDetails" && input.tab) {
+        p.tab = String(input.tab);
+      }
+      if (
+        (action === "carSupplierDetails" || action === "carBookingSummary") &&
+        input.countryOfResidence
+      ) {
+        p.countryOfResidence = String(input.countryOfResidence);
+      }
+      return p;
     }
 
     default:
