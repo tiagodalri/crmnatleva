@@ -17,15 +17,14 @@ const AttractionsSearchPage = lazy(() => import("@/pages/booking-rapidapi/Attrac
 
 // IMPORTANTE · usamos `secao` (não `tab`) pra não conflitar com o ?tab=
 // interno do Google Flights (list/calendar/discover) e demais filhos.
-type Secao = "aereo" | "aereo-hotel" | "hotel" | "ingressos" | "passeios" | "carros" | "pacotes";
+type Secao = "aereo" | "aereo-hotel" | "hotel" | "ingressos" | "carros" | "pacotes";
 
 const SECOES: { key: Secao; label: string; icon: typeof Plane; available: boolean }[] = [
   { key: "aereo", label: "Aéreo", icon: Plane, available: true },
   { key: "aereo-hotel", label: "Aéreo + Hotel", icon: PlaneTakeoff, available: false },
   { key: "hotel", label: "Hotel", icon: Hotel, available: true },
-  { key: "ingressos", label: "Ingressos", icon: Ticket, available: true },
-  { key: "passeios", label: "Passeios", icon: MapIcon, available: false },
-  { key: "carros", label: "Carros", icon: Car, available: false },
+  { key: "ingressos", label: "Ingressos e Passeios", icon: Ticket, available: true },
+  { key: "carros", label: "Carros", icon: Car, available: true },
   { key: "pacotes", label: "Pacotes", icon: Package, available: false },
 ];
 
