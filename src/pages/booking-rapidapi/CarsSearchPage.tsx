@@ -136,11 +136,21 @@ function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () =
         )}
 
         <div className="mt-auto pt-2 flex items-end justify-between gap-2 border-t">
-          <div className="text-xs text-muted-foreground min-w-0 truncate">
-            {vehicle.supplier?.name}
-            {vehicle.supplier?.rating !== undefined && (
-              <span className="ml-1">· {vehicle.supplier.rating.toFixed(1)}</span>
+          <div className="text-xs text-muted-foreground min-w-0 flex items-center gap-1.5">
+            {vehicle.supplier?.logo && (
+              <img
+                src={vehicle.supplier.logo}
+                alt={vehicle.supplier?.name ?? ""}
+                loading="lazy"
+                className="h-4 w-auto object-contain shrink-0"
+              />
             )}
+            <span className="truncate">
+              {vehicle.supplier?.name}
+              {vehicle.supplier?.rating !== undefined && (
+                <span className="ml-1">· {vehicle.supplier.rating.toFixed(1)}</span>
+              )}
+            </span>
           </div>
           <div className="text-right">
             {vehicle.pricePerDay !== undefined && (
