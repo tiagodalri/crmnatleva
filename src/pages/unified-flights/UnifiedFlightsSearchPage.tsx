@@ -41,7 +41,7 @@ import { GFlightPriceInsightBanner } from "@/components/google-flights/GFlightPr
 import { GFlightPriceHistoryChart } from "@/components/google-flights/GFlightPriceHistoryChart";
 import { GFlightCalendarHeatmap } from "@/components/google-flights/GFlightCalendarHeatmap";
 import { GFlightPriceTrendChart } from "@/components/google-flights/GFlightPriceTrendChart";
-import { useCalendarPicker, usePriceGraph, type SearchGFlightsInput } from "@/hooks/useGoogleFlights";
+import { useCalendarPicker, usePriceGraph, prefetchGFlightBookingDetails, type SearchGFlightsInput } from "@/hooks/useGoogleFlights";
 import { ChevronDown } from "lucide-react";
 
 type Cabin = "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
