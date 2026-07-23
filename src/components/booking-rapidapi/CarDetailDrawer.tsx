@@ -51,6 +51,8 @@ import {
   CAR_IMAGE_PLACEHOLDER,
   hasMultipleDistinctPhotos,
 } from "@/lib/carRentalI18n";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { usdWithBrl } from "@/lib/carRentalMoney";
 
 interface Props {
   vehicle: CarVehicle | null;
@@ -140,6 +142,22 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
   const veh = useCarVehicleDetails(searchKey, vehicleId, active);
   const sup = useCarSupplierDetails(searchKey, vehicleId, active);
   const sum = useCarBookingSummary(searchKey, vehicleId, active);
+  const { convert } = useExchangeRates();
+
+  // Helper local · devolve display USD + estimativa BRL a partir do shape cru
+  const money = (raw: unknown) => usdWithBrl(raw, convert);
+  // Renderiza um par "US$ X · ≈ R$ Y" empilhado (BRL menor, cinza)
+  const MoneyLine = ({ raw, size = "sm" }: { raw: unknown; size?: "sm" | "md" | "lg" }) => {
+    const { display, brl } = money(raw);
+    if (!display) return null;
+    const sizeCls = size === "lg" ? "text-lg font-bold" : size === "md" ? "text-sm font-semibold" : "font-medium";
+    return (
+      <span className="inline-flex flex-col items-end leading-tight">
+        <span className={sizeCls}>{display}</span>
+        {brl && <span className="text-[10px] text-muted-foreground font-normal">{brl}</span>}
+      </span>
+    );
+  };
 
   const isLoading = veh.isLoading || sup.isLoading || sum.isLoading;
   const anyError = veh.error || sup.error || sum.error;
@@ -147,6 +165,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
   const vehData: any = veh.data ?? {};
   const supData: any = sup.data ?? {};
   const sumData: any = sum.data ?? {};
+
 
   // Paths reais confirmados no cache do projeto
   const vehicleObj = vehData?.vehicle ?? {};
@@ -221,8 +240,6 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
     ? priceContent.priceBreakdown.sections
     : [];
   const freeCancellationText: string | undefined = priceContent?.freeCancellation;
-  const footerTotalTitle: string | undefined =
-    priceContent?.footer?.title ?? formatDisplayMoney(pbTotal?.primaryPrice?.price);
   const footerTotalSubtitle: string | undefined =
     priceContent?.footer?.subtitle ?? pbTotal?.subtitle ?? "Total do aluguel";
 
@@ -409,9 +426,11 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <h4 className="text-sm font-semibold">Adicionais disponíveis (pagos no balcão)</h4>
                 <div className="rounded-lg border border-border/60 divide-y">
                   {extras.map((ex: any, i: number) => {
-                    const price =
-                      formatDisplayMoney(ex?.price?.perRental?.display) ||
-                      formatDisplayMoney(ex?.price?.perRental?.base);
+                    const priceRaw =
+                      ex?.price?.perRental?.display ??
+                      ex?.price?.perRental?.base ??
+                      ex?.price?.perRental ??
+                      ex?.price;
                     return (
                       <div key={ex?.id ?? i} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
                         <div className="min-w-0">
@@ -424,7 +443,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          {price && <div className="font-semibold">{price}</div>}
+                          <MoneyLine raw={priceRaw} />
                           {ex?.maxQuantityAvailable > 0 && (
                             <div className="text-[10px] text-muted-foreground">
                               até {ex.maxQuantityAvailable}x
@@ -445,10 +464,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {packages.map((pkg: any, i: number) => {
                     const c = pkg?.content ?? {};
-                    const price =
-                      formatDisplayMoney(c?.price?.displayPrice) ||
-                      formatDisplayMoney(c?.price) ||
-                      safeText(c?.price?.label);
+                    const priceRaw = c?.price?.displayPrice ?? c?.price;
                     const annotation = c?.price?.priceAnnotation?.text;
                     return (
                       <Card key={pkg?.id ?? i} className="p-3 space-y-1.5">
@@ -457,11 +473,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                             <ShieldCheck className="h-4 w-4 text-emerald-600" />
                             Proteção adicional
                           </div>
-                          {price && (
-                            <div className="text-sm font-bold text-champagne-logo shrink-0">
-                              {price}
-                            </div>
-                          )}
+                          <div className="text-champagne-logo shrink-0">
+                            <MoneyLine raw={priceRaw} size="md" />
+                          </div>
                         </div>
                         {c?.subtitle && (
                           <div className="text-xs text-muted-foreground">{tGeneric(stripInlineTags(c.subtitle))}</div>
@@ -497,10 +511,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <h4 className="text-sm font-semibold">Taxas e depósito</h4>
                 <div className="rounded-lg border border-border/60 divide-y">
                   {[...otherFees, ...payableFees].map((f: any, i: number) => {
-                    const price =
-                      formatDisplayMoney(f?.displayPrice) ||
-                      formatDisplayMoney(f?.price) ||
-                      "";
+                    const priceRaw = f?.displayPrice ?? f?.price;
                     const included = f?.includedInPrice === true;
                     const alwaysPayable = f?.alwaysPayable === true;
                     return (
@@ -528,7 +539,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                             )}
                           </div>
                         </div>
-                        <div className="text-right shrink-0 font-semibold">{price}</div>
+                        <div className="text-right shrink-0">
+                          <MoneyLine raw={priceRaw} />
+                        </div>
                       </div>
                     );
                   })}
@@ -680,17 +693,16 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                             className="flex items-start justify-between gap-3 px-3 py-2 text-sm"
                           >
                             <span className="text-muted-foreground">{stripInlineTags(it?.title)}</span>
-                            <span className="font-medium shrink-0">
-                              {formatDisplayMoney(it?.price)}
+                            <span className="shrink-0">
+                              <MoneyLine raw={it?.price} />
                             </span>
                           </div>
                         ))}
                       {sec?.subtotal && (
                         <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm bg-muted/40">
                           <span className="font-medium">{stripInlineTags(sec.subtotal?.title) || "Subtotal"}</span>
-                          <span className="font-semibold">
-                            {formatDisplayMoney(sec.subtotal?.primaryPrice?.price) ||
-                              safeText(sec.subtotal?.primaryPrice?.title)}
+                          <span className="shrink-0">
+                            <MoneyLine raw={sec.subtotal?.primaryPrice?.price} size="md" />
                           </span>
                         </div>
                       )}
@@ -704,8 +716,8 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           {stripInlineTags(pbTotal?.subtitle) || "(incluindo impostos, taxas e adicionais)"}
                         </div>
                       </div>
-                      <div className="text-lg font-bold text-champagne-logo">
-                        {formatDisplayMoney(pbTotal?.primaryPrice?.price)}
+                      <div className="text-champagne-logo">
+                        <MoneyLine raw={pbTotal?.primaryPrice?.price} size="lg" />
                       </div>
                     </div>
                   )}
@@ -734,14 +746,25 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
               </div>
             )}
 
+            {/* Aviso de transparência de câmbio */}
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
+              <span>
+                Valores exibidos em dólar (USD) · a cobrança ocorre na moeda local do fornecedor no seu cartão de crédito internacional, sujeita a IOF e à variação cambial do dia. Os valores em R$ são apenas estimativa a partir da cotação atual e não representam o valor final debitado.
+              </span>
+            </div>
+
             {/* Total sticky */}
             <div className="sticky bottom-0 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-4 bg-background/95 backdrop-blur border-t px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   {footerTotalSubtitle}
                 </div>
-                <div className="text-lg font-bold truncate">
-                  {footerTotalTitle || formatDisplayMoney(vehicleObj?.price?.driveAway) || "Consultar"}
+                <div className="truncate">
+                  <MoneyLine
+                    raw={pbTotal?.primaryPrice?.price ?? priceContent?.footer?.title ?? vehicleObj?.price?.driveAway}
+                    size="lg"
+                  />
                 </div>
               </div>
               <span className="text-xs text-muted-foreground text-right max-w-[55%]">

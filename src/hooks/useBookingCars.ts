@@ -360,6 +360,10 @@ export function useSearchCarRentals(
         drop_off_time: params.dropOffTime,
         driver_age: params.driverAge ?? 30,
         currency_code: params.currency ?? "BRL",
+        // Fixo "br" · muda o formato do símbolo pra "US$" (menos ambíguo pro
+        // cliente BR) e ajusta o mix de fornecedores que aceitam motorista
+        // brasileiro. NÃO converte moeda · valores continuam em USD.
+        countryOfResidence: "br",
       });
       return normalizeCarSearch(envelope);
     },
@@ -381,6 +385,7 @@ export function useCarVehicleDetails(
       const envelope = await invokeCar<any>("carVehicleDetails", {
         searchKey,
         vehicleId,
+        countryOfResidence: "br",
       });
       return (envelope?.data ?? envelope ?? null) as any;
     },
@@ -401,6 +406,7 @@ export function useCarSupplierDetails(
       const envelope = await invokeCar<any>("carSupplierDetails", {
         searchKey,
         vehicleId,
+        countryOfResidence: "br",
       });
       return (envelope?.data ?? envelope ?? null) as any;
     },
@@ -421,6 +427,7 @@ export function useCarBookingSummary(
       const envelope = await invokeCar<any>("carBookingSummary", {
         searchKey,
         vehicleId,
+        countryOfResidence: "br",
       });
       return (envelope?.data ?? envelope ?? null) as any;
     },
@@ -444,7 +451,7 @@ export function prefetchCarDetailBundle(
     queryKey: ["booking-cars", "vehicleDetails", searchKey, vehicleId],
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
-      const env = await invokeCar<any>("carVehicleDetails", { searchKey, vehicleId });
+      const env = await invokeCar<any>("carVehicleDetails", { searchKey, vehicleId, countryOfResidence: "br" });
       return (env?.data ?? env ?? null) as any;
     },
   }).catch(() => {});
@@ -453,7 +460,7 @@ export function prefetchCarDetailBundle(
     queryKey: ["booking-cars", "supplierDetails", searchKey, vehicleId],
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
-      const env = await invokeCar<any>("carSupplierDetails", { searchKey, vehicleId });
+      const env = await invokeCar<any>("carSupplierDetails", { searchKey, vehicleId, countryOfResidence: "br" });
       return (env?.data ?? env ?? null) as any;
     },
   }).catch(() => {});
@@ -462,7 +469,7 @@ export function prefetchCarDetailBundle(
     queryKey: ["booking-cars", "bookingSummary", searchKey, vehicleId],
     staleTime,
     queryFn: async () => {
-      const env = await invokeCar<any>("carBookingSummary", { searchKey, vehicleId });
+      const env = await invokeCar<any>("carBookingSummary", { searchKey, vehicleId, countryOfResidence: "br" });
       return (env?.data ?? env ?? null) as any;
     },
   }).catch(() => {});
