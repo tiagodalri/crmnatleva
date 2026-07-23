@@ -35,6 +35,22 @@ import {
   useCarBookingSummary,
   type CarVehicle,
 } from "@/hooks/useBookingCars";
+import {
+  tCategory,
+  tTransmission,
+  tFuelPolicy,
+  tBaggage,
+  tMileage,
+  tExtra,
+  tChecklist,
+  tBreakdown,
+  tFee,
+  tFreeCancellation,
+  tGroupOrSimilar,
+  tGeneric,
+  CAR_IMAGE_PLACEHOLDER,
+  hasMultipleDistinctPhotos,
+} from "@/lib/carRentalI18n";
 
 interface Props {
   vehicle: CarVehicle | null;
@@ -104,6 +120,16 @@ function specIconFor(icon?: string) {
   if (key.includes("MILEAGE") || key.includes("DISTANCE")) return <Gauge className="h-3.5 w-3.5" />;
   if (key.includes("SEAT") || key.includes("PASSENGER")) return <Users className="h-3.5 w-3.5" />;
   return <Info className="h-3.5 w-3.5" />;
+}
+
+function translateSpecText(icon: unknown, text: string): string {
+  const key = String(icon ?? "").toUpperCase();
+  if (!text) return text;
+  if (key.includes("TRANSMISSION")) return tTransmission(text);
+  if (key.includes("FUEL")) return tFuelPolicy(text);
+  if (key.includes("BAG") || key.includes("SUITCASE")) return tBaggage(text);
+  if (key.includes("MILEAGE") || key.includes("DISTANCE")) return tMileage(text);
+  return text;
 }
 
 export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
@@ -231,30 +257,68 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
 
         {!isLoading && (
           <div className="p-4 sm:p-6 space-y-6">
-            {photos.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg overflow-hidden">
-                {photos.map((url, i) => (
-                  <div
-                    key={url + i}
-                    className={
-                      i === 0
-                        ? "col-span-2 sm:row-span-2 aspect-[4/3] sm:aspect-square bg-muted"
-                        : "aspect-square bg-muted"
-                    }
-                  >
-                    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+            {(() => {
+              const multi = hasMultipleDistinctPhotos(photos);
+              if (photos.length === 0) {
+                return (
+                  <div className="rounded-lg overflow-hidden bg-muted aspect-[16/9] flex items-center justify-center">
+                    <img
+                      src={CAR_IMAGE_PLACEHOLDER}
+                      alt=""
+                      className="max-h-full max-w-full object-contain p-6 opacity-80"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              }
+              if (!multi) {
+                const url = photos[0];
+                return (
+                  <div className="rounded-lg overflow-hidden bg-muted aspect-[16/9] flex items-center justify-center">
+                    <img
+                      src={url}
+                      alt=""
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = CAR_IMAGE_PLACEHOLDER;
+                      }}
+                      className="max-h-full max-w-full object-contain p-4"
+                    />
+                  </div>
+                );
+              }
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg overflow-hidden">
+                  {photos.map((url, i) => (
+                    <div
+                      key={url + i}
+                      className={
+                        i === 0
+                          ? "col-span-2 sm:row-span-2 aspect-[4/3] sm:aspect-square bg-muted"
+                          : "aspect-square bg-muted"
+                      }
+                    >
+                      <img
+                        src={url}
+                        alt=""
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = CAR_IMAGE_PLACEHOLDER;
+                        }}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Grupo/classe + cancelamento */}
             <div className="flex flex-wrap gap-2">
               {(vehicleObj?.carClass || vehicle?.category) && (
-                <Badge variant="outline">{safeText(vehicleObj?.carClass) || safeText(vehicle?.category)}</Badge>
+                <Badge variant="outline">{tCategory(safeText(vehicleObj?.carClass) || safeText(vehicle?.category))}</Badge>
               )}
               {vehicleObj?.groupOrSimilar && (
-                <Badge variant="outline">{stripInlineTags(vehicleObj.groupOrSimilar)}</Badge>
+                <Badge variant="outline">{tGroupOrSimilar(stripInlineTags(vehicleObj.groupOrSimilar))}</Badge>
               )}
               {typeof vehicleObj?.rentalDurationInDays === "number" && (
                 <Badge variant="outline">
@@ -273,15 +337,18 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
               <section className="space-y-2">
                 <h4 className="text-sm font-semibold">Especificações</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {vehicleSpecs.map((s: any, i: number) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-xs text-muted-foreground"
-                    >
-                      <span className="text-champagne-logo">{specIconFor(s?.icon)}</span>
-                      <span className="text-foreground">{stripInlineTags(s?.text) || s?.accessibility}</span>
-                    </div>
-                  ))}
+                  {vehicleSpecs.map((s: any, i: number) => {
+                    const raw = stripInlineTags(s?.text) || s?.accessibility || "";
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-xs text-muted-foreground"
+                      >
+                        <span className="text-champagne-logo">{specIconFor(s?.icon)}</span>
+                        <span className="text-foreground">{translateSpecText(s?.icon, raw)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -350,10 +417,10 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         <div className="min-w-0">
                           <div className="font-medium flex items-center gap-1.5">
                             <Plus className="h-3.5 w-3.5 text-champagne-logo shrink-0" />
-                            {safeText(ex?.name)}
+                            {tExtra(safeText(ex?.name))}
                           </div>
                           {ex?.detail && (
-                            <div className="text-xs text-muted-foreground pl-5">{stripInlineTags(ex.detail)}</div>
+                            <div className="text-xs text-muted-foreground pl-5">{tGeneric(stripInlineTags(ex.detail))}</div>
                           )}
                         </div>
                         <div className="text-right shrink-0">
@@ -388,7 +455,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         <div className="flex items-start justify-between gap-2">
                           <div className="text-sm font-semibold flex items-center gap-1.5">
                             <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                            {stripInlineTags(c?.title)}
+                            Proteção adicional
                           </div>
                           {price && (
                             <div className="text-sm font-bold text-champagne-logo shrink-0">
@@ -397,24 +464,24 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           )}
                         </div>
                         {c?.subtitle && (
-                          <div className="text-xs text-muted-foreground">{stripInlineTags(c.subtitle)}</div>
+                          <div className="text-xs text-muted-foreground">{tGeneric(stripInlineTags(c.subtitle))}</div>
                         )}
                         {c?.description && (
-                          <div className="text-xs text-muted-foreground">{stripInlineTags(c.description)}</div>
+                          <div className="text-xs text-muted-foreground">{tGeneric(stripInlineTags(c.description))}</div>
                         )}
                         {Array.isArray(c?.included) && c.included.length > 0 && (
                           <ul className="text-xs text-muted-foreground space-y-0.5 pt-1">
                             {c.included.slice(0, 6).map((it: any, j: number) => (
                               <li key={j} className="flex gap-1.5">
                                 <span className="text-emerald-600">·</span>
-                                {stripInlineTags(typeof it === "string" ? it : it?.text)}
+                                {tGeneric(stripInlineTags(typeof it === "string" ? it : it?.text))}
                               </li>
                             ))}
                           </ul>
                         )}
                         {annotation && (
                           <div className="text-[11px] text-muted-foreground pt-1">
-                            {stripInlineTags(annotation)}
+                            {tGeneric(stripInlineTags(annotation))}
                           </div>
                         )}
                       </Card>
@@ -439,7 +506,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                     return (
                       <div key={i} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
                         <div className="min-w-0">
-                          <div className="font-medium">{safeText(f?.name)}</div>
+                          <div className="font-medium">{tFee(safeText(f?.name))}</div>
                           <div className="flex flex-wrap gap-1 pt-0.5">
                             {included ? (
                               <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">
@@ -479,9 +546,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {pickupChecklist.map((it: any, i: number) => (
                     <Card key={i} className="p-3 space-y-1">
-                      <div className="text-sm font-medium">{stripInlineTags(it?.title)}</div>
+                      <div className="text-sm font-medium">{tChecklist(stripInlineTags(it?.title))}</div>
                       {it?.subtitle && (
-                        <div className="text-xs text-muted-foreground">{stripInlineTags(it.subtitle)}</div>
+                        <div className="text-xs text-muted-foreground">{tChecklist(stripInlineTags(it.subtitle))}</div>
                       )}
                     </Card>
                   ))}
@@ -499,6 +566,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                       <img
                         src={supplierLogo}
                         alt={supplierName ?? ""}
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
                         className="h-10 w-auto object-contain"
                       />
                     )}
@@ -527,7 +595,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         return (
                           <div key={i} className="space-y-1">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground">{safeText(b?.title)}</span>
+                              <span className="text-muted-foreground">{tBreakdown(safeText(b?.title))}</span>
                               <span className="font-semibold">
                                 {score.toFixed(1)}
                                 {b?.localisedRating && <span className="text-muted-foreground font-normal"> · {safeText(b.localisedRating)}</span>}
