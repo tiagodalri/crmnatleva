@@ -142,6 +142,22 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
   const veh = useCarVehicleDetails(searchKey, vehicleId, active);
   const sup = useCarSupplierDetails(searchKey, vehicleId, active);
   const sum = useCarBookingSummary(searchKey, vehicleId, active);
+  const { convert } = useExchangeRates();
+
+  // Helper local · devolve display USD + estimativa BRL a partir do shape cru
+  const money = (raw: unknown) => usdWithBrl(raw, convert);
+  // Renderiza um par "US$ X · ≈ R$ Y" empilhado (BRL menor, cinza)
+  const MoneyLine = ({ raw, size = "sm" }: { raw: unknown; size?: "sm" | "md" | "lg" }) => {
+    const { display, brl } = money(raw);
+    if (!display) return null;
+    const sizeCls = size === "lg" ? "text-lg font-bold" : size === "md" ? "text-sm font-semibold" : "font-medium";
+    return (
+      <span className="inline-flex flex-col items-end leading-tight">
+        <span className={sizeCls}>{display}</span>
+        {brl && <span className="text-[10px] text-muted-foreground font-normal">{brl}</span>}
+      </span>
+    );
+  };
 
   const isLoading = veh.isLoading || sup.isLoading || sum.isLoading;
   const anyError = veh.error || sup.error || sum.error;
@@ -149,6 +165,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
   const vehData: any = veh.data ?? {};
   const supData: any = sup.data ?? {};
   const sumData: any = sum.data ?? {};
+
 
   // Paths reais confirmados no cache do projeto
   const vehicleObj = vehData?.vehicle ?? {};
