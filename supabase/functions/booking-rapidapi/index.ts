@@ -740,10 +740,7 @@ function buildParams(
       if (action === "carSupplierDetails" && input.tab) {
         p.tab = String(input.tab);
       }
-      if (
-        (action === "carSupplierDetails" || action === "carBookingSummary") &&
-        input.countryOfResidence
-      ) {
+      if (input.countryOfResidence) {
         p.countryOfResidence = String(input.countryOfResidence);
       }
       return p;
