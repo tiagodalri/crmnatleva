@@ -220,6 +220,7 @@ export default function CarsSearchPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [fuelFilter, setFuelFilter] = useState<string>("all");
   const [seatFilter, setSeatFilter] = useState<string>("all");
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [selectedVehicle, setSelectedVehicle] = useState<CarVehicle | null>(null);
 
   const effectiveDropOff = sameLocation ? pickUp : dropOff;
@@ -289,6 +290,13 @@ export default function CarsSearchPage() {
     () => Array.from(new Set(vehicles.map((v) => v.seatCategory).filter(Boolean) as string[])),
     [vehicles],
   );
+  const supplierOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(vehicles.map((v) => v.supplier?.name).filter(Boolean) as string[]),
+      ).sort((a, b) => a.localeCompare(b)),
+    [vehicles],
+  );
 
   const filteredSorted = useMemo(() => {
     let list = [...vehicles];
@@ -301,6 +309,8 @@ export default function CarsSearchPage() {
       list = list.filter((v) => (v.fuelType ?? "") === fuelFilter);
     if (seatFilter !== "all")
       list = list.filter((v) => (v.seatCategory ?? "") === seatFilter);
+    if (supplierFilter !== "all")
+      list = list.filter((v) => (v.supplier?.name ?? "") === supplierFilter);
     list.sort((a, b) => {
       if (sortBy === "price_asc")
         return (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity);
@@ -311,7 +321,7 @@ export default function CarsSearchPage() {
       return 0;
     });
     return list;
-  }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, sortBy]);
+  }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, supplierFilter, sortBy]);
 
   // Prefetch preditivo · dispara em background os 3 endpoints de detalhe
   // pros 3 primeiros veículos, pra que abrir o drawer seja instantâneo.
@@ -563,6 +573,28 @@ export default function CarsSearchPage() {
                   </Select>
                 </div>
               )}
+
+              {supplierOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">
+                    Locadora {supplierFilter !== "all" && (
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                        · 1 selecionada
+                      </span>
+                    )}
+                  </Label>
+                  <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="all" className="text-xs">Todas ({supplierOptions.length})</SelectItem>
+                      {supplierOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
 
               <div className="flex items-center gap-2 pt-1">
                 <Checkbox
