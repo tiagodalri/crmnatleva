@@ -33,9 +33,10 @@ Deno.serve(async (req) => {
       userId = created.user!.id;
     }
 
-    const refCode = "TESTE" + Math.floor(Math.random() * 9000 + 1000);
-    const { error: affErr } = await supabase.from("affiliates").upsert(
-      {
+    const { data: existing } = await supabase.from("affiliates").select("id").eq("user_id", userId).maybeSingle();
+    if (!existing) {
+      const refCode = "TESTE" + Math.floor(Math.random() * 9000 + 1000);
+      const { error: affErr } = await supabase.from("affiliates").insert({
         user_id: userId,
         full_name: "Afiliado Teste",
         email,
@@ -44,10 +45,11 @@ Deno.serve(async (req) => {
         commission_percent: 10,
         total_earned: 0,
         ref_code: refCode,
-      },
-      { onConflict: "user_id" }
-    );
-    if (affErr) throw affErr;
+      });
+      if (affErr) throw affErr;
+    } else {
+      await supabase.from("affiliates").update({ status: "approved", approved_at: new Date().toISOString() }).eq("id", existing.id);
+    }
 
     return new Response(JSON.stringify({ ok: true, email, password, userId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
