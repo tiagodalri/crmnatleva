@@ -62,7 +62,17 @@ const SORT_OPTIONS = [
 ] as const;
 
 
-function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () => void }) {
+function VehicleCard({
+  vehicle,
+  onClick,
+  convert,
+}: {
+  vehicle: CarVehicle;
+  onClick?: () => void;
+  convert: ConvertFn | null;
+}) {
+  const total = usdWithBrl(vehicle.totalPrice, convert);
+  const perDay = usdWithBrl(vehicle.pricePerDay, convert);
   return (
     <Card
       onClick={onClick}
@@ -151,21 +161,28 @@ function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () =
               )}
             </span>
           </div>
-          <div className="text-right">
-            {vehicle.pricePerDay !== undefined && (
+          <div className="text-right leading-tight">
+            {perDay.display && (
               <div className="text-[10px] text-muted-foreground">
-                {formatBRL(vehicle.pricePerDay, vehicle.currency)} / dia
+                {perDay.display}
+                {perDay.brl && <span className="ml-1">({perDay.brl})</span>} / dia
               </div>
             )}
             <div className="text-base font-bold text-champagne-logo">
-              {formatBRL(vehicle.totalPrice, vehicle.currency)}
+              {total.display || "Consultar"}
             </div>
+            {total.brl && (
+              <div className="text-[10px] text-muted-foreground font-normal">
+                {total.brl}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </Card>
   );
 }
+
 
 function SkeletonGrid() {
   return (
