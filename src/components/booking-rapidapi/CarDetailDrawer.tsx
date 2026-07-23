@@ -513,10 +513,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <h4 className="text-sm font-semibold">Taxas e depósito</h4>
                 <div className="rounded-lg border border-border/60 divide-y">
                   {[...otherFees, ...payableFees].map((f: any, i: number) => {
-                    const price =
-                      formatDisplayMoney(f?.displayPrice) ||
-                      formatDisplayMoney(f?.price) ||
-                      "";
+                    const priceRaw = f?.displayPrice ?? f?.price;
                     const included = f?.includedInPrice === true;
                     const alwaysPayable = f?.alwaysPayable === true;
                     return (
@@ -544,7 +541,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                             )}
                           </div>
                         </div>
-                        <div className="text-right shrink-0 font-semibold">{price}</div>
+                        <div className="text-right shrink-0">
+                          <MoneyLine raw={priceRaw} />
+                        </div>
                       </div>
                     );
                   })}
