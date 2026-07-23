@@ -79,22 +79,22 @@ function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () =
       className="overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer"
     >
       <div className="aspect-[16/10] bg-muted flex items-center justify-center overflow-hidden">
-        {vehicle.image ? (
-          <img
-            src={vehicle.image}
-            alt={vehicle.name ?? "Veículo"}
-            loading="lazy"
-            className="max-h-full max-w-full object-contain p-4"
-          />
-        ) : (
-          <CarIcon className="h-10 w-10 text-muted-foreground" />
-        )}
+        <img
+          src={vehicle.image || CAR_IMAGE_PLACEHOLDER}
+          alt={vehicle.name ?? "Veículo"}
+          loading="lazy"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (img.src !== CAR_IMAGE_PLACEHOLDER) img.src = CAR_IMAGE_PLACEHOLDER;
+          }}
+          className="max-h-full max-w-full object-contain p-4"
+        />
       </div>
       <div className="p-3 flex-1 flex flex-col gap-2">
         <div>
           {vehicle.category && (
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              {vehicle.category}
+              {tCategory(vehicle.category)}
             </div>
           )}
           <div className="text-sm font-semibold leading-tight line-clamp-2">
@@ -115,7 +115,7 @@ function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () =
           )}
           {vehicle.transmission && (
             <span className="inline-flex items-center gap-1">
-              <Cog className="h-3 w-3" /> {vehicle.transmission}
+              <Cog className="h-3 w-3" /> {tTransmission(vehicle.transmission)}
             </span>
           )}
           {vehicle.airConditioning && (
@@ -143,14 +143,17 @@ function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () =
 
         <div className="mt-auto pt-2 flex items-end justify-between gap-2 border-t">
           <div className="text-xs text-muted-foreground min-w-0 flex items-center gap-1.5">
-            {vehicle.supplier?.logo && (
+            {vehicle.supplier?.logo ? (
               <img
                 src={vehicle.supplier.logo}
                 alt={vehicle.supplier?.name ?? ""}
                 loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
                 className="h-4 w-auto object-contain shrink-0"
               />
-            )}
+            ) : null}
             <span className="truncate">
               {vehicle.supplier?.name}
               {vehicle.supplier?.rating !== undefined && (
