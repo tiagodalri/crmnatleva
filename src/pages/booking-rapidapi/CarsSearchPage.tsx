@@ -47,6 +47,8 @@ import {
   tBaggage,
   CAR_IMAGE_PLACEHOLDER,
 } from "@/lib/carRentalI18n";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { usdWithBrl, type ConvertFn } from "@/lib/carRentalMoney";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) => {
   const hh = String(h).padStart(2, "0");
@@ -59,18 +61,6 @@ const SORT_OPTIONS = [
   { value: "rating", label: "Melhor avaliação" },
 ] as const;
 
-function formatBRL(v: number | undefined, currency = "BRL") {
-  if (typeof v !== "number" || !Number.isFinite(v)) return "";
-  try {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(v);
-  } catch {
-    return `${currency} ${v.toFixed(0)}`;
-  }
-}
 
 function VehicleCard({ vehicle, onClick }: { vehicle: CarVehicle; onClick?: () => void }) {
   return (
