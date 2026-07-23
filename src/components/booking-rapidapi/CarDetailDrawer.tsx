@@ -257,30 +257,68 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
 
         {!isLoading && (
           <div className="p-4 sm:p-6 space-y-6">
-            {photos.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg overflow-hidden">
-                {photos.map((url, i) => (
-                  <div
-                    key={url + i}
-                    className={
-                      i === 0
-                        ? "col-span-2 sm:row-span-2 aspect-[4/3] sm:aspect-square bg-muted"
-                        : "aspect-square bg-muted"
-                    }
-                  >
-                    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+            {(() => {
+              const multi = hasMultipleDistinctPhotos(photos);
+              if (photos.length === 0) {
+                return (
+                  <div className="rounded-lg overflow-hidden bg-muted aspect-[16/9] flex items-center justify-center">
+                    <img
+                      src={CAR_IMAGE_PLACEHOLDER}
+                      alt=""
+                      className="max-h-full max-w-full object-contain p-6 opacity-80"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              }
+              if (!multi) {
+                const url = photos[0];
+                return (
+                  <div className="rounded-lg overflow-hidden bg-muted aspect-[16/9] flex items-center justify-center">
+                    <img
+                      src={url}
+                      alt=""
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = CAR_IMAGE_PLACEHOLDER;
+                      }}
+                      className="max-h-full max-w-full object-contain p-4"
+                    />
+                  </div>
+                );
+              }
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg overflow-hidden">
+                  {photos.map((url, i) => (
+                    <div
+                      key={url + i}
+                      className={
+                        i === 0
+                          ? "col-span-2 sm:row-span-2 aspect-[4/3] sm:aspect-square bg-muted"
+                          : "aspect-square bg-muted"
+                      }
+                    >
+                      <img
+                        src={url}
+                        alt=""
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = CAR_IMAGE_PLACEHOLDER;
+                        }}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Grupo/classe + cancelamento */}
             <div className="flex flex-wrap gap-2">
               {(vehicleObj?.carClass || vehicle?.category) && (
-                <Badge variant="outline">{safeText(vehicleObj?.carClass) || safeText(vehicle?.category)}</Badge>
+                <Badge variant="outline">{tCategory(safeText(vehicleObj?.carClass) || safeText(vehicle?.category))}</Badge>
               )}
               {vehicleObj?.groupOrSimilar && (
-                <Badge variant="outline">{stripInlineTags(vehicleObj.groupOrSimilar)}</Badge>
+                <Badge variant="outline">{tGroupOrSimilar(stripInlineTags(vehicleObj.groupOrSimilar))}</Badge>
               )}
               {typeof vehicleObj?.rentalDurationInDays === "number" && (
                 <Badge variant="outline">
@@ -299,15 +337,18 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
               <section className="space-y-2">
                 <h4 className="text-sm font-semibold">Especificações</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {vehicleSpecs.map((s: any, i: number) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-xs text-muted-foreground"
-                    >
-                      <span className="text-champagne-logo">{specIconFor(s?.icon)}</span>
-                      <span className="text-foreground">{stripInlineTags(s?.text) || s?.accessibility}</span>
-                    </div>
-                  ))}
+                  {vehicleSpecs.map((s: any, i: number) => {
+                    const raw = stripInlineTags(s?.text) || s?.accessibility || "";
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-xs text-muted-foreground"
+                      >
+                        <span className="text-champagne-logo">{specIconFor(s?.icon)}</span>
+                        <span className="text-foreground">{translateSpecText(s?.icon, raw)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}
