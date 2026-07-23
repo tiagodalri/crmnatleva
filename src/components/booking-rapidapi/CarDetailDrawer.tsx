@@ -35,6 +35,22 @@ import {
   useCarBookingSummary,
   type CarVehicle,
 } from "@/hooks/useBookingCars";
+import {
+  tCategory,
+  tTransmission,
+  tFuelPolicy,
+  tBaggage,
+  tMileage,
+  tExtra,
+  tChecklist,
+  tBreakdown,
+  tFee,
+  tFreeCancellation,
+  tGroupOrSimilar,
+  tGeneric,
+  CAR_IMAGE_PLACEHOLDER,
+  hasMultipleDistinctPhotos,
+} from "@/lib/carRentalI18n";
 
 interface Props {
   vehicle: CarVehicle | null;
