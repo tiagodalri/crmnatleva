@@ -24,7 +24,7 @@ function buildLabel(loc: FlightLocation): string {
 export function AirportAutocomplete({
   value,
   onChange,
-  placeholder = "Ex: GRU, São Paulo, JFK...",
+  placeholder = "Ex: GRU, São Paulo, JFK…",
   className,
   icon = "plane",
 }: Props) {

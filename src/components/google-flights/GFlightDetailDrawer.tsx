@@ -718,7 +718,7 @@ export function GFlightDetailDrawer({ itinerary, searchInput, onClose }: Props) 
               {provLoading && (
                 <div className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-primary">
                   <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                  <span className="font-medium">Comparando preços em canais de venda...</span>
+                  <span className="font-medium">Comparando preços em canais de venda…</span>
                   <span className="text-muted-foreground hidden sm:inline">· pode levar até 15s</span>
                 </div>
               )}
@@ -760,7 +760,7 @@ export function GFlightDetailDrawer({ itinerary, searchInput, onClose }: Props) 
                         queryClient.invalidateQueries({
                           queryKey: ["gflights", "getBookingDetails"],
                         });
-                        toast.message("Buscando ofertas novamente...");
+                        toast.message("Buscando ofertas novamente…");
                       }}
                     >
                       <RefreshCw className="h-3 w-3" /> Tentar de novo
@@ -805,7 +805,7 @@ export function GFlightDetailDrawer({ itinerary, searchInput, onClose }: Props) 
                               <Badge className="text-[9px] border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 gap-1">
                                 {provLoading ? (
                                   <>
-                                    <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando mais opções...
+                                    <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando mais opções…
                                   </>
                                 ) : (
                                   <>

@@ -16,7 +16,7 @@ interface Props {
 export function DestinationAutocomplete({
   value,
   onChange,
-  placeholder = "Ex: Rio de Janeiro, Paris, Orlando...",
+  placeholder = "Ex: Rio de Janeiro, Paris, Orlando…",
   className,
 }: Props) {
   const [text, setText] = useState(value?.label ?? value?.name ?? "");

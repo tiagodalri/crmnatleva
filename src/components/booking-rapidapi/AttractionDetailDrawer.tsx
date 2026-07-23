@@ -115,20 +115,24 @@ export function AttractionDetailDrawer({ product, open, onOpenChange }: Props) {
                     key={url + i}
                     className={
                       i === 0
-                        ? "col-span-2 sm:row-span-2 aspect-[4/3] sm:aspect-square bg-muted"
-                        : "aspect-square bg-muted"
+                        ? "col-span-2 sm:row-span-2 aspect-[4/3] sm:aspect-square bg-muted relative"
+                        : "aspect-square bg-muted relative"
                     }
                   >
                     <img
                       src={url}
-                      alt=""
+                      alt={product?.name ?? "Foto da atração"}
                       loading="lazy"
                       className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+                      }}
                     />
                   </div>
                 ))}
               </div>
             )}
+
 
             <div className="flex flex-wrap items-center gap-2">
               {typeof rating === "number" && (

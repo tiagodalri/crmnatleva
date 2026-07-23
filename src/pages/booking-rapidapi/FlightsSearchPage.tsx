@@ -390,7 +390,7 @@ export default function FlightsSearchPage() {
               <AirportAutocomplete
                 value={from}
                 onChange={setFrom}
-                placeholder="De onde sai? Ex: GRU, São Paulo..."
+                placeholder="De onde sai? Ex: GRU, São Paulo…"
                 icon="plane"
               />
             </div>
@@ -414,7 +414,7 @@ export default function FlightsSearchPage() {
               <AirportAutocomplete
                 value={to}
                 onChange={setTo}
-                placeholder="Para onde vai? Ex: JFK, Nova York..."
+                placeholder="Para onde vai? Ex: JFK, Nova York…"
                 icon="mapPin"
               />
             </div>
@@ -450,7 +450,7 @@ export default function FlightsSearchPage() {
               className="gap-2 md:min-w-[180px]"
             >
               <Search className="h-4 w-4" />
-              {isLoading ? "Buscando voos..." : "Buscar voos"}
+              {isLoading ? "Buscando voos…" : "Buscar voos"}
             </Button>
           </div>
         </div>

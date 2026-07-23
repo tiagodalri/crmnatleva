@@ -52,7 +52,7 @@ export function GFlightLegsBuilder({ legs, onChange, minLegs = 2, maxLegs = 6 }:
               <GFlightAirportAutocomplete
                 value={leg.from}
                 onChange={(v) => updateLeg(i, { from: v })}
-                placeholder="GRU, São Paulo..."
+                placeholder="GRU, São Paulo…"
                 icon="plane"
               />
             </div>
@@ -61,7 +61,7 @@ export function GFlightLegsBuilder({ legs, onChange, minLegs = 2, maxLegs = 6 }:
               <GFlightAirportAutocomplete
                 value={leg.to}
                 onChange={(v) => updateLeg(i, { to: v })}
-                placeholder="FCO, Roma..."
+                placeholder="FCO, Roma…"
                 icon="mapPin"
               />
             </div>

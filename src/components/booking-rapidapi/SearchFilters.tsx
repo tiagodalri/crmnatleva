@@ -37,7 +37,7 @@ export function SearchFilters({
     dateRange?.from && dateRange?.to
       ? `${fmt(dateRange.from)} → ${fmt(dateRange.to)}`
       : dateRange?.from
-        ? `${fmt(dateRange.from)} → ...`
+        ? `${fmt(dateRange.from)} → …`
         : "Selecionar datas";
 
   const totalGuests = guests.adults + guests.children.length;
