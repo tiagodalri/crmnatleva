@@ -290,6 +290,13 @@ export default function CarsSearchPage() {
     () => Array.from(new Set(vehicles.map((v) => v.seatCategory).filter(Boolean) as string[])),
     [vehicles],
   );
+  const supplierOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(vehicles.map((v) => v.supplier?.name).filter(Boolean) as string[]),
+      ).sort((a, b) => a.localeCompare(b)),
+    [vehicles],
+  );
 
   const filteredSorted = useMemo(() => {
     let list = [...vehicles];
@@ -302,6 +309,8 @@ export default function CarsSearchPage() {
       list = list.filter((v) => (v.fuelType ?? "") === fuelFilter);
     if (seatFilter !== "all")
       list = list.filter((v) => (v.seatCategory ?? "") === seatFilter);
+    if (supplierFilter !== "all")
+      list = list.filter((v) => (v.supplier?.name ?? "") === supplierFilter);
     list.sort((a, b) => {
       if (sortBy === "price_asc")
         return (a.totalPrice ?? Infinity) - (b.totalPrice ?? Infinity);
@@ -312,7 +321,7 @@ export default function CarsSearchPage() {
       return 0;
     });
     return list;
-  }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, sortBy]);
+  }, [vehicles, freeCancellationOnly, transmissionFilter, categoryFilter, fuelFilter, seatFilter, supplierFilter, sortBy]);
 
   // Prefetch preditivo · dispara em background os 3 endpoints de detalhe
   // pros 3 primeiros veículos, pra que abrir o drawer seja instantâneo.
