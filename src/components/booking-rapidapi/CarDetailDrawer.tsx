@@ -466,10 +466,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {packages.map((pkg: any, i: number) => {
                     const c = pkg?.content ?? {};
-                    const price =
-                      formatDisplayMoney(c?.price?.displayPrice) ||
-                      formatDisplayMoney(c?.price) ||
-                      safeText(c?.price?.label);
+                    const priceRaw = c?.price?.displayPrice ?? c?.price;
                     const annotation = c?.price?.priceAnnotation?.text;
                     return (
                       <Card key={pkg?.id ?? i} className="p-3 space-y-1.5">
@@ -478,11 +475,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                             <ShieldCheck className="h-4 w-4 text-emerald-600" />
                             Proteção adicional
                           </div>
-                          {price && (
-                            <div className="text-sm font-bold text-champagne-logo shrink-0">
-                              {price}
-                            </div>
-                          )}
+                          <div className="text-champagne-logo shrink-0">
+                            <MoneyLine raw={priceRaw} size="md" />
+                          </div>
                         </div>
                         {c?.subtitle && (
                           <div className="text-xs text-muted-foreground">{tGeneric(stripInlineTags(c.subtitle))}</div>
