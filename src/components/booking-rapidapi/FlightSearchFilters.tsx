@@ -69,7 +69,7 @@ export function FlightSearchFilters({
       ? dateRange?.from && dateRange?.to
         ? `${fmt(dateRange.from)} → ${fmt(dateRange.to)}`
         : dateRange?.from
-          ? `${fmt(dateRange.from)} → ...`
+          ? `${fmt(dateRange.from)} → …`
           : "Ida e volta"
       : oneWayDate
         ? fmt(oneWayDate)
