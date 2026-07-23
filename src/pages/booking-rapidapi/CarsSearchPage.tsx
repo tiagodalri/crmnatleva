@@ -203,6 +203,8 @@ function SkeletonGrid() {
 }
 
 export default function CarsSearchPage() {
+  const { convert } = useExchangeRates();
+
   const [pickUp, setPickUp] = useState<CarLocation | null>(null);
   const [dropOff, setDropOff] = useState<CarLocation | null>(null);
   const [sameLocation, setSameLocation] = useState(true);
