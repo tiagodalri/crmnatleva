@@ -451,7 +451,7 @@ export function prefetchCarDetailBundle(
     queryKey: ["booking-cars", "vehicleDetails", searchKey, vehicleId],
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
-      const env = await invokeCar<any>("carVehicleDetails", { searchKey, vehicleId });
+      const env = await invokeCar<any>("carVehicleDetails", { searchKey, vehicleId, countryOfResidence: "br" });
       return (env?.data ?? env ?? null) as any;
     },
   }).catch(() => {});
@@ -460,7 +460,7 @@ export function prefetchCarDetailBundle(
     queryKey: ["booking-cars", "supplierDetails", searchKey, vehicleId],
     staleTime: 60 * 60 * 1000,
     queryFn: async () => {
-      const env = await invokeCar<any>("carSupplierDetails", { searchKey, vehicleId });
+      const env = await invokeCar<any>("carSupplierDetails", { searchKey, vehicleId, countryOfResidence: "br" });
       return (env?.data ?? env ?? null) as any;
     },
   }).catch(() => {});
@@ -469,7 +469,7 @@ export function prefetchCarDetailBundle(
     queryKey: ["booking-cars", "bookingSummary", searchKey, vehicleId],
     staleTime,
     queryFn: async () => {
-      const env = await invokeCar<any>("carBookingSummary", { searchKey, vehicleId });
+      const env = await invokeCar<any>("carBookingSummary", { searchKey, vehicleId, countryOfResidence: "br" });
       return (env?.data ?? env ?? null) as any;
     },
   }).catch(() => {});
