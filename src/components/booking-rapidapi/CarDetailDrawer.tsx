@@ -51,6 +51,8 @@ import {
   CAR_IMAGE_PLACEHOLDER,
   hasMultipleDistinctPhotos,
 } from "@/lib/carRentalI18n";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { usdWithBrl } from "@/lib/carRentalMoney";
 
 interface Props {
   vehicle: CarVehicle | null;
