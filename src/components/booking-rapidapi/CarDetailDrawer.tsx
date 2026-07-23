@@ -506,7 +506,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                     return (
                       <div key={i} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
                         <div className="min-w-0">
-                          <div className="font-medium">{safeText(f?.name)}</div>
+                          <div className="font-medium">{tFee(safeText(f?.name))}</div>
                           <div className="flex flex-wrap gap-1 pt-0.5">
                             {included ? (
                               <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">
