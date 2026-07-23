@@ -428,9 +428,11 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <h4 className="text-sm font-semibold">Adicionais disponíveis (pagos no balcão)</h4>
                 <div className="rounded-lg border border-border/60 divide-y">
                   {extras.map((ex: any, i: number) => {
-                    const price =
-                      formatDisplayMoney(ex?.price?.perRental?.display) ||
-                      formatDisplayMoney(ex?.price?.perRental?.base);
+                    const priceRaw =
+                      ex?.price?.perRental?.display ??
+                      ex?.price?.perRental?.base ??
+                      ex?.price?.perRental ??
+                      ex?.price;
                     return (
                       <div key={ex?.id ?? i} className="flex items-start justify-between gap-3 px-3 py-2 text-sm">
                         <div className="min-w-0">
@@ -443,7 +445,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          {price && <div className="font-semibold">{price}</div>}
+                          <MoneyLine raw={priceRaw} />
                           {ex?.maxQuantityAvailable > 0 && (
                             <div className="text-[10px] text-muted-foreground">
                               até {ex.maxQuantityAvailable}x
