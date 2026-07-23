@@ -566,6 +566,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                       <img
                         src={supplierLogo}
                         alt={supplierName ?? ""}
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
                         className="h-10 w-auto object-contain"
                       />
                     )}
