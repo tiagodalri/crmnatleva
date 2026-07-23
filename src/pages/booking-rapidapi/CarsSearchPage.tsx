@@ -41,6 +41,12 @@ import {
   type CarLocation,
   type CarVehicle,
 } from "@/hooks/useBookingCars";
+import {
+  tCategory,
+  tTransmission,
+  tBaggage,
+  CAR_IMAGE_PLACEHOLDER,
+} from "@/lib/carRentalI18n";
 
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) => {
   const hh = String(h).padStart(2, "0");
