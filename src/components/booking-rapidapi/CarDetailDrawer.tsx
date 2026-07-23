@@ -275,56 +275,22 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
         {!isLoading && (
           <div className="p-4 sm:p-6 space-y-6">
             {(() => {
-              const multi = hasMultipleDistinctPhotos(photos);
-              if (photos.length === 0) {
-                return (
-                  <div className="rounded-lg overflow-hidden bg-muted aspect-[16/9] flex items-center justify-center">
-                    <img
-                      src={CAR_IMAGE_PLACEHOLDER}
-                      alt=""
-                      className="max-h-full max-w-full object-contain p-6 opacity-80"
-                    />
-                  </div>
-                );
-              }
-              if (!multi) {
-                const url = photos[0];
-                return (
-                  <div className="rounded-lg overflow-hidden bg-muted aspect-[16/9] flex items-center justify-center">
-                    <img
-                      src={url}
-                      alt=""
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = CAR_IMAGE_PLACEHOLDER;
-                      }}
-                      className="max-h-full max-w-full object-contain p-4"
-                    />
-                  </div>
-                );
-              }
+              const url = photos[0];
               return (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg overflow-hidden">
-                  {photos.map((url, i) => (
-                    <div
-                      key={url + i}
-                      className={
-                        i === 0
-                          ? "col-span-2 sm:row-span-2 aspect-[4/3] sm:aspect-square bg-muted"
-                          : "aspect-square bg-muted"
-                      }
-                    >
-                      <img
-                        src={url}
-                        alt=""
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.src = CAR_IMAGE_PLACEHOLDER;
-                        }}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ))}
+                <div className="rounded-xl overflow-hidden bg-muted aspect-[16/9] flex items-center justify-center">
+                  <img
+                    src={url ?? CAR_IMAGE_PLACEHOLDER}
+                    alt=""
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.src = CAR_IMAGE_PLACEHOLDER;
+                    }}
+                    className={
+                      url
+                        ? "max-h-full max-w-full object-contain p-6"
+                        : "max-h-full max-w-full object-contain p-10 opacity-80"
+                    }
+                  />
                 </div>
               );
             })()}
