@@ -417,10 +417,10 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         <div className="min-w-0">
                           <div className="font-medium flex items-center gap-1.5">
                             <Plus className="h-3.5 w-3.5 text-champagne-logo shrink-0" />
-                            {safeText(ex?.name)}
+                            {tExtra(safeText(ex?.name))}
                           </div>
                           {ex?.detail && (
-                            <div className="text-xs text-muted-foreground pl-5">{stripInlineTags(ex.detail)}</div>
+                            <div className="text-xs text-muted-foreground pl-5">{tGeneric(stripInlineTags(ex.detail))}</div>
                           )}
                         </div>
                         <div className="text-right shrink-0">
