@@ -240,8 +240,6 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
     ? priceContent.priceBreakdown.sections
     : [];
   const freeCancellationText: string | undefined = priceContent?.freeCancellation;
-  const footerTotalTitle: string | undefined =
-    priceContent?.footer?.title ?? formatDisplayMoney(pbTotal?.primaryPrice?.price);
   const footerTotalSubtitle: string | undefined =
     priceContent?.footer?.subtitle ?? pbTotal?.subtitle ?? "Total do aluguel";
 
