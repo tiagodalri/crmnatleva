@@ -595,7 +595,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         return (
                           <div key={i} className="space-y-1">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground">{tSupplierRating(safeText(b?.title))}</span>
+                              <span className="text-muted-foreground">{tBreakdown(safeText(b?.title))}</span>
                               <span className="font-semibold">
                                 {score.toFixed(1)}
                                 {b?.localisedRating && <span className="text-muted-foreground font-normal"> · {safeText(b.localisedRating)}</span>}
