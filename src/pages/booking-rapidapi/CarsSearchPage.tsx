@@ -220,6 +220,7 @@ export default function CarsSearchPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [fuelFilter, setFuelFilter] = useState<string>("all");
   const [seatFilter, setSeatFilter] = useState<string>("all");
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [selectedVehicle, setSelectedVehicle] = useState<CarVehicle | null>(null);
 
   const effectiveDropOff = sameLocation ? pickUp : dropOff;
