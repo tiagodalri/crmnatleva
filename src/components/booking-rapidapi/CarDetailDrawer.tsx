@@ -455,7 +455,7 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                         <div className="flex items-start justify-between gap-2">
                           <div className="text-sm font-semibold flex items-center gap-1.5">
                             <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                            {stripInlineTags(c?.title)}
+                            Proteção adicional
                           </div>
                           {price && (
                             <div className="text-sm font-bold text-champagne-logo shrink-0">
@@ -464,24 +464,24 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           )}
                         </div>
                         {c?.subtitle && (
-                          <div className="text-xs text-muted-foreground">{stripInlineTags(c.subtitle)}</div>
+                          <div className="text-xs text-muted-foreground">{tGeneric(stripInlineTags(c.subtitle))}</div>
                         )}
                         {c?.description && (
-                          <div className="text-xs text-muted-foreground">{stripInlineTags(c.description)}</div>
+                          <div className="text-xs text-muted-foreground">{tGeneric(stripInlineTags(c.description))}</div>
                         )}
                         {Array.isArray(c?.included) && c.included.length > 0 && (
                           <ul className="text-xs text-muted-foreground space-y-0.5 pt-1">
                             {c.included.slice(0, 6).map((it: any, j: number) => (
                               <li key={j} className="flex gap-1.5">
                                 <span className="text-emerald-600">·</span>
-                                {stripInlineTags(typeof it === "string" ? it : it?.text)}
+                                {tGeneric(stripInlineTags(typeof it === "string" ? it : it?.text))}
                               </li>
                             ))}
                           </ul>
                         )}
                         {annotation && (
                           <div className="text-[11px] text-muted-foreground pt-1">
-                            {stripInlineTags(annotation)}
+                            {tGeneric(stripInlineTags(annotation))}
                           </div>
                         )}
                       </Card>
