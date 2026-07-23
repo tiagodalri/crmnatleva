@@ -360,6 +360,10 @@ export function useSearchCarRentals(
         drop_off_time: params.dropOffTime,
         driver_age: params.driverAge ?? 30,
         currency_code: params.currency ?? "BRL",
+        // Fixo "br" · muda o formato do símbolo pra "US$" (menos ambíguo pro
+        // cliente BR) e ajusta o mix de fornecedores que aceitam motorista
+        // brasileiro. NÃO converte moeda · valores continuam em USD.
+        countryOfResidence: "br",
       });
       return normalizeCarSearch(envelope);
     },
