@@ -122,6 +122,16 @@ function specIconFor(icon?: string) {
   return <Info className="h-3.5 w-3.5" />;
 }
 
+function translateSpecText(icon: unknown, text: string): string {
+  const key = String(icon ?? "").toUpperCase();
+  if (!text) return text;
+  if (key.includes("TRANSMISSION")) return tTransmission(text);
+  if (key.includes("FUEL")) return tFuelPolicy(text);
+  if (key.includes("BAG") || key.includes("SUITCASE")) return tBaggage(text);
+  if (key.includes("MILEAGE") || key.includes("DISTANCE")) return tMileage(text);
+  return text;
+}
+
 export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
   const searchKey = vehicle?.searchKey ?? null;
   const vehicleId = vehicle?.id ?? null;
