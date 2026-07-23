@@ -546,9 +546,9 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {pickupChecklist.map((it: any, i: number) => (
                     <Card key={i} className="p-3 space-y-1">
-                      <div className="text-sm font-medium">{stripInlineTags(it?.title)}</div>
+                      <div className="text-sm font-medium">{tChecklist(stripInlineTags(it?.title))}</div>
                       {it?.subtitle && (
-                        <div className="text-xs text-muted-foreground">{stripInlineTags(it.subtitle)}</div>
+                        <div className="text-xs text-muted-foreground">{tChecklist(stripInlineTags(it.subtitle))}</div>
                       )}
                     </Card>
                   ))}
