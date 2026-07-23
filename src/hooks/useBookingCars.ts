@@ -385,6 +385,7 @@ export function useCarVehicleDetails(
       const envelope = await invokeCar<any>("carVehicleDetails", {
         searchKey,
         vehicleId,
+        countryOfResidence: "br",
       });
       return (envelope?.data ?? envelope ?? null) as any;
     },
@@ -405,6 +406,7 @@ export function useCarSupplierDetails(
       const envelope = await invokeCar<any>("carSupplierDetails", {
         searchKey,
         vehicleId,
+        countryOfResidence: "br",
       });
       return (envelope?.data ?? envelope ?? null) as any;
     },
@@ -425,6 +427,7 @@ export function useCarBookingSummary(
       const envelope = await invokeCar<any>("carBookingSummary", {
         searchKey,
         vehicleId,
+        countryOfResidence: "br",
       });
       return (envelope?.data ?? envelope ?? null) as any;
     },
