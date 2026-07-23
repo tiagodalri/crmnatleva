@@ -695,17 +695,16 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                             className="flex items-start justify-between gap-3 px-3 py-2 text-sm"
                           >
                             <span className="text-muted-foreground">{stripInlineTags(it?.title)}</span>
-                            <span className="font-medium shrink-0">
-                              {formatDisplayMoney(it?.price)}
+                            <span className="shrink-0">
+                              <MoneyLine raw={it?.price} />
                             </span>
                           </div>
                         ))}
                       {sec?.subtotal && (
                         <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm bg-muted/40">
                           <span className="font-medium">{stripInlineTags(sec.subtotal?.title) || "Subtotal"}</span>
-                          <span className="font-semibold">
-                            {formatDisplayMoney(sec.subtotal?.primaryPrice?.price) ||
-                              safeText(sec.subtotal?.primaryPrice?.title)}
+                          <span className="shrink-0">
+                            <MoneyLine raw={sec.subtotal?.primaryPrice?.price} size="md" />
                           </span>
                         </div>
                       )}
@@ -719,8 +718,8 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
                           {stripInlineTags(pbTotal?.subtitle) || "(incluindo impostos, taxas e adicionais)"}
                         </div>
                       </div>
-                      <div className="text-lg font-bold text-champagne-logo">
-                        {formatDisplayMoney(pbTotal?.primaryPrice?.price)}
+                      <div className="text-champagne-logo">
+                        <MoneyLine raw={pbTotal?.primaryPrice?.price} size="lg" />
                       </div>
                     </div>
                   )}
@@ -749,14 +748,25 @@ export function CarDetailDrawer({ vehicle, open, onOpenChange }: Props) {
               </div>
             )}
 
+            {/* Aviso de transparência de câmbio */}
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
+              <span>
+                Valores exibidos em dólar (USD) · a cobrança ocorre na moeda local do fornecedor no seu cartão de crédito internacional, sujeita a IOF e à variação cambial do dia. Os valores em R$ são apenas estimativa a partir da cotação atual e não representam o valor final debitado.
+              </span>
+            </div>
+
             {/* Total sticky */}
             <div className="sticky bottom-0 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-4 bg-background/95 backdrop-blur border-t px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   {footerTotalSubtitle}
                 </div>
-                <div className="text-lg font-bold truncate">
-                  {footerTotalTitle || formatDisplayMoney(vehicleObj?.price?.driveAway) || "Consultar"}
+                <div className="truncate">
+                  <MoneyLine
+                    raw={pbTotal?.primaryPrice?.price ?? priceContent?.footer?.title ?? vehicleObj?.price?.driveAway}
+                    size="lg"
+                  />
                 </div>
               </div>
               <span className="text-xs text-muted-foreground text-right max-w-[55%]">
