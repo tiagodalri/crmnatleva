@@ -574,6 +574,28 @@ export default function CarsSearchPage() {
                 </div>
               )}
 
+              {supplierOptions.length > 0 && (
+                <div>
+                  <Label className="text-xs font-semibold mb-2 block">
+                    Locadora {supplierFilter !== "all" && (
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                        · 1 selecionada
+                      </span>
+                    )}
+                  </Label>
+                  <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="all" className="text-xs">Todas ({supplierOptions.length})</SelectItem>
+                      {supplierOptions.map((o) => (
+                        <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+
               <div className="flex items-center gap-2 pt-1">
                 <Checkbox
                   id="free-cancel"
