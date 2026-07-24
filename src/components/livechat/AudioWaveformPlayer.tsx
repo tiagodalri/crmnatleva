@@ -47,16 +47,34 @@ function generateBars(id: string, count: number): number[] {
 
 export const AudioWaveformPlayer = forwardRef<HTMLDivElement, AudioWaveformPlayerProps>(function AudioWaveformPlayer({ src, isOutgoing = false, msgId, waveformData, durationSec }, _ref) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const waveRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(durationSec || 0);
   const [currentTime, setCurrentTime] = useState(0);
   const [speedIdx, setSpeedIdx] = useState(0);
   const [useFallback, setUseFallback] = useState(false);
+  const [barCount, setBarCount] = useState(40);
   const animFrameRef = useRef<number>();
-  const bars = useRef(
-    waveformData ? decodeWaveform(waveformData, 50) : generateBars(msgId, 50)
-  ).current;
+  const bars = waveformData
+    ? decodeWaveform(waveformData, barCount)
+    : generateBars(msgId, barCount);
+
+  // Responsivo · calcula quantas barras cabem no espaço real disponível
+  // pra evitar que o waveform "vaze" pra fora do balão em telas estreitas.
+  useEffect(() => {
+    const el = waveRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width || 0;
+      // Cada barra ocupa ~3px de largura mínima (2px barra + ~1.5px gap).
+      const next = Math.max(16, Math.min(50, Math.floor(width / 3.5)));
+      setBarCount((prev) => (Math.abs(prev - next) >= 2 ? next : prev));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
 
   const updateProgress = useCallback(() => {
     const audio = audioRef.current;
