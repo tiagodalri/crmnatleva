@@ -183,9 +183,11 @@ export const AudioWaveformPlayer = forwardRef<HTMLDivElement, AudioWaveformPlaye
       {/* Waveform + time */}
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <div
+          ref={waveRef}
           className="flex items-center gap-[1.5px] h-[28px] cursor-pointer w-full min-w-0 overflow-hidden"
           onClick={handleBarClick}
         >
+
           {bars.map((h, i) => {
             const barProgress = i / bars.length;
             const isActive = barProgress <= progress;
