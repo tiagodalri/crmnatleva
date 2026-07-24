@@ -5,23 +5,16 @@ interface PdfThumbnailProps {
   url: string;
   filename?: string;
   onClick?: () => void;
+  /** Preferred width in px. Component never exceeds its parent container. */
   width?: number;
   compact?: boolean;
 }
 
-function clampPreviewWidth(width: number) {
-  if (typeof window === "undefined") return width;
-  return Math.max(40, Math.min(width, window.innerWidth - 96));
-}
-
 function PdfThumbnailInner({ url, filename, onClick, width = 240, compact = false }: PdfThumbnailProps) {
-  const renderWidth = clampPreviewWidth(width);
-  const aspectHeight = compact ? Math.round(renderWidth * 1.2) : Math.round(renderWidth * 1.25);
   const label = filename || "PDF";
+  const aspectRatio = compact ? 1 / 1.2 : 1 / 1.25; // width / height
 
-  const openPdf = () => {
-    if (onClick) onClick();
-  };
+  const openPdf = () => { if (onClick) onClick(); };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -32,8 +25,8 @@ function PdfThumbnailInner({ url, filename, onClick, width = 240, compact = fals
 
   return (
     <div
-      className="relative overflow-hidden rounded-md border border-border/60 bg-card cursor-pointer hover:bg-muted/50 transition-colors group"
-      style={{ width: renderWidth, height: aspectHeight }}
+      className="relative overflow-hidden rounded-md border border-border/60 bg-card cursor-pointer hover:bg-muted/50 transition-colors group w-full"
+      style={{ maxWidth: width, aspectRatio: String(aspectRatio) }}
       onClick={onClick ? openPdf : undefined}
       onKeyDown={handleKeyDown}
       role={onClick ? "button" : undefined}
@@ -45,7 +38,7 @@ function PdfThumbnailInner({ url, filename, onClick, width = 240, compact = fals
           <FileText className={compact ? "h-4 w-4" : "h-7 w-7"} />
         </div>
         {!compact && (
-          <span className="max-w-full truncate text-xs font-medium text-card-foreground">
+          <span className="max-w-full truncate text-xs font-medium text-card-foreground px-2">
             {label}
           </span>
         )}
