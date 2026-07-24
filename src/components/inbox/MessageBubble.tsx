@@ -317,42 +317,26 @@ function MessageBubbleInner({ msg, messages, index, contactName, onReply, onEdit
                   // PDF preview (WhatsApp-like)
                   if (isPdf && bestUrl) {
                     return (
-                      <div className="flex flex-col gap-1.5 max-w-[260px]">
+                      <div className="flex flex-col gap-1.5 w-full max-w-[260px] overflow-hidden">
                         <PdfThumbnail
                           url={bestUrl}
                           filename={filename}
                           width={240}
                           onClick={() => window.open(bestUrl, "_blank", "noopener,noreferrer")}
                         />
-                        <div className={`flex items-center gap-2 px-2 py-1.5 rounded-md ${isOutgoing ? "bg-primary-foreground/10" : "bg-foreground/5"}`}>
-                          <DocIcon className="h-4 w-4 shrink-0 opacity-70" />
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className="text-xs font-medium truncate" title={filename}>{filename}</span>
-                            <div className="flex items-center gap-2 text-[10px] opacity-70">
-                              {sizeLabel && <span>{sizeLabel}</span>}
-                              <span>PDF</span>
-                            </div>
+                        {(sizeLabel || caption) && (
+                          <div className="flex items-center gap-2 text-[10px] opacity-70 px-1">
+                            {sizeLabel && <span>{sizeLabel}</span>}
                           </div>
-                          <a
-                            href={bestUrl}
-                            download={msg.media_filename || `documento_${msg.id}.pdf`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center hover:bg-foreground/10"
-                            title="Baixar PDF"
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </a>
-                        </div>
-                        {caption && <p className="text-sm leading-relaxed mt-0.5"><Linkify text={caption} /></p>}
+                        )}
+                        {caption && <p className="text-sm leading-relaxed mt-0.5 break-words"><Linkify text={caption} /></p>}
                       </div>
                     );
                   }
 
                   return (
-                    <div className="flex flex-col gap-1 max-w-[300px]">
-                      <div className={`flex items-center gap-3 py-2 px-2 rounded-lg min-w-[220px] ${isOutgoing ? "bg-primary-foreground/10" : "bg-foreground/5"}`}>
+                    <div className="flex flex-col gap-1 w-full max-w-[300px] overflow-hidden">
+                      <div className={`flex items-center gap-3 py-2 px-2 rounded-lg w-full ${isOutgoing ? "bg-primary-foreground/10" : "bg-foreground/5"}`}>
                         <DocIcon className="h-8 w-8 shrink-0 opacity-80" />
                         <div className="flex flex-col min-w-0 flex-1">
                           <span className="text-sm font-medium truncate" title={filename}>{filename}</span>
@@ -375,7 +359,7 @@ function MessageBubbleInner({ msg, messages, index, contactName, onReply, onEdit
                           </a>
                         )}
                       </div>
-                      {caption && <p className="text-sm leading-relaxed mt-0.5"><Linkify text={caption} /></p>}
+                      {caption && <p className="text-sm leading-relaxed mt-0.5 break-words"><Linkify text={caption} /></p>}
                     </div>
                   );
                 }
