@@ -233,7 +233,7 @@ function MessageBubbleInner({ msg, messages, index, contactName, onReply, onEdit
                 // Otherwise render the media (legacy NULL status falls here too)
                 if (msg.message_type === "audio") {
                   return (
-                    <div className="min-w-[220px]">
+                    <div className="w-full max-w-full min-w-0 sm:min-w-[220px] overflow-hidden">
                       {bestUrl ? (
                         <>
                           <AudioWaveformPlayer
