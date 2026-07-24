@@ -121,14 +121,42 @@ export default function AddFlightWizard({ open, onOpenChange, onCreateManual, on
         body: { images, item_type: "flight" },
       });
 
-      if (error) throw error;
+      // Supabase invoke oculta o body quando o status é não-2xx. Tentamos
+      // ler o `context.response` (FunctionsHttpError) pra mostrar o motivo
+      // real ao usuário em vez de "Edge Function returned a non-2xx …".
+      if (error) {
+        let realMessage: string | null = null;
+        try {
+          const resp = (error as any)?.context?.response as Response | undefined;
+          if (resp && typeof resp.clone === "function") {
+            const body = await resp.clone().json().catch(() => null);
+            if (body && typeof body.error === "string") realMessage = body.error;
+          }
+        } catch {
+          /* noop · usamos fallback abaixo */
+        }
+        if (!realMessage) {
+          const status = (error as any)?.context?.response?.status;
+          if (status === 401 || status === 403) {
+            realMessage = "Sessão expirada. Faça login novamente e tente de novo.";
+          } else if (status === 413) {
+            realMessage = "Arquivos muito pesados. Reduza o tamanho ou envie menos prints.";
+          } else if (status === 429) {
+            realMessage = "Muitas requisições em sequência. Aguarde alguns segundos.";
+          } else if (status === 402) {
+            realMessage = "Créditos de IA esgotados. Adicione créditos na workspace.";
+          }
+        }
+        toast.error(realMessage || (error as any)?.message || "Erro ao extrair. Tente novamente.");
+        return;
+      }
       if ((data as any)?.error) {
         toast.error((data as any).error);
         return;
       }
       const extracted = (data as any)?.extracted;
       if (!extracted) {
-        toast.error("Não foi possível extrair dados.");
+        toast.error("Não foi possível extrair dados. Tente uma imagem mais nítida.");
         return;
       }
 
@@ -138,7 +166,13 @@ export default function AddFlightWizard({ open, onOpenChange, onCreateManual, on
         data: { ...(extracted.data || {}), itinerary_type: itinerary },
       };
 
-      onCreateFromExtraction(itinerary, enriched);
+      try {
+        onCreateFromExtraction(itinerary, enriched);
+      } catch (applyErr) {
+        console.error("applyExtractedItem falhou", applyErr);
+        toast.error("Extração ok, mas falhou ao inserir no editor. Recarregue e tente de novo.");
+        return;
+      }
       toast.success(`Aéreo criado a partir de ${files.length} arquivo(s)!`);
       handleClose(false);
     } catch (e: any) {
