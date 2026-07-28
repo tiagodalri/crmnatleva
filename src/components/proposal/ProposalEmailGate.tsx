@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, ArrowRight, Sparkles, Globe, Shield } from "lucide-react";
+import { Mail, ArrowRight, Sparkles, Globe, Shield, RefreshCw } from "lucide-react";
 import logoNatleva from "@/assets/logo-natleva-clean.webp";
 import { sanitizeProposalCoverUrl } from "@/lib/proposalCoverImage";
 import { PhoneInput } from "@/components/ui/phone-input";
