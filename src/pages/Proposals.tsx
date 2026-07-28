@@ -174,6 +174,9 @@ export default function Proposals() {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [externalDialogOpen, setExternalDialogOpen] = useState(false);
+  const [externalTarget, setExternalTarget] = useState<any>(null);
+
   const { data: proposals, isLoading } = useQuery({
     queryKey: ["proposals"],
     queryFn: async () => {
