@@ -412,6 +412,57 @@ export default function ProposalPublicView() {
     );
   }
 
+  // Proposta externa · print mode não tem exportação
+  if (isExternal && isPrintMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="max-w-md text-center space-y-3">
+          <p className="text-2xl font-serif text-foreground">Exportação indisponível</p>
+          <p className="text-muted-foreground">
+            Esta é uma proposta externa e não possui versão em PDF. Abra o link público para ver a apresentação completa.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Proposta externa · transição elegante enquanto registramos o visitante
+  if (isExternal && externalRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black px-6">
+        <div className="text-center space-y-4">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          <motion.p
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            className="text-white/70 text-sm"
+          >
+            Preparando sua apresentação...
+          </motion.p>
+        </div>
+      </div>
+    );
+  }
+
+  // Proposta externa · o gate é sempre o ponto de entrada
+  if (isExternal) {
+    return (
+      <ProposalEmailGate
+        proposalTitle={proposal?.title}
+        destination={destination}
+        coverImage={safeCoverImage}
+        onSubmit={handleEmailSubmit}
+        loading={gateLoading}
+        errorMessage={externalError || undefined}
+        onRetry={
+          externalError && lastGateData
+            ? () => handleExternalSubmit(lastGateData.email, lastGateData.name, lastGateData.phone)
+            : undefined
+        }
+      />
+    );
+  }
+
   // Show email gate if not unlocked (skipped in print mode)
   if (!unlocked && !isPrintMode) {
     return (
@@ -424,6 +475,7 @@ export default function ProposalPublicView() {
       />
     );
   }
+
 
   return (
     <>
