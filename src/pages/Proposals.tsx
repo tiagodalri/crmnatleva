@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Search, Eye, Copy, ExternalLink, MoreHorizontal, FileText, LayoutTemplate, Bot, Calendar as CalendarIcon, User, Trash2, CopyPlus, BarChart3, Lock, Plane, MapPin, Users as UsersIcon, DollarSign, TrendingUp, X, SlidersHorizontal, Check } from "lucide-react";
+import { Plus, Search, Eye, Copy, ExternalLink, MoreHorizontal, FileText, LayoutTemplate, Bot, Calendar as CalendarIcon, User, Trash2, CopyPlus, BarChart3, Lock, Plane, MapPin, Users as UsersIcon, DollarSign, TrendingUp, X, SlidersHorizontal, Check, Globe } from "lucide-react";
 import { countProposalCompleteness, PROPOSAL_TOTAL_FIELDS } from "@/lib/briefingProposalBridge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
