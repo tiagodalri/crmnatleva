@@ -863,6 +863,14 @@ export default function Proposals() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ExternalProposalDialog
+        open={externalDialogOpen}
+        onOpenChange={setExternalDialogOpen}
+        proposal={externalTarget}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["proposals"] })}
+      />
     </div>
+
   );
 }
