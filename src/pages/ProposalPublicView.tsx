@@ -153,6 +153,13 @@ export default function ProposalPublicView() {
           }
         } catch { /* noop */ }
 
+        // Proposta externa não tem itens nem renderer
+        if (String((data as any).external_url || "").trim()) {
+          setItems([]);
+          setLoading(false);
+          return;
+        }
+
         const { data: itemsData, error: itemsError } = await supabase
           .from("proposal_items")
           .select("*")
@@ -166,6 +173,7 @@ export default function ProposalPublicView() {
 
         setItems(itemsData || []);
         setLoading(false);
+
       } catch (error) {
         console.error("[ProposalView] Failed to load public proposal", error);
         if (!active) return;
