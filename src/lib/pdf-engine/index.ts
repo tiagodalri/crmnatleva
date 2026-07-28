@@ -407,3 +407,8 @@ export const icon = (draw: IconDraw, size: number, color?: string, strokeWidth?:
   kind: "icon", draw, size, color, strokeWidth, style,
 });
 export const rule = (color: string, thickness: number, style?: Style): Node => ({ kind: "rule", color, thickness, style });
+export const draw = (
+  measure: (pdf: Pdf, width: number) => number,
+  render: (pdf: Pdf, x: number, y: number, width: number, height: number) => void,
+  style?: Style,
+): Node => ({ kind: "draw", measure, render, style });
