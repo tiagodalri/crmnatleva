@@ -73,6 +73,17 @@ async function loadPublicProposal(identifier: string) {
   return { data: null, error: null };
 }
 
+/** Monta a URL externa preservando querystring já existente. */
+function buildExternalUrl(base: string, params: Record<string, string>) {
+  const [rawUrl, hash] = base.split("#");
+  const sep = rawUrl.includes("?") ? "&" : "?";
+  const qs = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+  return `${rawUrl}${qs ? sep + qs : ""}${hash ? `#${hash}` : ""}`;
+}
+
+
 export default function ProposalPublicView() {
   const { slug } = useParams();
   const [proposal, setProposal] = useState<any>(null);
