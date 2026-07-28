@@ -467,7 +467,11 @@ export default function Proposals() {
           <Button variant="outline" onClick={() => navigate("/propostas/modelos")} className="gap-2">
             <LayoutTemplate className="w-4 h-4" /> Gerenciar Modelos
           </Button>
+          <Button variant="outline" onClick={() => { setExternalTarget(null); setExternalDialogOpen(true); }} className="gap-2">
+            <Globe className="w-4 h-4" /> Proposta externa
+          </Button>
           <Button onClick={() => navigate("/propostas/nova")} className="gap-2">
+
             <Plus className="w-4 h-4" /> Nova Proposta
           </Button>
         </div>
