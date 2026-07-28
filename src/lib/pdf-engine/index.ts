@@ -128,6 +128,12 @@ function resolveNodeIntrinsicHeight(pdf: Pdf, node: Node, contentW: number): num
   if (node.kind === "rule") {
     return Math.max(node.thickness, node.style?.minHeight ?? 0);
   }
+  if (node.kind === "draw") {
+    const [dpt, , dpb, dpl] = edges(node.style?.padding);
+    const [, dpr] = edges(node.style?.padding);
+    const inner = Math.max(1, contentW - dpl - dpr);
+    return Math.max(node.measure(pdf, inner) + dpt + dpb, node.style?.minHeight ?? 0);
+  }
   const style = node.style ?? {};
   const [pt, , pb, pl] = edges(style.padding);
   const [, pr] = edges(style.padding);
