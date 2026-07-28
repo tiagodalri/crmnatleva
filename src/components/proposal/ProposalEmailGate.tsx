@@ -180,6 +180,23 @@ export default function ProposalEmailGate({ proposalTitle, destination, coverIma
               )}
             </button>
 
+            {errorMessage && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[12px] text-amber-800 flex flex-wrap items-center justify-between gap-2">
+                <span className="leading-relaxed">{errorMessage}</span>
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 px-3 py-1.5 font-medium text-amber-900 hover:bg-amber-100 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Tentar novamente
+                  </button>
+                )}
+              </div>
+            )}
+
+
+
             <div className="flex items-center justify-center gap-1.5 mt-5 text-neutral-500 text-[10px]">
               <Shield className="w-3 h-3" />
               <span>Seus dados estão protegidos e não serão compartilhados</span>
