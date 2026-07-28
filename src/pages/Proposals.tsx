@@ -663,12 +663,21 @@ export default function Proposals() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((p: any) => {
             const st = statusMap[p.status] || statusMap.draft;
+            const isExternal = !!String(p.external_url || "").trim();
             return (
               <Card
                 key={p.id}
                 className="group hover:shadow-md transition-all cursor-pointer hover:border-primary/30 overflow-hidden"
-                onClick={() => navigate(`/propostas/${p.id}`)}
+                onClick={() => {
+                  if (isExternal) {
+                    setExternalTarget(p);
+                    setExternalDialogOpen(true);
+                    return;
+                  }
+                  navigate(`/propostas/${p.id}`);
+                }}
               >
+
                 <div className="h-36 overflow-hidden relative bg-muted">
                   <img
                     src={getCoverImage(p)}
