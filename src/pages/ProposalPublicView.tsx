@@ -187,6 +187,83 @@ export default function ProposalPublicView() {
     };
   }, [slug]);
 
+  // Proposta externa: registra o visitante e só então redireciona.
+  // Nunca colocamos dados pessoais na URL, apenas ids técnicos.
+  const handleExternalSubmit = useCallback(async (email: string, name?: string, phone?: string) => {
+    if (!proposal?.id) return;
+    const externalUrl = String(proposal.external_url || "").trim();
+    if (!externalUrl) return;
+
+    setLastGateData({ email, name, phone });
+    setExternalError(null);
+    setGateLoading(true);
+    setExternalRedirecting(true);
+
+    const deviceType = /Mobi/i.test(navigator.userAgent) ? "mobile" : "desktop";
+    const ua = (navigator.userAgent || "").slice(0, 200);
+
+    try {
+      let geo: any = {};
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2500);
+        const geoRes = await fetch("https://ipapi.co/json/", { signal: ctrl.signal });
+        clearTimeout(t);
+        if (geoRes.ok) geo = await geoRes.json();
+      } catch { /* geo é opcional */ }
+
+      const rpcPromise = supabase.rpc("register_proposal_viewer" as any, {
+        p_proposal_id: proposal.id,
+        p_email: email,
+        p_name: name || null,
+        p_phone: phone || null,
+        p_device_type: deviceType,
+        p_user_agent: ua,
+        p_ip: geo.ip || null,
+        p_city: geo.city || null,
+        p_region: geo.region || null,
+        p_country: geo.country_name || null,
+        p_latitude: geo.latitude || null,
+        p_longitude: geo.longitude || null,
+        p_referred_by_share_id: null,
+      });
+
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 6000)
+      );
+
+      const { data: vid, error: rpcErr } = (await Promise.race([rpcPromise, timeout])) as any;
+      if (rpcErr) throw rpcErr;
+
+      const realVid = (vid as string | null) || null;
+      if (!realVid) throw new Error("viewer_id ausente");
+
+      try { sessionStorage.setItem(`proposal_viewer_${slug}`, email); } catch {}
+      try { sessionStorage.setItem(`proposal_viewer_id_${slug}`, realVid); } catch {}
+      setViewerId(realVid);
+      setViewerEmail(email);
+
+      emitLearningEvent({
+        event_type: "proposal_opened",
+        proposal_id: proposal.id,
+        client_opened: true,
+        metadata: { viewer_email: email, viewer_name: name, viewer_id: realVid, device_type: deviceType, external: true },
+      });
+
+      const target = buildExternalUrl(externalUrl, {
+        nlv_p: proposal.id,
+        nlv_v: realVid,
+        nlv_s: proposal.slug || String(slug || ""),
+      });
+      window.location.replace(target);
+    } catch (err) {
+      console.warn("[ProposalView] external viewer registration failed", err);
+      setExternalRedirecting(false);
+      setGateLoading(false);
+      setExternalError("Não conseguimos preparar sua apresentação agora. Verifique sua conexão e tente novamente.");
+    }
+  }, [proposal, slug]);
+
   // Handle email submission
   // CRITICAL: this MUST never block the user from entering the proposal.
   // We unlock the gate immediately with a local viewer id and run all
@@ -194,7 +271,12 @@ export default function ProposalPublicView() {
   // killing ipapi.co, RLS, slow DB, offline), the proposal still opens.
   const handleEmailSubmit = useCallback(async (email: string, name?: string, phone?: string) => {
     if (!proposal?.id) return;
+    if (String(proposal.external_url || "").trim()) {
+      await handleExternalSubmit(email, name, phone);
+      return;
+    }
     setGateLoading(true);
+
 
     const deviceType = /Mobi/i.test(navigator.userAgent) ? "mobile" : "desktop";
     const ua = (navigator.userAgent || "").slice(0, 200);
