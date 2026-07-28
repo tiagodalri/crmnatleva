@@ -12,9 +12,14 @@ interface Props {
   coverImage?: string;
   onSubmit: (email: string, name?: string, phone?: string) => void;
   loading?: boolean;
+  /** Aviso discreto exibido no rodapé do formulário (ex.: falha de registro). */
+  errorMessage?: string;
+  /** Ação do botão "Tentar novamente" exibido junto ao aviso. */
+  onRetry?: () => void;
 }
 
-export default function ProposalEmailGate({ proposalTitle, destination, coverImage, onSubmit, loading }: Props) {
+export default function ProposalEmailGate({ proposalTitle, destination, coverImage, onSubmit, loading, errorMessage, onRetry }: Props) {
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
