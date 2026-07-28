@@ -203,7 +203,7 @@ function measureBadgeText(pdf: Pdf, label: string, size: number, ls: number) {
   pdf.setFontSize(size);
   pdf.setCharSpace(0);
   // getTextWidth ignora charSpace · somamos manualmente (mm por caractere).
-  return pdf.getTextWidth(label.toUpperCase()) + ls * label.length;
+  return pdf.getTextWidth(label.toUpperCase()) + ls * Math.max(0, label.length - 1);
 }
 
 function computeBadgeLayout(pdf: Pdf, width: number): BadgeLayout {
@@ -413,8 +413,8 @@ export function createNathOpinionDocument(data: NathOpinionPdfData, logo: LogoAs
 
   renderDocument(pdf, buildNathOpinionTree({ ...data, generatedAt: when }, pdf), {
     pageMargin: PAGE.marginMm,
-    headerHeight: HEADER_MM,
-    footerHeight: FOOTER_MM,
+    headerHeight: HEADER_MM - PAGE.marginMm + SPACING.lg,
+    footerHeight: FOOTER_MM - PAGE.marginMm + SPACING.lg,
     renderHeader: (p) => drawNathHeader(p, logo),
     renderFooter: (p, page, total) => drawNathFooter(p, page, total),
   });
