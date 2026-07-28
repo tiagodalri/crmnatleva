@@ -105,6 +105,13 @@ export default function ProposalPublicView() {
   });
   const [gateLoading, setGateLoading] = useState(false);
   const [unlocked, setUnlocked] = useState(!!viewerEmail || isPrintMode);
+  // Proposta externa: transição e falha de registro
+  const [externalRedirecting, setExternalRedirecting] = useState(false);
+  const [externalError, setExternalError] = useState<string | null>(null);
+  const [lastGateData, setLastGateData] = useState<{ email: string; name?: string; phone?: string } | null>(null);
+
+  const isExternal = !!String(proposal?.external_url || "").trim();
+
 
   // Tracking hook
   const tracking = useProposalTracking({
