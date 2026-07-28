@@ -117,8 +117,9 @@ export default function ProposalPublicView() {
   const tracking = useProposalTracking({
     proposalId: proposal?.id || "",
     viewerId: viewerId || "",
-    enabled: !!proposal?.id && !!viewerId && unlocked,
+    enabled: !!proposal?.id && !!viewerId && unlocked && !isExternal,
   });
+
 
   // Load proposal data
   useEffect(() => {
