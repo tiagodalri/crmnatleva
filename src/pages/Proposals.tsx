@@ -704,9 +704,15 @@ export default function Proposals() {
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <div className="flex items-center gap-1">
+                        {isExternal && (
+                          <Badge variant="outline" className="text-[10px] gap-1">
+                            <Globe className="w-2.5 h-2.5" /> Externa
+                          </Badge>
+                        )}
                         {(p as any).quote_request_id && (
                           <Badge variant="info" className="text-[10px]">Portal</Badge>
                         )}
+
                         {p.status && p.status !== "draft" && p.status !== "rascunho_ia" && (
                           <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                         )}
