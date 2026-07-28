@@ -75,9 +75,12 @@ interface NathOpinionButtonProps {
   variant?: "header" | "inline" | "floating";
   disabled?: boolean;
   conversationId?: string;
+  contactName?: string;
+  contactPhone?: string;
 }
 
-export default function NathOpinionButton({ messages, context, variant = "header", disabled, conversationId }: NathOpinionButtonProps) {
+export default function NathOpinionButton({ messages, context, variant = "header", disabled, conversationId, contactName, contactPhone }: NathOpinionButtonProps) {
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [opinion, setOpinion] = useState("");
