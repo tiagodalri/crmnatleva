@@ -49,7 +49,18 @@ export type Node =
   | { kind: "text"; text: string; style?: Style }
   | { kind: "image"; src: string; imgW: number; imgH: number; style?: Style }
   | { kind: "icon"; draw: IconDraw; size: number; color?: string; strokeWidth?: number; style?: Style }
-  | { kind: "rule"; color: string; thickness: number; style?: Style };
+  | { kind: "rule"; color: string; thickness: number; style?: Style }
+  /**
+   * Escape hatch vetorial: o blueprint mede e desenha o próprio conteúdo com as
+   * primitivas do jsPDF (necessário para medição real de texto/baselines).
+   * Participa normalmente do fluxo de layout e da paginação.
+   */
+  | {
+      kind: "draw";
+      measure: (pdf: Pdf, width: number) => number;
+      render: (pdf: Pdf, x: number, y: number, width: number, height: number) => void;
+      style?: Style;
+    };
 
 /** Icon draw callback — draws a vector icon at (cx,cy) with radius r using pdf primitives. */
 export type IconDraw = (pdf: Pdf, cx: number, cy: number, size: number, color: string, strokeWidth: number) => void;
@@ -116,6 +127,12 @@ function resolveNodeIntrinsicHeight(pdf: Pdf, node: Node, contentW: number): num
   }
   if (node.kind === "rule") {
     return Math.max(node.thickness, node.style?.minHeight ?? 0);
+  }
+  if (node.kind === "draw") {
+    const [dpt, , dpb, dpl] = edges(node.style?.padding);
+    const [, dpr] = edges(node.style?.padding);
+    const inner = Math.max(1, contentW - dpl - dpr);
+    return Math.max(node.measure(pdf, inner) + dpt + dpb, node.style?.minHeight ?? 0);
   }
   const style = node.style ?? {};
   const [pt, , pb, pl] = edges(style.padding);
@@ -271,6 +288,11 @@ function renderBox(pdf: Pdf, box: Box) {
     return;
   }
 
+  if (node.kind === "draw") {
+    node.render(pdf, box.contentX, box.contentY, box.contentW, box.contentH);
+    return;
+  }
+
   if (node.kind === "rule") {
     const [r, g, b] = hexToRgb(node.color);
     pdf.setDrawColor(r, g, b);
@@ -385,3 +407,8 @@ export const icon = (draw: IconDraw, size: number, color?: string, strokeWidth?:
   kind: "icon", draw, size, color, strokeWidth, style,
 });
 export const rule = (color: string, thickness: number, style?: Style): Node => ({ kind: "rule", color, thickness, style });
+export const draw = (
+  measure: (pdf: Pdf, width: number) => number,
+  render: (pdf: Pdf, x: number, y: number, width: number, height: number) => void,
+  style?: Style,
+): Node => ({ kind: "draw", measure, render, style });
