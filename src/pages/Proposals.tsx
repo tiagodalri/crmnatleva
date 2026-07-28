@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Search, Eye, Copy, ExternalLink, MoreHorizontal, FileText, LayoutTemplate, Bot, Calendar as CalendarIcon, User, Trash2, CopyPlus, BarChart3, Lock, Plane, MapPin, Users as UsersIcon, DollarSign, TrendingUp, X, SlidersHorizontal, Check } from "lucide-react";
+import { Plus, Search, Eye, Copy, ExternalLink, MoreHorizontal, FileText, LayoutTemplate, Bot, Calendar as CalendarIcon, User, Trash2, CopyPlus, BarChart3, Lock, Plane, MapPin, Users as UsersIcon, DollarSign, TrendingUp, X, SlidersHorizontal, Check, Globe } from "lucide-react";
 import { countProposalCompleteness, PROPOSAL_TOTAL_FIELDS } from "@/lib/briefingProposalBridge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,6 +18,8 @@ import { getPublicProposalUrl } from "@/lib/publicUrl";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { FilterPill, MultiCheckList, RangeInputs } from "@/components/proposals/ProposalsFilters";
+import ExternalProposalDialog from "@/components/proposals/ExternalProposalDialog";
+
 import orlandoFamilyCover from "@/assets/proposals/orlando-family-cover.jpg";
 import {
   DropdownMenu,
@@ -174,6 +176,9 @@ export default function Proposals() {
   const queryClient = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [externalDialogOpen, setExternalDialogOpen] = useState(false);
+  const [externalTarget, setExternalTarget] = useState<any>(null);
+
   const { data: proposals, isLoading } = useQuery({
     queryKey: ["proposals"],
     queryFn: async () => {
@@ -462,7 +467,11 @@ export default function Proposals() {
           <Button variant="outline" onClick={() => navigate("/propostas/modelos")} className="gap-2">
             <LayoutTemplate className="w-4 h-4" /> Gerenciar Modelos
           </Button>
+          <Button variant="outline" onClick={() => { setExternalTarget(null); setExternalDialogOpen(true); }} className="gap-2">
+            <Globe className="w-4 h-4" /> Proposta externa
+          </Button>
           <Button onClick={() => navigate("/propostas/nova")} className="gap-2">
+
             <Plus className="w-4 h-4" /> Nova Proposta
           </Button>
         </div>
@@ -654,12 +663,21 @@ export default function Proposals() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((p: any) => {
             const st = statusMap[p.status] || statusMap.draft;
+            const isExternal = !!String(p.external_url || "").trim();
             return (
               <Card
                 key={p.id}
                 className="group hover:shadow-md transition-all cursor-pointer hover:border-primary/30 overflow-hidden"
-                onClick={() => navigate(`/propostas/${p.id}`)}
+                onClick={() => {
+                  if (isExternal) {
+                    setExternalTarget(p);
+                    setExternalDialogOpen(true);
+                    return;
+                  }
+                  navigate(`/propostas/${p.id}`);
+                }}
               >
+
                 <div className="h-36 overflow-hidden relative bg-muted">
                   <img
                     src={getCoverImage(p)}
@@ -686,9 +704,15 @@ export default function Proposals() {
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <div className="flex items-center gap-1">
+                        {isExternal && (
+                          <Badge variant="outline" className="text-[10px] gap-1">
+                            <Globe className="w-2.5 h-2.5" /> Externa
+                          </Badge>
+                        )}
                         {(p as any).quote_request_id && (
                           <Badge variant="info" className="text-[10px]">Portal</Badge>
                         )}
+
                         {p.status && p.status !== "draft" && p.status !== "rascunho_ia" && (
                           <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
                         )}
@@ -793,6 +817,12 @@ export default function Proposals() {
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); window.open(getPublicProposalUrl(p.slug), "_blank"); }}>
                           <ExternalLink className="w-4 h-4 mr-2" /> Ver proposta
                         </DropdownMenuItem>
+                        {isExternal && (
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setExternalTarget(p); setExternalDialogOpen(true); }}>
+                            <Globe className="w-4 h-4 mr-2" /> Editar proposta externa
+                          </DropdownMenuItem>
+                        )}
+
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateProposal(p.id); }}>
                           <CopyPlus className="w-4 h-4 mr-2" /> Duplicar
                         </DropdownMenuItem>
@@ -833,6 +863,14 @@ export default function Proposals() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ExternalProposalDialog
+        open={externalDialogOpen}
+        onOpenChange={setExternalDialogOpen}
+        proposal={externalTarget}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["proposals"] })}
+      />
     </div>
+
   );
 }

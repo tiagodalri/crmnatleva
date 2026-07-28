@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, ArrowRight, Sparkles, Globe, Shield } from "lucide-react";
+import { Mail, ArrowRight, Sparkles, Globe, Shield, RefreshCw } from "lucide-react";
 import logoNatleva from "@/assets/logo-natleva-clean.webp";
 import { sanitizeProposalCoverUrl } from "@/lib/proposalCoverImage";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -12,9 +12,14 @@ interface Props {
   coverImage?: string;
   onSubmit: (email: string, name?: string, phone?: string) => void;
   loading?: boolean;
+  /** Aviso discreto exibido no rodapé do formulário (ex.: falha de registro). */
+  errorMessage?: string;
+  /** Ação do botão "Tentar novamente" exibido junto ao aviso. */
+  onRetry?: () => void;
 }
 
-export default function ProposalEmailGate({ proposalTitle, destination, coverImage, onSubmit, loading }: Props) {
+export default function ProposalEmailGate({ proposalTitle, destination, coverImage, onSubmit, loading, errorMessage, onRetry }: Props) {
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -174,6 +179,23 @@ export default function ProposalEmailGate({ proposalTitle, destination, coverIma
                 </>
               )}
             </button>
+
+            {errorMessage && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[12px] text-amber-800 flex flex-wrap items-center justify-between gap-2">
+                <span className="leading-relaxed">{errorMessage}</span>
+                {onRetry && (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400 px-3 py-1.5 font-medium text-amber-900 hover:bg-amber-100 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Tentar novamente
+                  </button>
+                )}
+              </div>
+            )}
+
+
 
             <div className="flex items-center justify-center gap-1.5 mt-5 text-neutral-500 text-[10px]">
               <Shield className="w-3 h-3" />

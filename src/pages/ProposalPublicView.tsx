@@ -73,6 +73,17 @@ async function loadPublicProposal(identifier: string) {
   return { data: null, error: null };
 }
 
+/** Monta a URL externa preservando querystring já existente. */
+function buildExternalUrl(base: string, params: Record<string, string>) {
+  const [rawUrl, hash] = base.split("#");
+  const sep = rawUrl.includes("?") ? "&" : "?";
+  const qs = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+  return `${rawUrl}${qs ? sep + qs : ""}${hash ? `#${hash}` : ""}`;
+}
+
+
 export default function ProposalPublicView() {
   const { slug } = useParams();
   const [proposal, setProposal] = useState<any>(null);
@@ -94,13 +105,21 @@ export default function ProposalPublicView() {
   });
   const [gateLoading, setGateLoading] = useState(false);
   const [unlocked, setUnlocked] = useState(!!viewerEmail || isPrintMode);
+  // Proposta externa: transição e falha de registro
+  const [externalRedirecting, setExternalRedirecting] = useState(false);
+  const [externalError, setExternalError] = useState<string | null>(null);
+  const [lastGateData, setLastGateData] = useState<{ email: string; name?: string; phone?: string } | null>(null);
+
+  const isExternal = !!String(proposal?.external_url || "").trim();
+
 
   // Tracking hook
   const tracking = useProposalTracking({
     proposalId: proposal?.id || "",
     viewerId: viewerId || "",
-    enabled: !!proposal?.id && !!viewerId && unlocked,
+    enabled: !!proposal?.id && !!viewerId && unlocked && !isExternal,
   });
+
 
   // Load proposal data
   useEffect(() => {
@@ -135,6 +154,13 @@ export default function ProposalPublicView() {
           }
         } catch { /* noop */ }
 
+        // Proposta externa não tem itens nem renderer
+        if (String((data as any).external_url || "").trim()) {
+          setItems([]);
+          setLoading(false);
+          return;
+        }
+
         const { data: itemsData, error: itemsError } = await supabase
           .from("proposal_items")
           .select("*")
@@ -148,6 +174,7 @@ export default function ProposalPublicView() {
 
         setItems(itemsData || []);
         setLoading(false);
+
       } catch (error) {
         console.error("[ProposalView] Failed to load public proposal", error);
         if (!active) return;
@@ -161,6 +188,83 @@ export default function ProposalPublicView() {
     };
   }, [slug]);
 
+  // Proposta externa: registra o visitante e só então redireciona.
+  // Nunca colocamos dados pessoais na URL, apenas ids técnicos.
+  const handleExternalSubmit = useCallback(async (email: string, name?: string, phone?: string) => {
+    if (!proposal?.id) return;
+    const externalUrl = String(proposal.external_url || "").trim();
+    if (!externalUrl) return;
+
+    setLastGateData({ email, name, phone });
+    setExternalError(null);
+    setGateLoading(true);
+    setExternalRedirecting(true);
+
+    const deviceType = /Mobi/i.test(navigator.userAgent) ? "mobile" : "desktop";
+    const ua = (navigator.userAgent || "").slice(0, 200);
+
+    try {
+      let geo: any = {};
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2500);
+        const geoRes = await fetch("https://ipapi.co/json/", { signal: ctrl.signal });
+        clearTimeout(t);
+        if (geoRes.ok) geo = await geoRes.json();
+      } catch { /* geo é opcional */ }
+
+      const rpcPromise = supabase.rpc("register_proposal_viewer" as any, {
+        p_proposal_id: proposal.id,
+        p_email: email,
+        p_name: name || null,
+        p_phone: phone || null,
+        p_device_type: deviceType,
+        p_user_agent: ua,
+        p_ip: geo.ip || null,
+        p_city: geo.city || null,
+        p_region: geo.region || null,
+        p_country: geo.country_name || null,
+        p_latitude: geo.latitude || null,
+        p_longitude: geo.longitude || null,
+        p_referred_by_share_id: null,
+      });
+
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 6000)
+      );
+
+      const { data: vid, error: rpcErr } = (await Promise.race([rpcPromise, timeout])) as any;
+      if (rpcErr) throw rpcErr;
+
+      const realVid = (vid as string | null) || null;
+      if (!realVid) throw new Error("viewer_id ausente");
+
+      try { sessionStorage.setItem(`proposal_viewer_${slug}`, email); } catch {}
+      try { sessionStorage.setItem(`proposal_viewer_id_${slug}`, realVid); } catch {}
+      setViewerId(realVid);
+      setViewerEmail(email);
+
+      emitLearningEvent({
+        event_type: "proposal_opened",
+        proposal_id: proposal.id,
+        client_opened: true,
+        metadata: { viewer_email: email, viewer_name: name, viewer_id: realVid, device_type: deviceType, external: true },
+      });
+
+      const target = buildExternalUrl(externalUrl, {
+        nlv_p: proposal.id,
+        nlv_v: realVid,
+        nlv_s: proposal.slug || String(slug || ""),
+      });
+      window.location.replace(target);
+    } catch (err) {
+      console.warn("[ProposalView] external viewer registration failed", err);
+      setExternalRedirecting(false);
+      setGateLoading(false);
+      setExternalError("Não conseguimos preparar sua apresentação agora. Verifique sua conexão e tente novamente.");
+    }
+  }, [proposal, slug]);
+
   // Handle email submission
   // CRITICAL: this MUST never block the user from entering the proposal.
   // We unlock the gate immediately with a local viewer id and run all
@@ -168,7 +272,12 @@ export default function ProposalPublicView() {
   // killing ipapi.co, RLS, slow DB, offline), the proposal still opens.
   const handleEmailSubmit = useCallback(async (email: string, name?: string, phone?: string) => {
     if (!proposal?.id) return;
+    if (String(proposal.external_url || "").trim()) {
+      await handleExternalSubmit(email, name, phone);
+      return;
+    }
     setGateLoading(true);
+
 
     const deviceType = /Mobi/i.test(navigator.userAgent) ? "mobile" : "desktop";
     const ua = (navigator.userAgent || "").slice(0, 200);
@@ -304,6 +413,57 @@ export default function ProposalPublicView() {
     );
   }
 
+  // Proposta externa · print mode não tem exportação
+  if (isExternal && isPrintMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="max-w-md text-center space-y-3">
+          <p className="text-2xl font-serif text-foreground">Exportação indisponível</p>
+          <p className="text-muted-foreground">
+            Esta é uma proposta externa e não possui versão em PDF. Abra o link público para ver a apresentação completa.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Proposta externa · transição elegante enquanto registramos o visitante
+  if (isExternal && externalRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black px-6">
+        <div className="text-center space-y-4">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          <motion.p
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            className="text-white/70 text-sm"
+          >
+            Preparando sua apresentação...
+          </motion.p>
+        </div>
+      </div>
+    );
+  }
+
+  // Proposta externa · o gate é sempre o ponto de entrada
+  if (isExternal) {
+    return (
+      <ProposalEmailGate
+        proposalTitle={proposal?.title}
+        destination={destination}
+        coverImage={safeCoverImage}
+        onSubmit={handleEmailSubmit}
+        loading={gateLoading}
+        errorMessage={externalError || undefined}
+        onRetry={
+          externalError && lastGateData
+            ? () => handleExternalSubmit(lastGateData.email, lastGateData.name, lastGateData.phone)
+            : undefined
+        }
+      />
+    );
+  }
+
   // Show email gate if not unlocked (skipped in print mode)
   if (!unlocked && !isPrintMode) {
     return (
@@ -316,6 +476,7 @@ export default function ProposalPublicView() {
       />
     );
   }
+
 
   return (
     <>
