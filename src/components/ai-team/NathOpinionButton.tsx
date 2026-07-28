@@ -656,7 +656,20 @@ Retorne SOMENTE o JSON, sem markdown.`,
               </DialogTitle>
             </DialogHeader>
 
+            {opinion && !loading && (
+              <button
+                onClick={handleExportPdf}
+                title="Exportar em PDF"
+                aria-label="Exportar em PDF"
+                className="absolute right-14 top-6 flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+                style={{ background: "rgba(168,85,247,0.10)", border: "1px solid rgba(168,85,247,0.25)", color: "#D8B4FE" }}
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            )}
+
             <div className="flex items-center gap-2 mt-3 flex-wrap">
+
               {[
                 { icon: Shield, label: "Guardiã da Marca", color: "#EF4444" },
                 { icon: Heart, label: "Experiência do Cliente", color: "#EC4899" },
