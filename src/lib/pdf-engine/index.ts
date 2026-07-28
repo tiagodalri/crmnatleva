@@ -288,6 +288,11 @@ function renderBox(pdf: Pdf, box: Box) {
     return;
   }
 
+  if (node.kind === "draw") {
+    node.render(pdf, box.contentX, box.contentY, box.contentW, box.contentH);
+    return;
+  }
+
   if (node.kind === "rule") {
     const [r, g, b] = hexToRgb(node.color);
     pdf.setDrawColor(r, g, b);
