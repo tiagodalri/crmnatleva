@@ -49,7 +49,18 @@ export type Node =
   | { kind: "text"; text: string; style?: Style }
   | { kind: "image"; src: string; imgW: number; imgH: number; style?: Style }
   | { kind: "icon"; draw: IconDraw; size: number; color?: string; strokeWidth?: number; style?: Style }
-  | { kind: "rule"; color: string; thickness: number; style?: Style };
+  | { kind: "rule"; color: string; thickness: number; style?: Style }
+  /**
+   * Escape hatch vetorial: o blueprint mede e desenha o próprio conteúdo com as
+   * primitivas do jsPDF (necessário para medição real de texto/baselines).
+   * Participa normalmente do fluxo de layout e da paginação.
+   */
+  | {
+      kind: "draw";
+      measure: (pdf: Pdf, width: number) => number;
+      render: (pdf: Pdf, x: number, y: number, width: number, height: number) => void;
+      style?: Style;
+    };
 
 /** Icon draw callback — draws a vector icon at (cx,cy) with radius r using pdf primitives. */
 export type IconDraw = (pdf: Pdf, cx: number, cy: number, size: number, color: string, strokeWidth: number) => void;
