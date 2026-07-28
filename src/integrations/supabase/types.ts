@@ -8648,6 +8648,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           destinations: string[] | null
+          external_url: string | null
           id: string
           internal_cost: number | null
           internal_profit: number | null
@@ -8688,6 +8689,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           destinations?: string[] | null
+          external_url?: string | null
           id?: string
           internal_cost?: number | null
           internal_profit?: number | null
@@ -8728,6 +8730,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           destinations?: string[] | null
+          external_url?: string | null
           id?: string
           internal_cost?: number | null
           internal_profit?: number | null
