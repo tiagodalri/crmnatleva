@@ -356,7 +356,7 @@ export function buildNathOpinionTree(data: NathOpinionPdfData, pdf?: Pdf): Node 
 
   const sections: Node[] = [
     badgesNode(),
-    idCardNode(idRows),
+    col({ padding: [SPACING.md, 0, 0, 0] }, [idCardNode(idRows)]),
   ];
 
   const push = (node: Node, gapAbove: number) => {
