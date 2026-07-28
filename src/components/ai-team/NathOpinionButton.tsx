@@ -95,6 +95,26 @@ export default function NathOpinionButton({ messages, context, variant = "header
   const [phase, setPhase] = useState<"idle" | "processing_media" | "generating">("idle");
   const { toast } = useToast();
 
+  const handleExportPdf = useCallback(async () => {
+    if (!opinion) return;
+    try {
+      const { exportNathOpinionPdf } = await import("@/lib/pdf-engine/nathOpinionPdf");
+      const nameFromContext = context?.match(/Cliente:\s*([^·]+)/)?.[1]?.trim();
+      const phoneFromContext = context?.match(/Telefone:\s*([^·]+)/)?.[1]?.trim();
+      await exportNathOpinionPdf({
+        opinion,
+        contactName: contactName || nameFromContext || null,
+        contactPhone: contactPhone || phoneFromContext || null,
+        context,
+      });
+      toast({ title: "PDF gerado", description: "A análise foi exportada com sucesso." });
+    } catch {
+      toast({ title: "Erro ao gerar PDF", description: "Não consegui exportar a análise agora.", variant: "destructive" });
+    }
+  }, [opinion, context, contactName, contactPhone, toast]);
+
+
+
   const askNath = useCallback(async () => {
     if (messages.length < 2) {
       toast({ title: "Conversa muito curta", description: "Preciso de pelo menos 2 mensagens para opinar.", variant: "destructive" });
