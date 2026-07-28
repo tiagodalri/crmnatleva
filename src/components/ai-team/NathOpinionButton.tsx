@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Crown, Loader2, AlertTriangle, Heart, Shield, Sparkles, TrendingUp, Zap, BookOpen, Users, Scale, Check, X, ChevronDown, ChevronUp, ArrowLeft, BarChart3, ThumbsUp, ThumbsDown, Wrench, Target, Clock, User, Bot, Plus } from "lucide-react";
+import { Crown, Loader2, AlertTriangle, Heart, Shield, Sparkles, TrendingUp, Zap, BookOpen, Users, Scale, Check, X, ChevronDown, ChevronUp, ArrowLeft, BarChart3, ThumbsUp, ThumbsDown, Wrench, Target, Clock, User, Bot, Plus, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
@@ -75,9 +75,12 @@ interface NathOpinionButtonProps {
   variant?: "header" | "inline" | "floating";
   disabled?: boolean;
   conversationId?: string;
+  contactName?: string;
+  contactPhone?: string;
 }
 
-export default function NathOpinionButton({ messages, context, variant = "header", disabled, conversationId }: NathOpinionButtonProps) {
+export default function NathOpinionButton({ messages, context, variant = "header", disabled, conversationId, contactName, contactPhone }: NathOpinionButtonProps) {
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [opinion, setOpinion] = useState("");
@@ -91,6 +94,26 @@ export default function NathOpinionButton({ messages, context, variant = "header
   const [stats, setStats] = useState<any>(null);
   const [phase, setPhase] = useState<"idle" | "processing_media" | "generating">("idle");
   const { toast } = useToast();
+
+  const handleExportPdf = useCallback(async () => {
+    if (!opinion) return;
+    try {
+      const { exportNathOpinionPdf } = await import("@/lib/pdf-engine/nathOpinionPdf");
+      const nameFromContext = context?.match(/Cliente:\s*([^·]+)/)?.[1]?.trim();
+      const phoneFromContext = context?.match(/Telefone:\s*([^·]+)/)?.[1]?.trim();
+      await exportNathOpinionPdf({
+        opinion,
+        contactName: contactName || nameFromContext || null,
+        contactPhone: contactPhone || phoneFromContext || null,
+        context,
+      });
+      toast({ title: "PDF gerado", description: "A análise foi exportada com sucesso." });
+    } catch {
+      toast({ title: "Erro ao gerar PDF", description: "Não consegui exportar a análise agora.", variant: "destructive" });
+    }
+  }, [opinion, context, contactName, contactPhone, toast]);
+
+
 
   const askNath = useCallback(async () => {
     if (messages.length < 2) {
@@ -656,7 +679,20 @@ Retorne SOMENTE o JSON, sem markdown.`,
               </DialogTitle>
             </DialogHeader>
 
+            {opinion && !loading && (
+              <button
+                onClick={handleExportPdf}
+                title="Exportar em PDF"
+                aria-label="Exportar em PDF"
+                className="absolute right-14 top-6 flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:scale-105"
+                style={{ background: "rgba(168,85,247,0.10)", border: "1px solid rgba(168,85,247,0.25)", color: "#D8B4FE" }}
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            )}
+
             <div className="flex items-center gap-2 mt-3 flex-wrap">
+
               {[
                 { icon: Shield, label: "Guardiã da Marca", color: "#EF4444" },
                 { icon: Heart, label: "Experiência do Cliente", color: "#EC4899" },
