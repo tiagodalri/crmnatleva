@@ -286,6 +286,7 @@ function AppRoutes() {
       <ErrorBoundary>
       <RefTracker />
       <Routes>
+
         <Route
           path="/login"
           element={isLoading && !isPublicRoute ? <LoginSkeleton /> : isAuthenticated ? <LoginRedirect /> : <Login />}

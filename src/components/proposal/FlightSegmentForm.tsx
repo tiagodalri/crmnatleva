@@ -219,113 +219,134 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
           <Luggage className="w-3.5 h-3.5" />
           Bagagem
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs flex items-center gap-1.5">
-              <Briefcase className="w-3 h-3" /> Item pessoal
-            </Label>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={seg.personal_item_included ?? true}
-                onCheckedChange={(v) => onUpdate("personal_item_included", v)}
-              />
-              <span className="text-xs text-muted-foreground">
-                {seg.personal_item_included ? "Incluso" : "Não incluso"}
+
+        <div className="space-y-2">
+          {/* Bloco 1 · Item pessoal */}
+          <div className="rounded-md border border-border/50 bg-background/60 p-3 space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium flex items-center gap-2 whitespace-nowrap">
+                <Briefcase className="w-3.5 h-3.5 shrink-0" /> Item pessoal
+              </Label>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {seg.personal_item_included ?? true ? "Incluso" : "Não incluso"}
+                </span>
+                <Switch
+                  checked={seg.personal_item_included ?? true}
+                  onCheckedChange={(v) => onUpdate("personal_item_included", v)}
+                />
+              </div>
+            </div>
+            {(seg.personal_item_included ?? true) && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Peso do item</Label>
+                <Select
+                  value={String(seg.personal_item_weight_kg || 10)}
+                  onValueChange={(v) => onUpdate("personal_item_weight_kg", parseInt(v))}
+                >
+                  <SelectTrigger className="h-9 text-sm w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 kg</SelectItem>
+                    <SelectItem value="7">7 kg</SelectItem>
+                    <SelectItem value="8">8 kg</SelectItem>
+                    <SelectItem value="10">10 kg</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Bloco 2 · Bagagem de mão */}
+          <div className="rounded-md border border-border/50 bg-background/60 p-3 space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium flex items-center gap-2 whitespace-nowrap">
+                <Briefcase className="w-3.5 h-3.5 shrink-0" /> Bagagem de mão
+              </Label>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {seg.carry_on_included ?? true ? "Inclusa" : "Não inclusa"}
+                </span>
+                <Switch
+                  checked={seg.carry_on_included ?? true}
+                  onCheckedChange={(v) => onUpdate("carry_on_included", v)}
+                />
+              </div>
+            </div>
+            {(seg.carry_on_included ?? true) && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Peso da bagagem de mão</Label>
+                <Select
+                  value={String(seg.carry_on_weight_kg || 10)}
+                  onValueChange={(v) => onUpdate("carry_on_weight_kg", parseInt(v))}
+                >
+                  <SelectTrigger className="h-9 text-sm w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7 kg</SelectItem>
+                    <SelectItem value="8">8 kg</SelectItem>
+                    <SelectItem value="10">10 kg</SelectItem>
+                    <SelectItem value="12">12 kg</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Bloco 3 · Bagagem despachada */}
+          <div className="rounded-md border border-border/50 bg-background/60 p-3 space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium flex items-center gap-2 whitespace-nowrap">
+                <Luggage className="w-3.5 h-3.5 shrink-0" /> Bagagem despachada
+              </Label>
+              <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                {(seg.checked_bags_included ?? 0) > 0 ? "Inclusa" : "Não inclusa"}
               </span>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Quantidade de malas</Label>
+                <Select
+                  value={String(seg.checked_bags_included ?? 0)}
+                  onValueChange={(v) => onUpdate("checked_bags_included", parseInt(v))}
+                >
+                  <SelectTrigger className="h-9 text-sm w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Nenhuma</SelectItem>
+                    <SelectItem value="1">1 mala</SelectItem>
+                    <SelectItem value="2">2 malas</SelectItem>
+                    <SelectItem value="3">3 malas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(seg.checked_bags_included ?? 0) > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Peso de cada mala</Label>
+                  <Select
+                    value={String(seg.checked_bag_weight_kg || 23)}
+                    onValueChange={(v) => onUpdate("checked_bag_weight_kg", parseInt(v))}
+                  >
+                    <SelectTrigger className="h-9 text-sm w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">15 kg</SelectItem>
+                      <SelectItem value="20">20 kg</SelectItem>
+                      <SelectItem value="23">23 kg</SelectItem>
+                      <SelectItem value="32">32 kg</SelectItem>
+                      <SelectItem value="40">40 kg</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </div>
-          {seg.personal_item_included && (
-            <div className="space-y-1">
-              <Label className="text-xs">Peso item (kg)</Label>
-              <Select
-                value={String(seg.personal_item_weight_kg || 10)}
-                onValueChange={(v) => onUpdate("personal_item_weight_kg", parseInt(v))}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 kg</SelectItem>
-                  <SelectItem value="7">7 kg</SelectItem>
-                  <SelectItem value="8">8 kg</SelectItem>
-                  <SelectItem value="10">10 kg</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div className="space-y-1.5">
-            <Label className="text-xs flex items-center gap-1.5">
-              <Briefcase className="w-3 h-3" /> Bagagem de mão
-            </Label>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={seg.carry_on_included ?? true}
-                onCheckedChange={(v) => onUpdate("carry_on_included", v)}
-              />
-              <span className="text-xs text-muted-foreground">
-                {seg.carry_on_included ? "Inclusa" : "Não inclusa"}
-              </span>
-            </div>
-          </div>
-          {seg.carry_on_included && (
-            <div className="space-y-1">
-              <Label className="text-xs">Peso mão (kg)</Label>
-              <Select
-                value={String(seg.carry_on_weight_kg || 10)}
-                onValueChange={(v) => onUpdate("carry_on_weight_kg", parseInt(v))}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">7 kg</SelectItem>
-                  <SelectItem value="8">8 kg</SelectItem>
-                  <SelectItem value="10">10 kg</SelectItem>
-                  <SelectItem value="12">12 kg</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div className="space-y-1">
-            <Label className="text-xs flex items-center gap-1.5">
-              <Luggage className="w-3 h-3" /> Bagagem despachada
-            </Label>
-            <Select
-              value={String(seg.checked_bags_included ?? 0)}
-              onValueChange={(v) => onUpdate("checked_bags_included", parseInt(v))}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Nenhuma</SelectItem>
-                <SelectItem value="1">1 mala</SelectItem>
-                <SelectItem value="2">2 malas</SelectItem>
-                <SelectItem value="3">3 malas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {(seg.checked_bags_included ?? 0) > 0 && (
-            <div className="space-y-1">
-              <Label className="text-xs">Peso cada (kg)</Label>
-              <Select
-                value={String(seg.checked_bag_weight_kg || 23)}
-                onValueChange={(v) => onUpdate("checked_bag_weight_kg", parseInt(v))}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 kg</SelectItem>
-                  <SelectItem value="20">20 kg</SelectItem>
-                  <SelectItem value="23">23 kg</SelectItem>
-                  <SelectItem value="32">32 kg</SelectItem>
-                  <SelectItem value="40">40 kg</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
+
         <div className="space-y-1">
           <Label className="text-xs">Observações bagagem</Label>
           <Input
@@ -336,6 +357,7 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
           />
         </div>
       </div>
+
 
       {/* Notes */}
       <div className="px-3">
