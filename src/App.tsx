@@ -196,6 +196,7 @@ const VitrineMateriais = lazy(() => import("@/pages/vitrine/VitrineMateriais"));
 const VitrinePerfil = lazy(() => import("@/pages/vitrine/VitrinePerfil"));
 const VitrineLeads = lazy(() => import("@/pages/vitrine/VitrineLeads"));
 const AdminVitrineLeads = lazy(() => import("@/pages/admin/AdminVitrineLeads"));
+const SiteOverview = lazy(() => import("@/pages/site/SiteOverview"));
 const SiteBlog = lazy(() => import("@/pages/site/SiteBlog"));
 const SitePackages = lazy(() => import("@/pages/site/SitePackages"));
 const SiteLeads = lazy(() => import("@/pages/site/SiteLeads"));

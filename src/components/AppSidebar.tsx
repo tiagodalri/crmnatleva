@@ -395,6 +395,7 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
         {/* Site institucional */}
         {(() => {
           const items = filterItems([
+            { to: "/site/visao-geral", icon: LayoutDashboard, label: "Visão geral" },
             { to: "/site/blog", icon: Newspaper, label: "Blog" },
             { to: "/site/pacotes", icon: PackageOpen, label: "Pacotes do site" },
             { to: "/site/leads", icon: Target, label: "Leads do site" },
