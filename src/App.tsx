@@ -1,4 +1,3 @@
-import BaggagePreview from "@/pages/__BaggagePreview";
 import { lazy, Suspense } from "react";
 import SmartSuspense from "@/components/SmartSuspense";
 import { MinimalLoader, SessionAwareLoader } from "@/components/AppLoaders";
@@ -287,7 +286,6 @@ function AppRoutes() {
       <ErrorBoundary>
       <RefTracker />
       <Routes>
-        <Route path="/__baggage-preview" element={<BaggagePreview />} />
 
         <Route
           path="/login"
