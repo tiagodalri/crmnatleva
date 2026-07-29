@@ -1,3 +1,4 @@
+import BaggagePreview from "@/pages/__BaggagePreview";
 import { lazy, Suspense } from "react";
 import SmartSuspense from "@/components/SmartSuspense";
 import { MinimalLoader, SessionAwareLoader } from "@/components/AppLoaders";
