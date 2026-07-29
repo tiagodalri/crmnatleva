@@ -202,6 +202,8 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
     if (p.startsWith("/implementacao") || p.startsWith("/import") || p.startsWith("/livechat/import")) setImplOpen(true);
     if (p.startsWith("/admin")) setAdminOpen(true);
     if (p.startsWith("/portal-admin")) setPortalAdminOpen(true);
+    if (p.startsWith("/site")) setSiteOpen(true);
+
   }, []);
 
   const renderNavItem = (item: typeof navItems[0], indent = false) => (
