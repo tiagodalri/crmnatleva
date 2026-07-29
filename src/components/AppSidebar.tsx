@@ -392,7 +392,22 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
 
 
 
+        {/* Site institucional */}
+        {(() => {
+          const items = filterItems([
+            { to: "/site/blog", icon: Newspaper, label: "Blog" },
+            { to: "/site/pacotes", icon: PackageOpen, label: "Pacotes do site" },
+            { to: "/site/leads", icon: Target, label: "Leads do site" },
+          ]);
+          if (items.length === 0) return null;
+          return (<>
+            {renderGroupButton("Site", Globe, siteOpen, () => setSiteOpen(!siteOpen))}
+            {siteOpen && !isCollapsed && renderSubGroup(items)}
+          </>);
+        })()}
+
         {/* Portal do Viajante */}
+
         {(() => {
           const items = filterItems([
             { to: "/portal-admin/config", icon: Cog, label: "Configurações" },
