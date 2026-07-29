@@ -115,6 +115,7 @@ export const SYSTEM_MENUS: SystemMenuItem[] = [
   { key: "rh.config", label: "Configurações RH", path: "/rh/config", group: "RH", actions: VIEW_EDIT },
 
   // --- Site institucional ---
+  { key: "site.visaogeral", label: "Visão Geral do Site", path: "/site/visao-geral", group: "Site", actions: READ_ONLY },
   { key: "site.blog", label: "Blog do Site", path: "/site/blog", group: "Site", actions: ALL },
   { key: "site.pacotes", label: "Pacotes do Site", path: "/site/pacotes", group: "Site", actions: ALL },
   { key: "site.leads", label: "Leads do Site", path: "/site/leads", group: "Site", actions: VIEW_EDIT },
