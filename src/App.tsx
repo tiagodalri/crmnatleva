@@ -380,6 +380,7 @@ function AppRoutes() {
           <Route path="/admin/vitrine/leads" element={<AdminVitrineLeads />} />
 
           {/* Site institucional */}
+          <Route path="/site/visao-geral" element={<SiteOverview />} />
           <Route path="/site/blog" element={<SiteBlog />} />
           <Route path="/site/pacotes" element={<SitePackages />} />
           <Route path="/site/leads" element={<SiteLeads />} />
