@@ -374,6 +374,12 @@ function AppRoutes() {
           <Route path="/admin/vitrine" element={<AdminVitrine />} />
           <Route path="/admin/vitrine/leads" element={<AdminVitrineLeads />} />
 
+          {/* Site institucional */}
+          <Route path="/site/blog" element={<SiteBlog />} />
+          <Route path="/site/pacotes" element={<SitePackages />} />
+          <Route path="/site/leads" element={<SiteLeads />} />
+
+
           {/* Portal Admin */}
           <Route path="/portal-admin" element={<PortalAdminDashboard />} />
           <Route path="/portal-admin/viagens" element={<PortalAdminTrips />} />
