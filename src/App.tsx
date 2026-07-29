@@ -286,6 +286,8 @@ function AppRoutes() {
       <ErrorBoundary>
       <RefTracker />
       <Routes>
+        <Route path="/__baggage-preview" element={<BaggagePreview />} />
+
         <Route
           path="/login"
           element={isLoading && !isPublicRoute ? <LoginSkeleton /> : isAuthenticated ? <LoginRedirect /> : <Login />}
