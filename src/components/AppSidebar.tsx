@@ -113,6 +113,8 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
   const [implOpen, setImplOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [portalAdminOpen, setPortalAdminOpen] = useState(false);
+  const [siteOpen, setSiteOpen] = useState(false);
+
   const isCollapsed = mobile ? false : collapsed;
   const [pendingBriefings, setPendingBriefings] = useState(0);
   const [myInboxCount, setMyInboxCount] = useState(0);
