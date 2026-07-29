@@ -196,6 +196,10 @@ const VitrineMateriais = lazy(() => import("@/pages/vitrine/VitrineMateriais"));
 const VitrinePerfil = lazy(() => import("@/pages/vitrine/VitrinePerfil"));
 const VitrineLeads = lazy(() => import("@/pages/vitrine/VitrineLeads"));
 const AdminVitrineLeads = lazy(() => import("@/pages/admin/AdminVitrineLeads"));
+const SiteBlog = lazy(() => import("@/pages/site/SiteBlog"));
+const SitePackages = lazy(() => import("@/pages/site/SitePackages"));
+const SiteLeads = lazy(() => import("@/pages/site/SiteLeads"));
+
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 
 // Operação Diária
@@ -373,6 +377,12 @@ function AppRoutes() {
           <Route path="/admin/megafone" element={<Megafone />} />
           <Route path="/admin/vitrine" element={<AdminVitrine />} />
           <Route path="/admin/vitrine/leads" element={<AdminVitrineLeads />} />
+
+          {/* Site institucional */}
+          <Route path="/site/blog" element={<SiteBlog />} />
+          <Route path="/site/pacotes" element={<SitePackages />} />
+          <Route path="/site/leads" element={<SiteLeads />} />
+
 
           {/* Portal Admin */}
           <Route path="/portal-admin" element={<PortalAdminDashboard />} />

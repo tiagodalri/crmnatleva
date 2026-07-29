@@ -114,7 +114,13 @@ export const SYSTEM_MENUS: SystemMenuItem[] = [
   { key: "rh.relatorios", label: "Relatórios RH", path: "/rh/relatorios", group: "RH", actions: READ_ONLY },
   { key: "rh.config", label: "Configurações RH", path: "/rh/config", group: "RH", actions: VIEW_EDIT },
 
+  // --- Site institucional ---
+  { key: "site.blog", label: "Blog do Site", path: "/site/blog", group: "Site", actions: ALL },
+  { key: "site.pacotes", label: "Pacotes do Site", path: "/site/pacotes", group: "Site", actions: ALL },
+  { key: "site.leads", label: "Leads do Site", path: "/site/leads", group: "Site", actions: VIEW_EDIT },
+
   // --- Admin ---
+
   { key: "admin.users", label: "Usuários & Roles", path: "/admin/users", group: "Admin", actions: ALL },
   { key: "admin.settings", label: "Configurações Sistema", path: "/settings", group: "Admin", actions: VIEW_EDIT },
 ];

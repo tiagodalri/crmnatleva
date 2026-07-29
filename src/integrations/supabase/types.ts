@@ -2461,6 +2461,60 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          category: string | null
+          content_md: string | null
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: string
+          subtitle: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          content_md?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: string
+          subtitle?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          content_md?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: string
+          subtitle?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       booking_rapidapi_cache: {
         Row: {
           action: string
@@ -9729,6 +9783,169 @@ export type Database = {
           status?: string
           total_leads?: number
           total_revenue?: number | null
+        }
+        Relationships: []
+      }
+      site_events: {
+        Row: {
+          created_at: string
+          event_data: Json
+          event_type: string
+          id: number
+          path: string | null
+          section_name: string | null
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          id?: never
+          path?: string | null
+          section_name?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          id?: never
+          path?: string | null
+          section_name?: string | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "site_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_leads: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          interest: string | null
+          message: string | null
+          name: string | null
+          phone: string | null
+          session_id: string | null
+          source_path: string | null
+          utm: Json
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          interest?: string | null
+          message?: string | null
+          name?: string | null
+          phone?: string | null
+          session_id?: string | null
+          source_path?: string | null
+          utm?: Json
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          interest?: string | null
+          message?: string | null
+          name?: string | null
+          phone?: string | null
+          session_id?: string | null
+          source_path?: string | null
+          utm?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_leads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "site_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_packages: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          highlights: string[]
+          id: string
+          price_from_text: string | null
+          proposal_slug: string | null
+          slug: string
+          sort_order: number
+          status: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          highlights?: string[]
+          id?: string
+          price_from_text?: string | null
+          proposal_slug?: string | null
+          slug: string
+          sort_order?: number
+          status?: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          highlights?: string[]
+          id?: string
+          price_from_text?: string | null
+          proposal_slug?: string | null
+          slug?: string
+          sort_order?: number
+          status?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_sessions: {
+        Row: {
+          device_type: string | null
+          first_seen_at: string
+          id: string
+          landing_path: string | null
+          last_seen_at: string | null
+          lead_id: string | null
+          referrer: string | null
+          utm: Json
+        }
+        Insert: {
+          device_type?: string | null
+          first_seen_at?: string
+          id?: string
+          landing_path?: string | null
+          last_seen_at?: string | null
+          lead_id?: string | null
+          referrer?: string | null
+          utm?: Json
+        }
+        Update: {
+          device_type?: string | null
+          first_seen_at?: string
+          id?: string
+          landing_path?: string | null
+          last_seen_at?: string | null
+          lead_id?: string | null
+          referrer?: string | null
+          utm?: Json
         }
         Relationships: []
       }

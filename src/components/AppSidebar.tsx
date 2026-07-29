@@ -11,7 +11,7 @@ import {
   UserCheck, Clock, Receipt, Target, Star, MessageSquare, ShieldAlert, FileArchive, Shield, PieChart, Smile,
   GitBranch, Plug, Zap, BookOpen, FileDown, Presentation, RotateCcw,
   Inbox, Bot, Tag, TestTube, ScrollText, PackageOpen, Upload, Database, Globe,
-  PlaneTakeoff, Image as ImageIcon, Lightbulb, Home, Camera, Megaphone, RefreshCw, Store, Link2, Search,
+  PlaneTakeoff, Newspaper, Image as ImageIcon, Lightbulb, Home, Camera, Megaphone, RefreshCw, Store, Link2, Search,
 } from "lucide-react";
 import { forceAppRefresh } from "@/lib/forceRefresh";
 import { toast } from "sonner";
@@ -113,6 +113,8 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
   const [implOpen, setImplOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [portalAdminOpen, setPortalAdminOpen] = useState(false);
+  const [siteOpen, setSiteOpen] = useState(false);
+
   const isCollapsed = mobile ? false : collapsed;
   const [pendingBriefings, setPendingBriefings] = useState(0);
   const [myInboxCount, setMyInboxCount] = useState(0);
@@ -200,6 +202,8 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
     if (p.startsWith("/implementacao") || p.startsWith("/import") || p.startsWith("/livechat/import")) setImplOpen(true);
     if (p.startsWith("/admin")) setAdminOpen(true);
     if (p.startsWith("/portal-admin")) setPortalAdminOpen(true);
+    if (p.startsWith("/site")) setSiteOpen(true);
+
   }, []);
 
   const renderNavItem = (item: typeof navItems[0], indent = false) => (
@@ -388,7 +392,22 @@ export default function AppSidebar({ mobile, onNavigate }: Props) {
 
 
 
+        {/* Site institucional */}
+        {(() => {
+          const items = filterItems([
+            { to: "/site/blog", icon: Newspaper, label: "Blog" },
+            { to: "/site/pacotes", icon: PackageOpen, label: "Pacotes do site" },
+            { to: "/site/leads", icon: Target, label: "Leads do site" },
+          ]);
+          if (items.length === 0) return null;
+          return (<>
+            {renderGroupButton("Site", Globe, siteOpen, () => setSiteOpen(!siteOpen))}
+            {siteOpen && !isCollapsed && renderSubGroup(items)}
+          </>);
+        })()}
+
         {/* Portal do Viajante */}
+
         {(() => {
           const items = filterItems([
             { to: "/portal-admin/config", icon: Cog, label: "Configurações" },
