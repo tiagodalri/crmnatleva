@@ -17,6 +17,9 @@ import {
   BarChart3, Clock,
 } from "lucide-react";
 import { fetchAllRows } from "@/lib/fetchAll";
+import DonutChart from "@/components/charts/DonutChart";
+import { fmtCurrencyCompact } from "@/components/charts/chartTheme";
+
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (v: number) => `${v.toFixed(1)}%`;
@@ -380,17 +383,17 @@ export default function FinanceiroIndex() {
         <Card className="p-5 glass-card">
           <h3 className="text-sm font-semibold mb-4">Composição por Produto</h3>
           {revenueByProduct.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie data={revenueByProduct} cx="50%" cy="50%" innerRadius={50} outerRadius={90} dataKey="value" nameKey="name"
-                  onClick={(entry: any) => { if (entry?.sales) setDrilldown({ label: `Produto: ${entry.name}`, items: entry.sales }); }}
-                  cursor="pointer">
-                  {revenueByProduct.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 11 }} />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <DonutChart
+              data={revenueByProduct.map((p: any) => ({ name: p.name, value: p.value, meta: p }))}
+              valueFormatter={fmtCurrencyCompact}
+              centerLabel="Receita total"
+              height={200}
+              onSelect={(d) => {
+                const item: any = d.meta;
+                if (item?.sales) setDrilldown({ label: `Produto: ${item.name}`, items: item.sales });
+              }}
+            />
+
           ) : <NoData />}
         </Card>
       </div>

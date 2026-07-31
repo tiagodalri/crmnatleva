@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { axisTick, gridProps, cursorFill } from "@/components/charts/chartTheme";
 import { normalizeProduct } from "@/lib/iataUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -45,14 +46,14 @@ export default function ValueRangeSection({ filtered }: Props) {
         <h3 className="section-title text-base mb-4">💰 Análise por Faixa de Valor</h3>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={data} onClick={(e) => e?.activeLabel && setDrillRange(e.activeLabel)}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-            <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+            <CartesianGrid {...gridProps} />
+            <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+            <YAxis tick={axisTick} axisLine={false} tickLine={false} />
             <Tooltip
               formatter={(v: number, name: string) => name === "receita" ? fmt(v) : name === "margem" ? `${v}%` : v}
               contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }}
             />
-            <Bar dataKey="vendas" name="Vendas" radius={[4, 4, 0, 0]} className="cursor-pointer">
+            <Bar dataKey="vendas" name="Vendas" radius={[6, 6, 0, 0]} maxBarSize={54} className="cursor-pointer">
               {data.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Bar>
           </BarChart>

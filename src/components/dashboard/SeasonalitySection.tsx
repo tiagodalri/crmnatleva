@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from "recharts";
+import { axisTick, gridProps, cursorFill } from "@/components/charts/chartTheme";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -104,18 +105,18 @@ export default function SeasonalitySection({ filtered, allSales }: Props) {
                       <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis dataKey="monthLabel" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis dataKey="monthLabel" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis tick={axisTick} axisLine={false} tickLine={false} />
                   <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
                   <Area type="monotone" dataKey="receita" stroke="hsl(var(--chart-1))" fill="url(#receitaGrad)" strokeWidth={2} name="Receita" cursor="pointer" />
                   <Area type="monotone" dataKey="lucro" stroke="hsl(var(--accent))" fill="none" strokeWidth={2} strokeDasharray="5 5" name="Lucro" />
                 </AreaChart>
               ) : (
                 <AreaChart data={weeklyData} onClick={(e) => handleChartClick(e, weeklyData)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis dataKey="week" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis dataKey="week" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis tick={axisTick} axisLine={false} tickLine={false} />
                   <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
                   <Area type="monotone" dataKey="receita" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.15} strokeWidth={2} name="Receita" cursor="pointer" />
                 </AreaChart>
@@ -127,9 +128,9 @@ export default function SeasonalitySection({ filtered, allSales }: Props) {
             <h3 className="text-sm font-semibold text-foreground mb-4 tracking-tight">Comparativo Anual</h3>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={yoyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <CartesianGrid {...gridProps} />
+                <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={axisTick} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 {availableYears.map((y, i) => (

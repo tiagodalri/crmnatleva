@@ -42,6 +42,8 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import DonutChart from "@/components/charts/DonutChart";
+
 import { format, subDays, startOfDay, parseISO, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -423,19 +425,15 @@ export default function ProposalsDashboard() {
         <Card className="p-5">
           <h3 className="font-semibold text-foreground mb-1">Status</h3>
           <p className="text-xs text-muted-foreground mb-3">Distribuição no período</p>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={byStatus} dataKey="value" nameKey="name" innerRadius={50} outerRadius={85} paddingAngle={2}>
-                  {byStatus.map((entry, i) => (
-                    <Cell key={i} fill={STATUS_COLORS[entry.key] || PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <div>
+            <DonutChart
+              data={byStatus.map((s: any, i: number) => ({ name: s.name, value: s.value, color: STATUS_COLORS[s.key] }))}
+              valueFormatter={(v) => `${v.toLocaleString("pt-BR")}`}
+              centerLabel="Propostas"
+              height={190}
+            />
           </div>
+
         </Card>
       </div>
 

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { axisTick, gridProps, cursorFill } from "@/components/charts/chartTheme";
 import { Crown, Trophy, Medal, TrendingUp } from "lucide-react";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -74,11 +75,11 @@ export default function SellerRankingSection({ filtered, sellerNames }: Props) {
                     setDrilldown({ label: `Vendedor: ${p.name}`, sales: p.sales });
                   }
                 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} width={100} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={axisTick} axisLine={false} tickLine={false} width={100} />
                   <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
-                  <Bar dataKey="receita" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} name="Receita" cursor="pointer" />
+                  <Bar dataKey="receita" fill="hsl(var(--chart-1))" radius={[0, 6, 6, 0]} maxBarSize={18} name="Receita" cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>}

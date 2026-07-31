@@ -20,6 +20,9 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
   AreaChart, Area,
 } from "recharts";
+import DonutChart from "@/components/charts/DonutChart";
+import { fmtNumber } from "@/components/charts/chartTheme";
+
 import {
   Users, DollarSign, TrendingUp, Target, Crown, AlertTriangle,
   Search, Download, ChevronRight, Star, Zap, Shield,
@@ -485,20 +488,14 @@ export default function ClientIntelligence() {
                   Nenhum segmento atribuído
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie data={crossData.segData} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      onClick={(_, i) => {
-                        const seg = crossData.segData[i]?.name;
-                        if (seg) openDrilldown(`Segmento: ${seg}`, analysisData.filter(c => c.segmento === seg));
-                      }}
-                      className="cursor-pointer">
-                      {crossData.segData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => [v, "Clientes"]} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <DonutChart
+                  data={crossData.segData.map((s: any) => ({ name: s.name, value: s.value }))}
+                  valueFormatter={(v) => `${fmtNumber(v)} clientes`}
+                  centerLabel="Clientes"
+                  height={190}
+                  onSelect={(d) => openDrilldown(`Segmento: ${d.name}`, analysisData.filter(c => c.segmento === d.name))}
+                />
+
               )}
             </Card>
 
@@ -1352,15 +1349,14 @@ function ClientProfile360({ client, onNavigate }: { client: ClientAnalysis; onNa
         {regionData.length > 0 && (
           <Card className="p-4">
             <h4 className="text-xs font-semibold mb-2">Distribuição por Região</h4>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={regionData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={3} dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {regionData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <DonutChart
+              data={regionData.map((r: any) => ({ name: r.name, value: r.value }))}
+              valueFormatter={fmtNumber}
+              centerLabel="Total"
+              height={160}
+              maxLegendItems={5}
+            />
+
           </Card>
         )}
       </div>

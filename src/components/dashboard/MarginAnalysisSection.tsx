@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { axisTick, gridProps, cursorFill } from "@/components/charts/chartTheme";
 import { iataToLabel } from "@/lib/iataUtils";
 import { normalizeProductsToSlugs, getProductLabel } from "@/lib/productTypes";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -83,11 +84,11 @@ export default function MarginAnalysisSection({ filtered, sellerNames, getRegion
                     setDrillDest(item.iata);
                   }
                 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis type="number" unit="%" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} width={110} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis type="number" unit="%" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={axisTick} axisLine={false} tickLine={false} width={110} />
                   <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
-                  <Bar dataKey="margemMedia" name="Margem %" radius={[0, 4, 4, 0]} className="cursor-pointer">
+                  <Bar dataKey="margemMedia" name="Margem %" radius={[0, 6, 6, 0]} maxBarSize={18} className="cursor-pointer">
                     {topDest.map((d, i) => (
                       <Cell key={i} fill={d.margemMedia >= 20 ? "hsl(var(--success))" : d.margemMedia >= 10 ? "hsl(var(--chart-1))" : "hsl(var(--warning))"} />
                     ))}
