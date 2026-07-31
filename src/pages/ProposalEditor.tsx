@@ -365,14 +365,22 @@ export default function ProposalEditor() {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [localDraftAt, setLocalDraftAt] = useState<Date | null>(null);
   const loadedProposalIdRef = useRef<string | undefined>(id);
+  // Guardas de hidratação ÚNICA por proposta. Sem isso, cada refetch de
+  // `existing` (disparado pelo invalidateQueries do autosave) reescrevia o
+  // form com os dados do banco e apagava o que estava sendo digitado.
+  const formHydratedForIdRef = useRef<string | null>(null);
+  const draftRestoredForIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (loadedProposalIdRef.current === id) return;
     loadedProposalIdRef.current = id;
     hydratedRef.current = false;
+    formHydratedForIdRef.current = null;
+    draftRestoredForIdRef.current = null;
     lastAutoSavedSnapshotRef.current = "";
     setAutoSaveStatus("idle");
   }, [id]);
+
 
   // ── Debounce para o preview ─────────────────────────────────────────
   // Form e items são atualizados em todo keystroke, mas o preview à direita
