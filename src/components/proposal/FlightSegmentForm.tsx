@@ -352,9 +352,8 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
                   </SelectContent>
                 </Select>
               </div>
-              {(
-
                 <div className="space-y-1">
+
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">Peso de cada mala</Label>
                   <Select
                     value={String(seg.checked_bag_weight_kg || 23)}
