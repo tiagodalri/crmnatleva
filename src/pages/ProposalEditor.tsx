@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// Inputs com buffer local: a digitação não depende do re-render pesado do
+// editor (evita "letra que desaparece"). Commit com debounce + flush no blur.
+import { BufferedInput as Input, BufferedTextarea as Textarea } from "@/components/proposal/editor/BufferedInput";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

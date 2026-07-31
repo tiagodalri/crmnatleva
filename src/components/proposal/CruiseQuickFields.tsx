@@ -1,8 +1,7 @@
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Ship, Anchor, Waves, CheckCircle2, XCircle } from "lucide-react";
+import { BufferedInput as Input, BufferedTextarea as Textarea } from "@/components/proposal/editor/BufferedInput";
 
 interface ItineraryDay {
   day?: number;
