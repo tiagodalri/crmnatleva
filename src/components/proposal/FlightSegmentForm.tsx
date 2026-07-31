@@ -324,29 +324,36 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
               <Label className="text-sm font-medium flex items-center gap-2 whitespace-nowrap">
                 <Luggage className="w-3.5 h-3.5 shrink-0" /> Bagagem despachada
               </Label>
-              <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                {(seg.checked_bags_included ?? 0) > 0 ? "Inclusa" : "Não inclusa"}
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {(seg.checked_bags_included ?? 0) > 0 ? "Inclusa" : "Não inclusa"}
+                </span>
+                <Switch
+                  checked={(seg.checked_bags_included ?? 0) > 0}
+                  onCheckedChange={(v) => onUpdate("checked_bags_included", v ? 1 : 0)}
+                />
+              </div>
             </div>
+            {(seg.checked_bags_included ?? 0) > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground whitespace-nowrap">Quantidade de malas</Label>
                 <Select
-                  value={String(seg.checked_bags_included ?? 0)}
+                  value={String(seg.checked_bags_included ?? 1)}
                   onValueChange={(v) => onUpdate("checked_bags_included", parseInt(v))}
                 >
                   <SelectTrigger className="h-9 text-sm w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">Nenhuma</SelectItem>
                     <SelectItem value="1">1 mala</SelectItem>
                     <SelectItem value="2">2 malas</SelectItem>
                     <SelectItem value="3">3 malas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {(seg.checked_bags_included ?? 0) > 0 && (
+              {(
+
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">Peso de cada mala</Label>
                   <Select
