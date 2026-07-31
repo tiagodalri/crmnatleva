@@ -5,12 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Loader2, Sparkles, Luggage, Briefcase } from "lucide-react";
+import { Search, Loader2, Sparkles, Luggage, Briefcase, Armchair } from "lucide-react";
+import { cn } from "@/lib/utils";
 import AirlineAutocomplete from "@/components/AirlineAutocomplete";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
 import type { FlightSegmentData } from "./ProposalFlightSearch";
 import { DatePartsInput } from "@/components/ui/date-parts-input";
 import { BufferedInput as Input, BufferedTextarea as Textarea } from "@/components/proposal/editor/BufferedInput";
+
+const CABIN_OPTIONS = [
+  { value: "Econômica", hint: "Padrão" },
+  { value: "Econômica Premium", hint: "Mais espaço" },
+  { value: "Executiva", hint: "Business" },
+  { value: "Primeira Classe", hint: "Top" },
+] as const;
+
 
 interface FlightSegmentFormProps {
   seg: FlightSegmentData;
@@ -193,24 +202,39 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
           <Label className="text-xs">Aeronave</Label>
           <Input value={seg.aircraft_type} onChange={(e) => onUpdate("aircraft_type", e.target.value)} placeholder="Boeing 777-300ER" />
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Classe (cabine)</Label>
-          <Select
-            value={seg.cabin_class || ""}
-            onValueChange={(v) => onUpdate("cabin_class", v)}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Selecionar classe..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Econômica">Econômica</SelectItem>
-              <SelectItem value="Econômica Premium">Econômica Premium</SelectItem>
-              <SelectItem value="Executiva">Executiva</SelectItem>
-              <SelectItem value="Primeira Classe">Primeira Classe</SelectItem>
-            </SelectContent>
-          </Select>
+      </div>
+
+      {/* Classe (cabine) · seletor visual */}
+      <div className="p-3 bg-muted/30 rounded-lg border border-border/40 space-y-2.5">
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <Armchair className="w-3.5 h-3.5" />
+          Classe (cabine)
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          {CABIN_OPTIONS.map((opt) => {
+            const active = seg.cabin_class === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onUpdate("cabin_class", active ? "" : opt.value)}
+                className={cn(
+                  "min-h-[44px] rounded-md border px-3 py-2 text-left transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border/50 bg-background/60 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                <span className="block text-sm font-medium leading-tight">{opt.value}</span>
+                <span className="block text-[11px] leading-tight opacity-70">{opt.hint}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
+
+
+
 
       {/* Baggage section */}
       <div className="p-3 bg-muted/30 rounded-lg border border-border/40 space-y-3">
@@ -300,30 +324,36 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
               <Label className="text-sm font-medium flex items-center gap-2 whitespace-nowrap">
                 <Luggage className="w-3.5 h-3.5 shrink-0" /> Bagagem despachada
               </Label>
-              <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                {(seg.checked_bags_included ?? 0) > 0 ? "Inclusa" : "Não inclusa"}
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {(seg.checked_bags_included ?? 0) > 0 ? "Inclusa" : "Não inclusa"}
+                </span>
+                <Switch
+                  checked={(seg.checked_bags_included ?? 0) > 0}
+                  onCheckedChange={(v) => onUpdate("checked_bags_included", v ? 1 : 0)}
+                />
+              </div>
             </div>
+            {(seg.checked_bags_included ?? 0) > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground whitespace-nowrap">Quantidade de malas</Label>
                 <Select
-                  value={String(seg.checked_bags_included ?? 0)}
+                  value={String(seg.checked_bags_included ?? 1)}
                   onValueChange={(v) => onUpdate("checked_bags_included", parseInt(v))}
                 >
                   <SelectTrigger className="h-9 text-sm w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">Nenhuma</SelectItem>
                     <SelectItem value="1">1 mala</SelectItem>
                     <SelectItem value="2">2 malas</SelectItem>
                     <SelectItem value="3">3 malas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {(seg.checked_bags_included ?? 0) > 0 && (
                 <div className="space-y-1">
+
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">Peso de cada mala</Label>
                   <Select
                     value={String(seg.checked_bag_weight_kg || 23)}
@@ -341,9 +371,10 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
                     </SelectContent>
                   </Select>
                 </div>
-              )}
             </div>
+            )}
           </div>
+
         </div>
 
         <div className="space-y-1">
