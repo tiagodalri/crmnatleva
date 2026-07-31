@@ -1216,28 +1216,54 @@ function InsuranceCard({ insurance, idx }: { insurance: any; idx: number }) {
       className="rounded-3xl border border-accent/15 bg-card overflow-hidden shadow-xl shadow-accent/5"
     >
       {/* Header centralizado */}
-      <div className="relative px-6 sm:px-8 py-8 text-center bg-gradient-to-b from-accent/[0.06] to-transparent">
-        <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 rounded-full bg-accent/10 border border-accent/15">
+      <div className={cn(
+        "relative px-5 sm:px-8 pt-7 pb-8 text-center overflow-hidden",
+        isCourtesy ? "bg-gradient-to-b from-amber-500/[0.08] via-amber-500/[0.03] to-transparent" : "bg-gradient-to-b from-accent/[0.06] to-transparent"
+      )}>
+        {/* Linha dourada de destaque quando for cortesia */}
+        {isCourtesy && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-300 via-amber-500 to-amber-300" aria-hidden="true" />
+        )}
+
+        <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/15">
           <ShieldCheck className="w-3.5 h-3.5 text-accent" />
           <span className="text-[10px] uppercase tracking-[0.25em] text-accent font-semibold">Seguro Viagem</span>
         </div>
+
         <h3 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           {insurance.title || d.plan_name || "Seguro Viagem"}
         </h3>
+
         {(d.provider || d.coverage_region) && (
           <p className="text-sm sm:text-base text-muted-foreground mt-2">
             {d.provider}{d.provider && d.coverage_region ? " · " : ""}{d.coverage_region}
           </p>
         )}
+
         {insurance.description && (
           <p className="text-sm text-muted-foreground/85 mt-3 max-w-xl mx-auto leading-relaxed">{insurance.description}</p>
         )}
 
-        {/* Cortesia ribbon */}
+        {/* Cortesia NatLeva · destaque premium */}
         {isCourtesy && (
-          <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-400/15 to-amber-500/10 border border-amber-500/30">
-            <Gift className="w-4 h-4 text-amber-600" />
-            <span className="text-sm font-bold text-amber-700">Cortesia NatLeva</span>
+          <div className="mt-6 max-w-md mx-auto">
+            <div className="relative rounded-2xl border border-amber-500/30 bg-card/80 backdrop-blur-sm shadow-lg shadow-amber-500/10 overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-amber-400 to-amber-600" aria-hidden="true" />
+              <div className="px-4 py-3.5 flex items-center justify-center gap-3">
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-amber-100 to-amber-200/60 border border-amber-300/50 grid place-items-center">
+                  <Gift className="w-5 h-5 text-amber-700" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-amber-800 leading-tight">Cortesia NatLeva</p>
+                  <p className="text-xs text-amber-700/80 mt-0.5">Incluso no pacote · sem custo adicional</p>
+                </div>
+                <div className="shrink-0 ml-auto hidden sm:flex">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.15em] text-amber-700 bg-amber-100/60 border border-amber-300/40 px-2.5 py-1 rounded-full">
+                    <Sparkles className="w-3 h-3" /> Cortesia
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
