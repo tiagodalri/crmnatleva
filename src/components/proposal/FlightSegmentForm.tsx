@@ -222,6 +222,9 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
             );
           })}
         </div>
+      </div>
+
+
 
 
       {/* Baggage section */}
