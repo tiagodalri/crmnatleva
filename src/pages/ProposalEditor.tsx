@@ -581,7 +581,12 @@ export default function ProposalEditor() {
   // Hidrata rascunho local de proposta EXISTENTE caso seja mais recente que o banco
   useEffect(() => {
     if (isNew || !existing) return;
+    // Restaura o rascunho apenas uma vez por proposta (refetches do autosave
+    // não podem reinjetar um estado antigo por cima da digitação).
+    if (draftRestoredForIdRef.current === (id || "")) return;
+    draftRestoredForIdRef.current = id || "";
     try {
+
       const raw = localStorage.getItem(LOCAL_DRAFT_KEY);
       if (!raw) return;
       const draft = JSON.parse(raw);
