@@ -371,9 +371,10 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
                     </SelectContent>
                   </Select>
                 </div>
-              )}
             </div>
+            )}
           </div>
+
         </div>
 
         <div className="space-y-1">
