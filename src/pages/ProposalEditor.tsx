@@ -464,7 +464,12 @@ export default function ProposalEditor() {
 
   useEffect(() => {
     if (existing) {
+      // Hidrata o form UMA única vez por proposta. Refetches posteriores
+      // (autosave → invalidateQueries) não devem sobrescrever a digitação.
+      if (formHydratedForIdRef.current === (id || "")) return;
+      formHydratedForIdRef.current = id || "";
       const initialCostRaw = (existing as any).internal_cost;
+
       const initialCostNum = initialCostRaw != null ? parseFloat(String(initialCostRaw)) : NaN;
       legacyNoCostRef.current = !Number.isFinite(initialCostNum) || initialCostNum <= 0;
       setForm({
