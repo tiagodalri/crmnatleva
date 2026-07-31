@@ -365,14 +365,22 @@ export default function ProposalEditor() {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [localDraftAt, setLocalDraftAt] = useState<Date | null>(null);
   const loadedProposalIdRef = useRef<string | undefined>(id);
+  // Guardas de hidratação ÚNICA por proposta. Sem isso, cada refetch de
+  // `existing` (disparado pelo invalidateQueries do autosave) reescrevia o
+  // form com os dados do banco e apagava o que estava sendo digitado.
+  const formHydratedForIdRef = useRef<string | null>(null);
+  const draftRestoredForIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (loadedProposalIdRef.current === id) return;
     loadedProposalIdRef.current = id;
     hydratedRef.current = false;
+    formHydratedForIdRef.current = null;
+    draftRestoredForIdRef.current = null;
     lastAutoSavedSnapshotRef.current = "";
     setAutoSaveStatus("idle");
   }, [id]);
+
 
   // ── Debounce para o preview ─────────────────────────────────────────
   // Form e items são atualizados em todo keystroke, mas o preview à direita
@@ -456,7 +464,12 @@ export default function ProposalEditor() {
 
   useEffect(() => {
     if (existing) {
+      // Hidrata o form UMA única vez por proposta. Refetches posteriores
+      // (autosave → invalidateQueries) não devem sobrescrever a digitação.
+      if (formHydratedForIdRef.current === (id || "")) return;
+      formHydratedForIdRef.current = id || "";
       const initialCostRaw = (existing as any).internal_cost;
+
       const initialCostNum = initialCostRaw != null ? parseFloat(String(initialCostRaw)) : NaN;
       legacyNoCostRef.current = !Number.isFinite(initialCostNum) || initialCostNum <= 0;
       setForm({
@@ -515,12 +528,17 @@ export default function ProposalEditor() {
     if (!existing || existingItems === undefined) return;
     if (hydratedRef.current) return;
 
+    // Se o form já foi hidratado desta proposta (e o usuário pode ter
+    // editado o título desde então), libera direto · comparar com o banco
+    // aqui travaria o autosave para sempre.
+    const alreadyHydratedForm = formHydratedForIdRef.current === (id || "");
     const expectedTitle = existing.title || "";
     const currentTitle = formRef.current?.title || "";
     const itemsMatch = itemsRef.current.length === existingItems.length;
     // Confirma que o setForm/setItems da hidratação já foi comitado
     // antes de liberar o autosave.
-    if (currentTitle !== expectedTitle || !itemsMatch) return;
+    if (!alreadyHydratedForm && (currentTitle !== expectedTitle || !itemsMatch)) return;
+
 
     hydratedRef.current = true;
     lastAutoSavedSnapshotRef.current = buildProposalSnapshot(
@@ -563,7 +581,12 @@ export default function ProposalEditor() {
   // Hidrata rascunho local de proposta EXISTENTE caso seja mais recente que o banco
   useEffect(() => {
     if (isNew || !existing) return;
+    // Restaura o rascunho apenas uma vez por proposta (refetches do autosave
+    // não podem reinjetar um estado antigo por cima da digitação).
+    if (draftRestoredForIdRef.current === (id || "")) return;
+    draftRestoredForIdRef.current = id || "";
     try {
+
       const raw = localStorage.getItem(LOCAL_DRAFT_KEY);
       if (!raw) return;
       const draft = JSON.parse(raw);
