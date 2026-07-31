@@ -143,9 +143,10 @@ export default function DonutChart({
                 onMouseLeave={() => setActiveIndex(null)}
                 onClick={() => onSelect?.(d, i)}
                 disabled={!onSelect}
-                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left transition-colors ${
+                className={`flex h-7 w-full items-center gap-2 rounded-lg px-2 text-left transition-colors ${
                   activeIndex === i ? "bg-muted/60" : "hover:bg-muted/40"
                 } ${onSelect ? "cursor-pointer" : "cursor-default"}`}
+
               >
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colorOf(d, i) }} />
                 <span className="min-w-0 flex-1 truncate text-xs text-foreground">{d.name}</span>
