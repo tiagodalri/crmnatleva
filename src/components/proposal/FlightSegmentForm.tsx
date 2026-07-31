@@ -193,24 +193,36 @@ export default function FlightSegmentForm({ seg, onUpdate, onUpdateMulti }: Flig
           <Label className="text-xs">Aeronave</Label>
           <Input value={seg.aircraft_type} onChange={(e) => onUpdate("aircraft_type", e.target.value)} placeholder="Boeing 777-300ER" />
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Classe (cabine)</Label>
-          <Select
-            value={seg.cabin_class || ""}
-            onValueChange={(v) => onUpdate("cabin_class", v)}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Selecionar classe..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Econômica">Econômica</SelectItem>
-              <SelectItem value="Econômica Premium">Econômica Premium</SelectItem>
-              <SelectItem value="Executiva">Executiva</SelectItem>
-              <SelectItem value="Primeira Classe">Primeira Classe</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
+
+      {/* Classe (cabine) · seletor visual */}
+      <div className="p-3 bg-muted/30 rounded-lg border border-border/40 space-y-2.5">
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <Armchair className="w-3.5 h-3.5" />
+          Classe (cabine)
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          {CABIN_OPTIONS.map((opt) => {
+            const active = seg.cabin_class === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onUpdate("cabin_class", active ? "" : opt.value)}
+                className={cn(
+                  "min-h-[44px] rounded-md border px-3 py-2 text-left transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border/50 bg-background/60 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                <span className="block text-sm font-medium leading-tight">{opt.value}</span>
+                <span className="block text-[11px] leading-tight opacity-70">{opt.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+
 
       {/* Baggage section */}
       <div className="p-3 bg-muted/30 rounded-lg border border-border/40 space-y-3">
