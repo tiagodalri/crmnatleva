@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -12,6 +10,7 @@ import AirlineAutocomplete from "@/components/AirlineAutocomplete";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
 import type { FlightSegmentData } from "./ProposalFlightSearch";
 import { DatePartsInput } from "@/components/ui/date-parts-input";
+import { BufferedInput as Input, BufferedTextarea as Textarea } from "@/components/proposal/editor/BufferedInput";
 
 interface FlightSegmentFormProps {
   seg: FlightSegmentData;
