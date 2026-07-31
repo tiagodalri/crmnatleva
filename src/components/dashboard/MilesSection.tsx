@@ -3,10 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import DonutChart from "@/components/charts/DonutChart";
+import ChartTooltipCard from "@/components/charts/ChartTooltipCard";
+import { axisTick, gridProps, cursorFill, fmtNumber, fmtPercent } from "@/components/charts/chartTheme";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const PIE_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+
 
 interface CostItem {
   sale_id: string; category: string;
@@ -85,33 +88,29 @@ export default function MilesSection({ filtered, costItems }: Props) {
           <Card className="p-5 glass-card">
             <h3 className="text-sm font-semibold text-foreground mb-4">Milhas vs Cash</h3>
             {milesVsCash.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={milesVsCash} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} label
-                    onClick={(_, idx) => {
-                      const item = milesVsCash[idx];
-                      if (item) setDrilldown({ label: `Tipo: ${item.name}`, sales: item.sales });
-                    }}
-                    className="cursor-pointer"
-                  >
-                    {milesVsCash.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <DonutChart
+                data={milesVsCash.map((m: any) => ({ name: m.name, value: m.value }))}
+                valueFormatter={fmtNumber}
+                centerLabel="Vendas"
+                height={170}
+                onSelect={(d) => {
+                  const item = milesVsCash.find((m: any) => m.name === d.name);
+                  if (item) setDrilldown({ label: `Tipo: ${item.name}`, sales: item.sales });
+                }}
+              />
             ) : <NoData />}
           </Card>
 
           <Card className="p-5 glass-card">
             <h3 className="text-sm font-semibold text-foreground mb-4">Programas Mais Usados</h3>
             {programData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={programData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={80} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} name="Milhas" cursor="pointer" />
+              <ResponsiveContainer width="100%" height={230}>
+                <BarChart data={programData} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }} barCategoryGap="24%">
+                  <CartesianGrid {...gridProps} vertical horizontal={false} />
+                  <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} tickFormatter={(v) => fmtNumber(v)} />
+                  <YAxis type="category" dataKey="name" tick={axisTick} axisLine={false} tickLine={false} width={88} />
+                  <Tooltip cursor={cursorFill} content={<ChartTooltipCard valueFormatter={(v) => `${fmtNumber(v)} milhas`} />} />
+                  <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[0, 6, 6, 0]} maxBarSize={18} name="Milhas" cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <NoData />}
@@ -119,20 +118,21 @@ export default function MilesSection({ filtered, costItems }: Props) {
 
           <Card className="p-5 glass-card">
             <h3 className="text-sm font-semibold text-foreground mb-4">Margem Média: Milhas vs Cash</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={marginByType} onClick={(e) => {
+            <ResponsiveContainer width="100%" height={230}>
+              <BarChart data={marginByType} margin={{ left: 4, right: 8, top: 8, bottom: 4 }} onClick={(e) => {
                 if (e?.activePayload?.[0]?.payload?.sales) {
                   const p = e.activePayload[0].payload;
                   setDrilldown({ label: `Margem: ${p.name}`, sales: p.sales });
                 }
               }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} unit="%" />
-                <Tooltip formatter={(v: number) => `${v}%`} />
-                <Bar dataKey="margem" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} name="Margem %" cursor="pointer" />
+                <CartesianGrid {...gridProps} />
+                <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={axisTick} axisLine={false} tickLine={false} unit="%" />
+                <Tooltip cursor={cursorFill} content={<ChartTooltipCard valueFormatter={(v) => fmtPercent(v)} />} />
+                <Bar dataKey="margem" fill="hsl(var(--chart-1))" radius={[6, 6, 0, 0]} maxBarSize={54} name="Margem %" cursor="pointer" />
               </BarChart>
             </ResponsiveContainer>
+
           </Card>
         </div>
       </div>

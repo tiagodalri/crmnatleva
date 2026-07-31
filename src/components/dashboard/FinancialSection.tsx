@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, Legend, LineChart, Line, ReferenceLine,
 } from "recharts";
+import { axisTick, gridProps, cursorFill } from "@/components/charts/chartTheme";
 import { iataToLabel } from "@/lib/iataUtils";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -98,9 +99,9 @@ export default function FinancialSection({ filtered, sellerNames }: Props) {
             {monthlyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={monthlyData} onClick={(e) => handleBarClick(e, "Mensal")}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis dataKey="monthLabel" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis dataKey="monthLabel" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis tick={axisTick} axisLine={false} tickLine={false} />
                   <Tooltip
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
@@ -119,9 +120,9 @@ export default function FinancialSection({ filtered, sellerNames }: Props) {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="receita" fill="hsl(var(--chart-1))" name="Receita" radius={[4, 4, 0, 0]} cursor="pointer" />
-                  <Bar dataKey="custo" fill="hsl(var(--chart-2))" name="Custo" radius={[4, 4, 0, 0]} cursor="pointer" />
-                  <Bar dataKey="lucro" fill="hsl(var(--chart-3))" name="Lucro" radius={[4, 4, 0, 0]} cursor="pointer" />
+                  <Bar dataKey="receita" fill="hsl(var(--chart-1))" name="Receita" radius={[6, 6, 0, 0]} maxBarSize={54} cursor="pointer" />
+                  <Bar dataKey="custo" fill="hsl(var(--chart-2))" name="Custo" radius={[6, 6, 0, 0]} maxBarSize={54} cursor="pointer" />
+                  <Bar dataKey="lucro" fill="hsl(var(--chart-3))" name="Lucro" radius={[6, 6, 0, 0]} maxBarSize={54} cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <NoData />}
@@ -132,9 +133,9 @@ export default function FinancialSection({ filtered, sellerNames }: Props) {
             {monthlyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={monthlyData} onClick={(e) => handleBarClick(e, "Margem")}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis dataKey="monthLabel" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} unit="%" domain={['auto', 'auto']} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis dataKey="monthLabel" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis tick={axisTick} axisLine={false} tickLine={false} unit="%" domain={['auto', 'auto']} />
                   <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
                   <ReferenceLine y={avgMargin} stroke="hsl(var(--accent))" strokeDasharray="6 4" label={{ value: `Média: ${avgMargin.toFixed(1)}%`, position: "right", fontSize: 9, fill: "hsl(var(--accent))" }} />
                   <Line
@@ -159,11 +160,11 @@ export default function FinancialSection({ filtered, sellerNames }: Props) {
             {sellerProfit.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={sellerProfit} layout="vertical" onClick={(e) => handleBarClick(e, "Vendedor")}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} width={100} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={axisTick} axisLine={false} tickLine={false} width={100} />
                   <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
-                  <Bar dataKey="lucro" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} name="Lucro" cursor="pointer" />
+                  <Bar dataKey="lucro" fill="hsl(var(--chart-1))" radius={[0, 6, 6, 0]} maxBarSize={18} name="Lucro" cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <NoData />}
@@ -174,11 +175,11 @@ export default function FinancialSection({ filtered, sellerNames }: Props) {
             {destProfit.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={destProfit} layout="vertical" onClick={(e) => handleBarClick(e, "Destino")}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} width={130} />
+                  <CartesianGrid {...gridProps} />
+                  <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={axisTick} axisLine={false} tickLine={false} width={130} />
                   <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
-                  <Bar dataKey="lucro" fill="hsl(var(--chart-3))" radius={[0, 4, 4, 0]} name="Lucro" cursor="pointer" />
+                  <Bar dataKey="lucro" fill="hsl(var(--chart-3))" radius={[0, 6, 6, 0]} maxBarSize={18} name="Lucro" cursor="pointer" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <NoData />}

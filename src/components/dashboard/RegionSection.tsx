@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import DonutChart from "@/components/charts/DonutChart";
+import { fmtCurrencyCompact } from "@/components/charts/chartTheme";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { iataToLabel } from "@/lib/iataUtils";
+
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -64,19 +66,14 @@ export default function RegionSection({ filtered, getRegion }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="p-5 glass-card lg:col-span-1">
             <h3 className="text-sm font-semibold text-foreground mb-4 tracking-tight">Distribuição de Receita</h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={{ stroke: 'hsl(var(--muted-foreground))' }}
-                  onClick={(_, idx) => setDrillRegion(regionData[idx]?.name || null)}
-                  className="cursor-pointer"
-                >
-                  {pieData.map((d, i) => <Cell key={i} fill={REGION_COLORS[d.name] || "hsl(var(--muted))"} />)}
-                </Pie>
-                <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <DonutChart
+              data={pieData.map(d => ({ ...d, color: REGION_COLORS[d.name] }))}
+              valueFormatter={fmtCurrencyCompact}
+              centerLabel="Receita total"
+              height={200}
+              onSelect={(d) => setDrillRegion(d.name)}
+            />
+
           </Card>
 
           <Card className="p-5 glass-card lg:col-span-2">

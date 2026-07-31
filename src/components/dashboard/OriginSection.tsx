@@ -4,9 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { iataToCityName } from "@/lib/iataUtils";
 import { MapPin, TrendingUp, Users, Plane } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Treemap,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, Treemap,
 } from "recharts";
+import DonutChart from "@/components/charts/DonutChart";
+import ChartTooltipCard from "@/components/charts/ChartTooltipCard";
+import { axisTick, gridProps, cursorFill, fmtNumber, paletteAt } from "@/components/charts/chartTheme";
+
 
 interface Sale {
   origin_iata: string | null;
@@ -155,58 +158,41 @@ export default function OriginSection({ filtered, sellerNames }: Props) {
             <MapPin className="w-4 h-4 text-primary" />
             Top Origens por Volume
           </h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={originConcentration} layout="vertical" margin={{ left: 80 }}>
-              <XAxis type="number" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={originConcentration} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }} barCategoryGap="22%">
+              <CartesianGrid {...gridProps} vertical horizontal={false} />
+              <XAxis type="number" tick={axisTick} axisLine={false} tickLine={false} allowDecimals={false} />
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
-                width={75}
+                tick={{ ...axisTick, fill: "hsl(var(--foreground))" }}
+                axisLine={false}
+                tickLine={false}
+                width={96}
               />
-              <Tooltip
-                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: number, name: string) => [name === "count" ? `${v} vendas` : `${v}%`, name === "count" ? "Vendas" : "% do Total"]}
-              />
-              <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+              <Tooltip cursor={cursorFill} content={<ChartTooltipCard valueFormatter={(v) => `${fmtNumber(v)} vendas`} />} />
+              <Bar dataKey="count" name="Vendas" radius={[0, 6, 6, 0]} maxBarSize={18}>
                 {originConcentration.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  <Cell key={i} fill={paletteAt(i)} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </Card>
 
-        {/* Origin concentration pie */}
+        {/* Origin concentration donut */}
         <Card className="p-5 glass-card">
           <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
             <Users className="w-4 h-4 text-accent" />
             Distribuição por Origem
           </h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={originConcentration}
-                dataKey="count"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                innerRadius={50}
-                paddingAngle={2}
-                label={({ name, pct }) => `${name} ${pct}%`}
-                labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 0.5 }}
-              >
-                {originConcentration.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                formatter={(v: number) => [`${v} vendas`]}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <DonutChart
+            data={originConcentration.map((o) => ({ name: o.name, value: o.count }))}
+            valueFormatter={(v) => `${fmtNumber(v)}`}
+            centerLabel="Vendas"
+            height={200}
+          />
+
         </Card>
       </div>
 

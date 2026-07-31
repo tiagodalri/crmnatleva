@@ -6,6 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Users, Clock, AlertTriangle, Target, Award, MessageSquare, TrendingUp, Smile, Zap, Shield } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import DonutChart from "@/components/charts/DonutChart";
+import { fmtNumber } from "@/components/charts/chartTheme";
+
 
 const COLORS = ["hsl(160,60%,45%)", "hsl(200,70%,50%)", "hsl(40,90%,50%)", "hsl(0,70%,55%)", "hsl(270,60%,55%)", "hsl(120,50%,45%)"];
 
@@ -149,14 +152,13 @@ export default function RHIndex() {
         <Card className="border-border/50">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Status do Time</CardTitle></CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={statusPie} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ name, value }) => `${name} (${value})`}>
-                  {statusPie.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <DonutChart
+              data={statusPie.map((s: any) => ({ name: s.name, value: s.value }))}
+              valueFormatter={fmtNumber}
+              centerLabel="Colaboradores"
+              height={170}
+            />
+
           </CardContent>
         </Card>
 
