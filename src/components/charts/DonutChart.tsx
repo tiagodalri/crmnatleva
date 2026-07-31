@@ -130,9 +130,10 @@ export default function DonutChart({
       </div>
 
       <ul
-        className="mt-3 space-y-1.5 overflow-y-auto pr-1"
-        style={{ maxHeight: maxLegendItems * 28 }}
+        className="mt-3 space-y-1 overflow-y-auto pr-1"
+        style={{ maxHeight: maxLegendItems * 32 }}
       >
+
         {series.map((d, i) => {
           const pct = total > 0 ? (d.value / total) * 100 : 0;
           return (
