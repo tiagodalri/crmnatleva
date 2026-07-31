@@ -5,12 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Loader2, Sparkles, Luggage, Briefcase } from "lucide-react";
+import { Search, Loader2, Sparkles, Luggage, Briefcase, Armchair } from "lucide-react";
+import { cn } from "@/lib/utils";
 import AirlineAutocomplete from "@/components/AirlineAutocomplete";
 import AirportAutocomplete from "@/components/AirportAutocomplete";
 import type { FlightSegmentData } from "./ProposalFlightSearch";
 import { DatePartsInput } from "@/components/ui/date-parts-input";
 import { BufferedInput as Input, BufferedTextarea as Textarea } from "@/components/proposal/editor/BufferedInput";
+
+const CABIN_OPTIONS = [
+  { value: "Econômica", hint: "Padrão" },
+  { value: "Econômica Premium", hint: "Mais espaço" },
+  { value: "Executiva", hint: "Business" },
+  { value: "Primeira Classe", hint: "Top" },
+] as const;
+
 
 interface FlightSegmentFormProps {
   seg: FlightSegmentData;
