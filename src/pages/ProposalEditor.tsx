@@ -528,12 +528,17 @@ export default function ProposalEditor() {
     if (!existing || existingItems === undefined) return;
     if (hydratedRef.current) return;
 
+    // Se o form já foi hidratado desta proposta (e o usuário pode ter
+    // editado o título desde então), libera direto · comparar com o banco
+    // aqui travaria o autosave para sempre.
+    const alreadyHydratedForm = formHydratedForIdRef.current === (id || "");
     const expectedTitle = existing.title || "";
     const currentTitle = formRef.current?.title || "";
     const itemsMatch = itemsRef.current.length === existingItems.length;
     // Confirma que o setForm/setItems da hidratação já foi comitado
     // antes de liberar o autosave.
-    if (currentTitle !== expectedTitle || !itemsMatch) return;
+    if (!alreadyHydratedForm && (currentTitle !== expectedTitle || !itemsMatch)) return;
+
 
     hydratedRef.current = true;
     lastAutoSavedSnapshotRef.current = buildProposalSnapshot(
