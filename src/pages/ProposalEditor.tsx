@@ -851,23 +851,33 @@ export default function ProposalEditor() {
           insertedNewProposal = true;
         }
       } else {
-        // ── Guard anti-wipe ────────────────────────────────────────────
-        // Se, por qualquer race de hidratação, o payload chega vazio em
-        // campos críticos que estão preenchidos no banco, aborta o save
-        // para preservar o que o usuário já tinha salvo.
+        // ── Guard anti-wipe (preciso) ──────────────────────────────────
+        // Só aborta quando há sinal REAL de race de hidratação:
+        //  • hidratação ainda não concluída, ou
+        //  • dois ou mais campos críticos ficariam vazios de uma vez.
+        // Limpezas intencionais de um único campo passam normalmente.
         const isEmpty = (v: any) =>
           v === null || v === undefined || v === "" ||
           (Array.isArray(v) && v.length === 0);
         const dbHas = (v: any) => !isEmpty(v);
-        const wouldWipe =
-          (dbHas((existing as any)?.title) && isEmpty(payload.title)) ||
-          (dbHas((existing as any)?.destinations) && isEmpty(payload.destinations)) ||
-          (dbHas((existing as any)?.travel_start_date) && isEmpty(payload.travel_start_date)) ||
-          (dbHas((existing as any)?.travel_end_date) && isEmpty(payload.travel_end_date)) ||
-          (dbHas((existing as any)?.cover_image_url) && isEmpty(payload.cover_image_url)) ||
-          (dbHas((existing as any)?.total_value) && isEmpty(payload.total_value)) ||
-          (dbHas((existing as any)?.client_name) && isEmpty(payload.client_name));
-        const wouldWipeItems = Array.isArray(existingItems) && existingItems.length > 0 && preparedItems.length === 0;
+        const criticalFields: Array<[string, any, any]> = [
+          ["title", (existing as any)?.title, payload.title],
+          ["destinations", (existing as any)?.destinations, payload.destinations],
+          ["travel_start_date", (existing as any)?.travel_start_date, payload.travel_start_date],
+          ["travel_end_date", (existing as any)?.travel_end_date, payload.travel_end_date],
+          ["cover_image_url", (existing as any)?.cover_image_url, payload.cover_image_url],
+          ["total_value", (existing as any)?.total_value, payload.total_value],
+          ["client_name", (existing as any)?.client_name, payload.client_name],
+        ];
+        const wipedFields = criticalFields
+          .filter(([, dbValue, nextValue]) => dbHas(dbValue) && isEmpty(nextValue))
+          .map(([field]) => field);
+
+        const notHydrated = !hydratedRef.current;
+        const wouldWipe = notHydrated ? wipedFields.length > 0 : wipedFields.length >= 2;
+        const wouldWipeItems =
+          notHydrated && Array.isArray(existingItems) && existingItems.length > 0 && preparedItems.length === 0;
+
         if (wouldWipe || wouldWipeItems) {
           // Não escreve · força re-hidratação no próximo ciclo
           hydratedRef.current = false;
@@ -875,10 +885,13 @@ export default function ProposalEditor() {
           queryClient.invalidateQueries({ queryKey: ["proposal-items", id] });
           console.warn("[ProposalEditor] autosave abortado · payload zeraria campos preenchidos", {
             proposalId: id,
+            wipedFields,
             wouldWipeItems,
+            notHydrated,
           });
           throw new Error("Autosave abortado para preservar dados existentes");
         }
+
         const { error } = await supabase.from("proposals").update(payload as any).eq("id", id);
         if (error) throw error;
       }
