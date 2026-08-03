@@ -87,10 +87,7 @@ export default function Disparos() {
       );
 
       const list: AudienceCandidate[] = ((convs as any[]) || [])
-        .filter((c) => {
-          const digits = String(c.phone || "").replace(/\D/g, "");
-          return digits.length >= 10 && !optoutSet.has(digits);
-        })
+        .filter((c) => String(c.phone || "").replace(/\D/g, "").length >= 10)
         .map((c) => ({
           id: c.id,
           phone: String(c.phone),
@@ -99,6 +96,7 @@ export default function Disparos() {
           stage: c.stage || c.funnel_stage || null,
           last_message_at: c.last_message_at,
           profile_picture_url: c.profile_picture_url,
+          opted_out: optoutSet.has(String(c.phone || "").replace(/\D/g, "")),
         }));
 
       // Overlap real de opt-outs dentro da base ativa
