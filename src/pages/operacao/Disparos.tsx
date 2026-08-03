@@ -138,11 +138,12 @@ export default function Disparos() {
   }, [user?.id]);
 
   const recipients = useMemo(() => {
+    const eligible = candidates.filter((c) => !c.opted_out);
     if (audienceType === "manual") {
-      const byId = new Map(candidates.map((c) => [c.id, c]));
+      const byId = new Map(eligible.map((c) => [c.id, c]));
       return selectedIds.map((id) => byId.get(id)).filter(Boolean) as AudienceCandidate[];
     }
-    return candidates.slice(0, Math.max(0, lastN));
+    return eligible.slice(0, Math.max(0, lastN));
   }, [audienceType, candidates, selectedIds, lastN]);
 
   // ─── Teste obrigatório ───
