@@ -126,6 +126,7 @@ export function VirtualConversationList({
                 isMine={!!currentUserId && conv.assigned_to === currentUserId}
                 searchTerm={searchQuery}
                 contentMatchSnippet={match?.snippet}
+                isOptedOut={optOutPhones.has(String(conv.phone || "").replace(/\D/g, ""))}
               />
             </div>
           );
