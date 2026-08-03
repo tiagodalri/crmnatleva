@@ -1122,7 +1122,7 @@ Deno.serve(async (req) => {
     // ═══════════════════════════════════════════════════════════
     // STEP 3.5: Captura automática de opt-out (não interfere no LiveChat)
     // ═══════════════════════════════════════════════════════════
-    if (!fromMe && textContent && !isOptOutKeyword.skip) {
+    if (!fromMe && textContent) {
       try {
         if (matchesOptOutKeyword(textContent)) {
           await supabase.from("whatsapp_optouts").upsert({
