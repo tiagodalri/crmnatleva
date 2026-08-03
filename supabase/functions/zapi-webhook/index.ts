@@ -54,6 +54,20 @@ function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "");
 }
 
+// ─── Helper: opt-out por palavra-chave (inbound) ───
+const OPT_OUT_KEYWORDS = [
+  "parar", "sair", "cancelar", "stop", "nao quero mais receber", "remover",
+];
+function matchesOptOutKeyword(raw: string): boolean {
+  const normalized = String(raw || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return OPT_OUT_KEYWORDS.includes(normalized);
+}
+
 // ─── Helper: classify event type ───
 function classifyEvent(body: any): string {
   // MessageStatusCallback = recibo de entrega/leitura (de mensagens normais OU status posts).
