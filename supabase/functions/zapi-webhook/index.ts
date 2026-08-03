@@ -54,6 +54,20 @@ function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "");
 }
 
+// ─── Helper: opt-out por palavra-chave (inbound) ───
+const OPT_OUT_KEYWORDS = [
+  "parar", "sair", "cancelar", "stop", "nao quero mais receber", "remover",
+];
+function matchesOptOutKeyword(raw: string): boolean {
+  const normalized = String(raw || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return OPT_OUT_KEYWORDS.includes(normalized);
+}
+
 // ─── Helper: classify event type ───
 function classifyEvent(body: any): string {
   // MessageStatusCallback = recibo de entrega/leitura (de mensagens normais OU status posts).
@@ -1118,6 +1132,25 @@ Deno.serve(async (req) => {
     }
 
     const cleanPhone = normalizePhone(phone);
+
+    // ═══════════════════════════════════════════════════════════
+    // STEP 3.5: Captura automática de opt-out (não interfere no LiveChat)
+    // ═══════════════════════════════════════════════════════════
+    if (!fromMe && textContent) {
+      try {
+        if (matchesOptOutKeyword(textContent)) {
+          await supabase.from("whatsapp_optouts").upsert({
+            phone: cleanPhone,
+            reason: "solicitado_pelo_contato",
+            source: "inbound_keyword",
+            opted_out_at: new Date().toISOString(),
+          }, { onConflict: "phone" });
+          console.log("[Webhook] opt-out registrado", { phone: cleanPhone, text: textContent });
+        }
+      } catch (e) {
+        console.warn("[Webhook] falha ao registrar opt-out", e);
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════
     // STEP 4: Flow router (keywords + exclude)

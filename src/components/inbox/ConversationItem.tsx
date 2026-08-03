@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import { Mic, Image, Video, FileText, Pin, PinOff, Star, AlertTriangle, MailX, MailOpen, Archive, ArchiveRestore, Users, MapPin, UserRound } from "lucide-react";
+import { Mic, Image, Video, FileText, Pin, PinOff, Star, AlertTriangle, MailX, MailOpen, Archive, ArchiveRestore, Users, MapPin, UserRound, ShieldOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
@@ -27,6 +27,7 @@ interface ConversationItemProps {
   isMine?: boolean;
   searchTerm?: string;
   contentMatchSnippet?: string;
+  isOptedOut?: boolean;
 }
 
 function highlightTerm(text: string, term: string) {
@@ -86,7 +87,7 @@ function TypingDots() {
   );
 }
 
-function ConversationItemInner({ conv, isSelected, profilePic, presence, onSelect, onTogglePin, onToggleUnread, onToggleArchive, owner, isMine, searchTerm, contentMatchSnippet }: ConversationItemProps) {
+function ConversationItemInner({ conv, isSelected, profilePic, presence, onSelect, onTogglePin, onToggleUnread, onToggleArchive, owner, isMine, searchTerm, contentMatchSnippet, isOptedOut }: ConversationItemProps) {
   const stageInfo = getStageInfo(conv.stage);
   const previewRaw = stripQuotes((conv.last_message_preview || "").replace(/\n/g, " "));
   const contactName = conv.contact_name || "Sem nome";
@@ -198,6 +199,17 @@ function ConversationItemInner({ conv, isSelected, profilePic, presence, onSelec
             {conv.tags?.slice(0, 2).map((tag, i) => (
               <span key={i} className="shrink-0 text-[8px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-medium truncate max-w-[80px]">{tag}</span>
             ))}
+            {isOptedOut && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="shrink-0 inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full font-medium border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <ShieldOff className="h-2.5 w-2.5" />
+                    Não receber
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Pediu para não receber disparos em massa</TooltipContent>
+              </Tooltip>
+            )}
             {conv.assigned_to && owner ? (
               <span className={`shrink-0 inline-flex items-center gap-1 text-[8px] px-1.5 py-0.5 rounded-full font-medium border ${isMine ? "bg-primary/10 text-primary border-primary/30" : "bg-secondary/60 text-foreground/70 border-border"}`}>
                 {owner.avatar_url ? (

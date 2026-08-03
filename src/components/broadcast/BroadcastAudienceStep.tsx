@@ -181,12 +181,14 @@ export default function BroadcastAudienceStep({
                         <button
                           type="button"
                           onClick={() => toggle(c.id)}
+                          disabled={c.opted_out}
                           className={cn(
                             "flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50",
-                            checked && "bg-primary/5"
+                            checked && "bg-primary/5",
+                            c.opted_out && "cursor-not-allowed opacity-60 hover:bg-transparent"
                           )}
                         >
-                          <Checkbox checked={checked} className="pointer-events-none" />
+                          <Checkbox checked={checked && !c.opted_out} className="pointer-events-none" />
                           <Avatar className="h-9 w-9 shrink-0">
                             <AvatarImage src={c.profile_picture_url || undefined} alt="" />
                             <AvatarFallback className="text-[11px]">
@@ -197,7 +199,16 @@ export default function BroadcastAudienceStep({
                             <p className="truncate text-sm font-medium">{c.name}</p>
                             <p className="truncate text-[11px] text-muted-foreground">{formatPhone(c.phone)}</p>
                           </div>
-                          {c.tags.slice(0, 2).map((t) => (
+                          {c.opted_out && (
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 gap-1 border-amber-500/40 text-[10px] text-amber-600 dark:text-amber-400"
+                            >
+                              <ShieldOff className="h-3 w-3" />
+                              Não receber
+                            </Badge>
+                          )}
+                          {!c.opted_out && c.tags.slice(0, 2).map((t) => (
                             <Badge key={t} variant="outline" className="hidden shrink-0 text-[10px] sm:inline-flex">{t}</Badge>
                           ))}
                         </button>

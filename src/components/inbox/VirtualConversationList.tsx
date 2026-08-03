@@ -4,6 +4,7 @@ import { Loader2, MessageSquare } from "lucide-react";
 import type { Conversation } from "./types";
 import { ConversationItem } from "./ConversationItem";
 import { getActivePresence, type PresenceMap } from "@/hooks/usePresenceByPhone";
+import { useWhatsAppOptOuts } from "@/hooks/useWhatsAppOptOuts";
 
 interface OwnerInfo {
   full_name: string | null;
@@ -43,6 +44,7 @@ export function VirtualConversationList({
   contentMatchInfo,
 }: VirtualConversationListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const optOutPhones = useWhatsAppOptOuts();
 
   const virtualizer = useVirtualizer({
     count: conversations.length,
@@ -124,6 +126,7 @@ export function VirtualConversationList({
                 isMine={!!currentUserId && conv.assigned_to === currentUserId}
                 searchTerm={searchQuery}
                 contentMatchSnippet={match?.snippet}
+                isOptedOut={optOutPhones.has(String(conv.phone || "").replace(/\D/g, ""))}
               />
             </div>
           );

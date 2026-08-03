@@ -87,10 +87,7 @@ export default function Disparos() {
       );
 
       const list: AudienceCandidate[] = ((convs as any[]) || [])
-        .filter((c) => {
-          const digits = String(c.phone || "").replace(/\D/g, "");
-          return digits.length >= 10 && !optoutSet.has(digits);
-        })
+        .filter((c) => String(c.phone || "").replace(/\D/g, "").length >= 10)
         .map((c) => ({
           id: c.id,
           phone: String(c.phone),
@@ -99,6 +96,7 @@ export default function Disparos() {
           stage: c.stage || c.funnel_stage || null,
           last_message_at: c.last_message_at,
           profile_picture_url: c.profile_picture_url,
+          opted_out: optoutSet.has(String(c.phone || "").replace(/\D/g, "")),
         }));
 
       // Overlap real de opt-outs dentro da base ativa
@@ -140,11 +138,12 @@ export default function Disparos() {
   }, [user?.id]);
 
   const recipients = useMemo(() => {
+    const eligible = candidates.filter((c) => !c.opted_out);
     if (audienceType === "manual") {
-      const byId = new Map(candidates.map((c) => [c.id, c]));
+      const byId = new Map(eligible.map((c) => [c.id, c]));
       return selectedIds.map((id) => byId.get(id)).filter(Boolean) as AudienceCandidate[];
     }
-    return candidates.slice(0, Math.max(0, lastN));
+    return eligible.slice(0, Math.max(0, lastN));
   }, [audienceType, candidates, selectedIds, lastN]);
 
   // ─── Teste obrigatório ───

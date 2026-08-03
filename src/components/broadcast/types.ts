@@ -18,6 +18,7 @@ export interface AudienceCandidate {
   stage: string | null;
   last_message_at: string | null;
   profile_picture_url: string | null;
+  opted_out?: boolean;
 }
 
 export interface AudienceStats {
