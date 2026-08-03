@@ -4,6 +4,7 @@ import { Loader2, MessageSquare } from "lucide-react";
 import type { Conversation } from "./types";
 import { ConversationItem } from "./ConversationItem";
 import { getActivePresence, type PresenceMap } from "@/hooks/usePresenceByPhone";
+import { useWhatsAppOptOuts } from "@/hooks/useWhatsAppOptOuts";
 
 interface OwnerInfo {
   full_name: string | null;
