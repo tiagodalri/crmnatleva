@@ -44,6 +44,7 @@ export function VirtualConversationList({
   contentMatchInfo,
 }: VirtualConversationListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const optOutPhones = useWhatsAppOptOuts();
 
   const virtualizer = useVirtualizer({
     count: conversations.length,
