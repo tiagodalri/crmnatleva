@@ -208,6 +208,7 @@ const OperacaoInbox = lazy(() => import("@/pages/operacao/OperacaoInbox"));
 const OperacaoAtalhos = lazy(() => import("@/pages/operacao/OperacaoAtalhos"));
 const OperacaoAgendadas = lazy(() => import("@/pages/operacao/OperacaoAgendadas"));
 const OperacaoGeradorLink = lazy(() => import("@/pages/operacao/OperacaoGeradorLink"));
+const Disparos = lazy(() => import("@/pages/operacao/Disparos"));
 const OperacaoIntegracoes = lazy(() => import("@/pages/operacao/OperacaoIntegracoes"));
 
 const OperacaoTagsPipeline = lazy(() => import("@/pages/operacao/OperacaoTagsPipeline"));
@@ -428,6 +429,7 @@ function AppRoutes() {
           <Route path="/operacao/atalhos" element={<OperacaoAtalhos />} />
           <Route path="/operacao/agendadas" element={<OperacaoAgendadas />} />
           <Route path="/operacao/gerador-link" element={<OperacaoGeradorLink />} />
+          <Route path="/disparos" element={<Disparos />} />
           <Route path="/operacao/flows" element={<Navigate to="/ai-team/workflow" replace />} />
           <Route path="/operacao/integracoes" element={<OperacaoIntegracoes />} />
           
