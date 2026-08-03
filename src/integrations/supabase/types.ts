@@ -2581,6 +2581,160 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcast_campaigns: {
+        Row: {
+          audience_size: number | null
+          audience_type: string
+          caption: string | null
+          completed_at: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string | null
+          daily_limit: number
+          id: string
+          media_filename: string | null
+          media_mimetype: string | null
+          media_size_bytes: number | null
+          media_type: string | null
+          media_url: string | null
+          message_text: string | null
+          name: string | null
+          started_at: string | null
+          status: string
+          test_sent_at: string | null
+          throttle_max_seconds: number
+          throttle_min_seconds: number
+          total_failed: number
+          total_recipients: number
+          total_sent: number
+          updated_at: string
+        }
+        Insert: {
+          audience_size?: number | null
+          audience_type: string
+          caption?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          daily_limit?: number
+          id?: string
+          media_filename?: string | null
+          media_mimetype?: string | null
+          media_size_bytes?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          message_text?: string | null
+          name?: string | null
+          started_at?: string | null
+          status?: string
+          test_sent_at?: string | null
+          throttle_max_seconds?: number
+          throttle_min_seconds?: number
+          total_failed?: number
+          total_recipients?: number
+          total_sent?: number
+          updated_at?: string
+        }
+        Update: {
+          audience_size?: number | null
+          audience_type?: string
+          caption?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          daily_limit?: number
+          id?: string
+          media_filename?: string | null
+          media_mimetype?: string | null
+          media_size_bytes?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          message_text?: string | null
+          name?: string | null
+          started_at?: string | null
+          status?: string
+          test_sent_at?: string | null
+          throttle_max_seconds?: number
+          throttle_min_seconds?: number
+          total_failed?: number
+          total_recipients?: number
+          total_sent?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      broadcast_recipients: {
+        Row: {
+          campaign_id: string
+          contact_name: string | null
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          external_message_id: string | null
+          id: string
+          order_index: number | null
+          phone: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          contact_name?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_message_id?: string | null
+          id?: string
+          order_index?: number | null
+          phone: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          contact_name?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_message_id?: string | null
+          id?: string
+          order_index?: number | null
+          phone?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_recipients_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_team"
+            referencedColumns: ["conversation_id"]
+          },
+          {
+            foreignKeyName: "broadcast_recipients_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chameleon_sessions: {
         Row: {
           agents_tested: string[]
@@ -11272,6 +11426,33 @@ export type Database = {
           processed?: boolean | null
           processed_at?: string | null
           received_at?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_optouts: {
+        Row: {
+          created_at: string
+          id: string
+          opted_out_at: string
+          phone: string
+          reason: string | null
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          opted_out_at?: string
+          phone: string
+          reason?: string | null
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          opted_out_at?: string
+          phone?: string
+          reason?: string | null
+          source?: string | null
         }
         Relationships: []
       }
