@@ -2589,6 +2589,7 @@ export type Database = {
           completed_at: string | null
           confirmed_at: string | null
           confirmed_by: string | null
+          consecutive_failures: number
           created_at: string
           created_by: string | null
           daily_limit: number
@@ -2600,6 +2601,8 @@ export type Database = {
           media_url: string | null
           message_text: string | null
           name: string | null
+          next_eligible_send_at: string | null
+          paused_reason: string | null
           started_at: string | null
           status: string
           test_sent_at: string | null
@@ -2617,6 +2620,7 @@ export type Database = {
           completed_at?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
+          consecutive_failures?: number
           created_at?: string
           created_by?: string | null
           daily_limit?: number
@@ -2628,6 +2632,8 @@ export type Database = {
           media_url?: string | null
           message_text?: string | null
           name?: string | null
+          next_eligible_send_at?: string | null
+          paused_reason?: string | null
           started_at?: string | null
           status?: string
           test_sent_at?: string | null
@@ -2645,6 +2651,7 @@ export type Database = {
           completed_at?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
+          consecutive_failures?: number
           created_at?: string
           created_by?: string | null
           daily_limit?: number
@@ -2656,6 +2663,8 @@ export type Database = {
           media_url?: string | null
           message_text?: string | null
           name?: string | null
+          next_eligible_send_at?: string | null
+          paused_reason?: string | null
           started_at?: string | null
           status?: string
           test_sent_at?: string | null
