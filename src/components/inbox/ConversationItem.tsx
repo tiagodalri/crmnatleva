@@ -87,7 +87,7 @@ function TypingDots() {
   );
 }
 
-function ConversationItemInner({ conv, isSelected, profilePic, presence, onSelect, onTogglePin, onToggleUnread, onToggleArchive, owner, isMine, searchTerm, contentMatchSnippet }: ConversationItemProps) {
+function ConversationItemInner({ conv, isSelected, profilePic, presence, onSelect, onTogglePin, onToggleUnread, onToggleArchive, owner, isMine, searchTerm, contentMatchSnippet, isOptedOut }: ConversationItemProps) {
   const stageInfo = getStageInfo(conv.stage);
   const previewRaw = stripQuotes((conv.last_message_preview || "").replace(/\n/g, " "));
   const contactName = conv.contact_name || "Sem nome";
