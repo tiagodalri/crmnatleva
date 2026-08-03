@@ -1120,6 +1120,25 @@ Deno.serve(async (req) => {
     const cleanPhone = normalizePhone(phone);
 
     // ═══════════════════════════════════════════════════════════
+    // STEP 3.5: Captura automática de opt-out (não interfere no LiveChat)
+    // ═══════════════════════════════════════════════════════════
+    if (!fromMe && textContent && !isOptOutKeyword.skip) {
+      try {
+        if (matchesOptOutKeyword(textContent)) {
+          await supabase.from("whatsapp_optouts").upsert({
+            phone: cleanPhone,
+            reason: "solicitado_pelo_contato",
+            source: "inbound_keyword",
+            opted_out_at: new Date().toISOString(),
+          }, { onConflict: "phone" });
+          console.log("[Webhook] opt-out registrado", { phone: cleanPhone, text: textContent });
+        }
+      } catch (e) {
+        console.warn("[Webhook] falha ao registrar opt-out", e);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // STEP 4: Flow router (keywords + exclude)
     // ═══════════════════════════════════════════════════════════
     let matchedFlowId: string | null = null;
