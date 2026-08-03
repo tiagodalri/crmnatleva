@@ -27,6 +27,7 @@ interface ConversationItemProps {
   isMine?: boolean;
   searchTerm?: string;
   contentMatchSnippet?: string;
+  isOptedOut?: boolean;
 }
 
 function highlightTerm(text: string, term: string) {
