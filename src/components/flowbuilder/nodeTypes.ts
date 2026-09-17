@@ -61,7 +61,6 @@ export const NODE_CATEGORIES: NodeCategory[] = [
             { label: "Instagram", value: "instagram" },
             { label: "Indicação", value: "indicacao" },
 
-            { label: "Indicação", value: "indicacao" },
           ]},
         ],
       },
