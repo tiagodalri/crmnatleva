@@ -59,8 +59,8 @@ export const NODE_CATEGORIES: NodeCategory[] = [
             { label: "Todas", value: "all" },
             { label: "WhatsApp", value: "whatsapp_api" },
             { label: "Instagram", value: "instagram" },
-            { label: "WebMotors", value: "webmotors" },
-            { label: "OLX", value: "olx" },
+            { label: "Indicação", value: "indicacao" },
+
             { label: "Indicação", value: "indicacao" },
           ]},
         ],

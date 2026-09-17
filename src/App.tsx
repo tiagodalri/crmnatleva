@@ -462,6 +462,8 @@ function AppRoutes() {
           <Route path="/settings/permissions" element={<GenericSettingsList title="Permissões" defaultItems={["admin", "gestor", "vendedor", "operacional", "financeiro", "leitura"]} />} />
           <Route path="/settings/calc-rules" element={<GenericSettingsList title="Regras de Cálculo" defaultItems={["Milheiro padrão: R$ 20,00", "Taxa fixa emissão: R$ 50,00", "Markup padrão: 15%"]} />} />
           <Route path="/settings/user-locations" element={<UserLocations />} />
+          <Route path="/settings/calendar-feed" element={<CalendarFeedSettings />} />
+
         </Route>
 
         {/* Portal do Cliente - rotas separadas fora do CRM */}

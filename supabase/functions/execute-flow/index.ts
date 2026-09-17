@@ -424,19 +424,15 @@ Deno.serve(async (req) => {
             break;
           }
 
-          // ACTION: LINK VEHICLE
-          case current.node_type === "action_link_vehicle": {
-            const vehicleId = context.variables[config.vehicle_var];
-            if (vehicleId) {
-              output.vehicle_linked = vehicleId;
-              stepActions.push(`vehicle_linked: ${vehicleId}`);
-            }
-            break;
-          }
-
           // AI AGENT
           case current.node_type === "ai_agent": {
-            const systemPrompt = interpolate(String(config.system_prompt || "Você é o Lucas, um vendedor de 23 anos da FEBEAL Motors, uma concessionária de veículos premium no Brasil. Responda SEMPRE em português brasileiro, de forma educada, prestativa e profissional. Nunca responda em inglês. Mantenha o tom acolhedor e consultivo. Se não souber algo sobre um veículo, diga que vai verificar com a equipe."), context.variables);
+            if (!String(config.system_prompt || "").trim()) {
+              output.ai_skipped = "Bloco de IA sem prompt configurado — nenhuma mensagem enviada";
+              stepActions.push("ai_skipped: sem prompt");
+              break;
+            }
+            const systemPrompt = interpolate(String(config.system_prompt), context.variables);
+
             const userMessage = context.last_message.text;
             
             try {
