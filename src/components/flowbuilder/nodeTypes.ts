@@ -59,9 +59,8 @@ export const NODE_CATEGORIES: NodeCategory[] = [
             { label: "Todas", value: "all" },
             { label: "WhatsApp", value: "whatsapp_api" },
             { label: "Instagram", value: "instagram" },
-            { label: "WebMotors", value: "webmotors" },
-            { label: "OLX", value: "olx" },
             { label: "Indicação", value: "indicacao" },
+
           ]},
         ],
       },
@@ -226,7 +225,7 @@ export const NODE_CATEGORIES: NodeCategory[] = [
         outputs: [{ id: "out", label: "Saída", type: "default" }],
         configSchema: [
           { key: "question", label: "Pergunta", type: "textarea", required: true },
-          { key: "options", label: "Opções (JSON)", type: "json", placeholder: '["SUV", "Sedan", "Hatch"]' },
+          { key: "options", label: "Opções (JSON)", type: "json", placeholder: '["Orlando", "Europa", "Dubai"]' },
           { key: "save_to_variable", label: "Salvar em variável", type: "variable" },
         ],
       },
@@ -272,7 +271,7 @@ export const NODE_CATEGORIES: NodeCategory[] = [
   },
   {
     id: "actions",
-    label: "Ações FEBEAL",
+    label: "Ações",
     icon: "Cog",
     color: "sky",
     nodes: [
@@ -361,19 +360,6 @@ export const NODE_CATEGORIES: NodeCategory[] = [
           { key: "title", label: "Título", type: "text", required: true },
           { key: "description", label: "Descrição", type: "textarea" },
           { key: "due_hours", label: "Prazo (horas)", type: "number", placeholder: "24" },
-        ],
-      },
-      {
-        type: "action_link_vehicle",
-        label: "Vincular Veículo",
-        icon: "Car",
-        description: "Vincula veículo do estoque à conversa",
-        category: "actions",
-        color: "#0ea5e9",
-        inputs: [{ id: "in", label: "Entrada", type: "default" }],
-        outputs: [{ id: "out", label: "Saída", type: "default" }],
-        configSchema: [
-          { key: "vehicle_var", label: "Variável do veículo", type: "variable", placeholder: "veiculo.id" },
         ],
       },
       {

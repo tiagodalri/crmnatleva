@@ -207,7 +207,7 @@ export function FlowBlockConfig({ node, onUpdate, onLabelChange, onDelete, onClo
                   setRoutes(updated);
                 }}
                 className="h-7 text-xs mt-0.5"
-                placeholder="carro, veículo, informações"
+                placeholder="orçamento, pacote, viagem"
               />
             </div>
           </div>
