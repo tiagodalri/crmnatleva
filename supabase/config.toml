@@ -161,3 +161,6 @@ project_id = "mexlhkqcmiaktjxsyvod"
     verify_jwt = false
   [functions.checkout-draft]
     verify_jwt = false
+  [functions.calendar-feed]
+    verify_jwt = false
+

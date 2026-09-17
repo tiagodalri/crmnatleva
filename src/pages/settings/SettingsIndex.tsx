@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { Users, Plane, MapPin, Award, CreditCard, Tag, Package, Shield, Calculator } from "lucide-react";
+import { Users, Plane, MapPin, Award, CreditCard, Tag, Package, Shield, Calculator, CalendarDays } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const items = [
   { label: "Vendedores", icon: Users, path: "/settings/sellers" },
@@ -13,10 +14,12 @@ const items = [
   { label: "Permissões", icon: Shield, path: "/settings/permissions" },
   { label: "Regras de Cálculo", icon: Calculator, path: "/settings/calc-rules" },
   { label: "Localizações", icon: MapPin, path: "/settings/user-locations" },
+  { label: "Calendário no celular", icon: CalendarDays, path: "/settings/calendar-feed", adminOnly: true },
 ];
 
 export default function SettingsIndex() {
   const navigate = useNavigate();
+  const { role } = useAuth();
 
   return (
     <div className="p-4 md:p-6 space-y-5 animate-fade-in">
@@ -25,7 +28,9 @@ export default function SettingsIndex() {
         <p className="text-sm text-muted-foreground">Gerencie cadastros, permissões e regras</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-        {items.map((item) => (
+        {items
+          .filter((item) => !("adminOnly" in item && item.adminOnly) || role === "admin")
+          .map((item) => (
           <Card
             key={item.label}
             className="p-5 glass-card hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"

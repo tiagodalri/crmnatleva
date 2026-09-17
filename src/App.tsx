@@ -52,6 +52,8 @@ const ClientIntelligence = lazy(() => import("@/pages/ClientIntelligence"));
 
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const UserLocations = lazy(() => import("@/pages/settings/UserLocations"));
+const CalendarFeedSettings = lazy(() => import("@/pages/settings/CalendarFeedSettings"));
+
 
 const WhatsAppQRConnect = lazy(() => import("@/pages/WhatsAppQRConnect"));
 const FlowBuilder = lazy(() => import("@/pages/FlowBuilder"));
