@@ -225,7 +225,7 @@ export const NODE_CATEGORIES: NodeCategory[] = [
         outputs: [{ id: "out", label: "Saída", type: "default" }],
         configSchema: [
           { key: "question", label: "Pergunta", type: "textarea", required: true },
-          { key: "options", label: "Opções (JSON)", type: "json", placeholder: '["SUV", "Sedan", "Hatch"]' },
+          { key: "options", label: "Opções (JSON)", type: "json", placeholder: '["Orlando", "Europa", "Dubai"]' },
           { key: "save_to_variable", label: "Salvar em variável", type: "variable" },
         ],
       },
@@ -271,7 +271,7 @@ export const NODE_CATEGORIES: NodeCategory[] = [
   },
   {
     id: "actions",
-    label: "Ações FEBEAL",
+    label: "Ações",
     icon: "Cog",
     color: "sky",
     nodes: [
@@ -363,19 +363,7 @@ export const NODE_CATEGORIES: NodeCategory[] = [
         ],
       },
       {
-        type: "action_link_vehicle",
-        label: "Vincular Veículo",
-        icon: "Car",
-        description: "Vincula veículo do estoque à conversa",
-        category: "actions",
-        color: "#0ea5e9",
-        inputs: [{ id: "in", label: "Entrada", type: "default" }],
-        outputs: [{ id: "out", label: "Saída", type: "default" }],
-        configSchema: [
-          { key: "vehicle_var", label: "Variável do veículo", type: "variable", placeholder: "veiculo.id" },
-        ],
-      },
-      {
+
         type: "action_create_proposal",
         label: "Criar Proposta",
         icon: "FileSignature",
