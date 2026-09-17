@@ -457,7 +457,7 @@ export function FlowListPage({ onOpenFlow }: Props) {
               <Input
                 value={newRuleLabel}
                 onChange={e => setNewRuleLabel(e.target.value)}
-                placeholder="Ex: Interesse em veículo"
+                placeholder="Ex: Interesse em viagem"
                 className="mt-1"
               />
             </div>
@@ -466,7 +466,7 @@ export function FlowListPage({ onOpenFlow }: Props) {
               <Input
                 value={newRuleKeywords}
                 onChange={e => setNewRuleKeywords(e.target.value)}
-                placeholder="Ex: carro, veículo, informações, interesse"
+                placeholder="Ex: orçamento, pacote, viagem"
                 className="mt-1"
               />
               <p className="text-[10px] text-muted-foreground mt-1">

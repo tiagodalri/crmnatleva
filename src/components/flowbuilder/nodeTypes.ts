@@ -363,7 +363,6 @@ export const NODE_CATEGORIES: NodeCategory[] = [
         ],
       },
       {
-
         type: "action_create_proposal",
         label: "Criar Proposta",
         icon: "FileSignature",
