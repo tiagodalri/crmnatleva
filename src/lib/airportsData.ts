@@ -1,6 +1,6 @@
 /**
  * Comprehensive world airports database for local autocomplete.
- * ~900+ airports covering all commercially served airports worldwide.
+ * ~480 aeroportos covering all commercially served airports worldwide.
  * Searched locally for instant results, supplemented by Amadeus API.
  */
 export interface AirportEntry {
@@ -184,6 +184,10 @@ export const AIRPORTS_DB: AirportEntry[] = [
   { iata: "PTP", name: "Pointe-à-Pitre Intl", city: "Pointe-à-Pitre", country: "GP", subType: "AIRPORT" },
   { iata: "FDF", name: "Aimé Césaire Intl", city: "Fort-de-France", country: "MQ", subType: "AIRPORT" },
   { iata: "STT", name: "Cyril E. King", city: "St. Thomas", country: "VI", subType: "AIRPORT" },
+  { iata: "POP", name: "Gregorio Luperón Intl", city: "Puerto Plata", country: "DO", subType: "AIRPORT" },
+  { iata: "LRM", name: "La Romana Intl", city: "La Romana", country: "DO", subType: "AIRPORT" },
+  { iata: "STI", name: "Cibao Intl", city: "Santiago de los Caballeros", country: "DO", subType: "AIRPORT" },
+
 
   // ===== SOUTH AMERICA =====
   { iata: "EZE", name: "Ministro Pistarini (Ezeiza)", city: "Buenos Aires", country: "AR", subType: "AIRPORT" },
@@ -204,6 +208,10 @@ export const AIRPORTS_DB: AirportEntry[] = [
   { iata: "CTG", name: "Rafael Núñez Intl", city: "Cartagena", country: "CO", subType: "AIRPORT" },
   { iata: "CLO", name: "Alfonso Bonilla Aragón Intl", city: "Cali", country: "CO", subType: "AIRPORT" },
   { iata: "MVD", name: "Carrasco Intl", city: "Montevidéu", country: "UY", subType: "AIRPORT" },
+  { iata: "PDP", name: "Capitán Corbeta C.A. Curbelo", city: "Punta del Este", country: "UY", subType: "AIRPORT" },
+  { iata: "ADZ", name: "Gustavo Rojas Pinilla", city: "San Andrés", country: "CO", subType: "AIRPORT" },
+  { iata: "SLA", name: "Martín Miguel de Güemes", city: "Salta", country: "AR", subType: "AIRPORT" },
+  { iata: "AGT", name: "Guaraní Intl", city: "Ciudad del Este", country: "PY", subType: "AIRPORT" },
   { iata: "UIO", name: "Mariscal Sucre Intl", city: "Quito", country: "EC", subType: "AIRPORT" },
   { iata: "GYE", name: "José Joaquín de Olmedo Intl", city: "Guayaquil", country: "EC", subType: "AIRPORT" },
   { iata: "GPS", name: "Seymour", city: "Galápagos", country: "EC", subType: "AIRPORT" },
@@ -401,7 +409,6 @@ export const AIRPORTS_DB: AirportEntry[] = [
   { iata: "LBV", name: "Léon-Mba Intl", city: "Libreville", country: "GA", subType: "AIRPORT" },
   { iata: "FIH", name: "N'Djili Intl", city: "Kinshasa", country: "CD", subType: "AIRPORT" },
   { iata: "BZV", name: "Maya-Maya", city: "Brazzaville", country: "CG", subType: "AIRPORT" },
-  { iata: "LUA", name: "Luanda Intl", city: "Luanda", country: "AO", subType: "AIRPORT" },
   { iata: "LAD", name: "Quatro de Fevereiro", city: "Luanda", country: "AO", subType: "AIRPORT" },
 
   // ===== ASIA — EAST =====
