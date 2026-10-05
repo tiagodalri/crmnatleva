@@ -10,6 +10,7 @@
 export const AIRPORT_TZ: Record<string, string> = {
   // ============ BRASIL ============
   GRU: "America/Sao_Paulo", CGH: "America/Sao_Paulo", VCP: "America/Sao_Paulo",
+  FEN: "America/Noronha",
   GIG: "America/Sao_Paulo", SDU: "America/Sao_Paulo",
   CNF: "America/Sao_Paulo", PLU: "America/Sao_Paulo",
   BSB: "America/Sao_Paulo", CWB: "America/Sao_Paulo", POA: "America/Sao_Paulo",
@@ -36,6 +37,8 @@ export const AIRPORT_TZ: Record<string, string> = {
   USH: "America/Argentina/Ushuaia", IGR: "America/Argentina/Buenos_Aires",
   CUZ: "America/Lima", AQP: "America/Lima",
   CCP: "America/Santiago", IPC: "Pacific/Easter",
+  PDP: "America/Montevideo", ADZ: "America/Bogota",
+  SLA: "America/Argentina/Salta", AGT: "America/Asuncion", PMC: "America/Santiago",
 
   // ============ AMÉRICA DO NORTE ============
   JFK: "America/New_York", LGA: "America/New_York", EWR: "America/New_York",
@@ -64,6 +67,7 @@ export const AIRPORT_TZ: Record<string, string> = {
   SJU: "America/Puerto_Rico", NAS: "America/Nassau", MBJ: "America/Jamaica",
   KIN: "America/Jamaica", BGI: "America/Barbados", AUA: "America/Aruba",
   CUR: "America/Curacao", PTP: "America/Guadeloupe",
+  POP: "America/Santo_Domingo", LRM: "America/Santo_Domingo", STI: "America/Santo_Domingo",
 
   // ============ EUROPA ============
   LHR: "Europe/London", LGW: "Europe/London", STN: "Europe/London",
@@ -135,7 +139,7 @@ export const AIRPORT_TZ: Record<string, string> = {
   NRT: "Asia/Tokyo", HND: "Asia/Tokyo", KIX: "Asia/Tokyo", ITM: "Asia/Tokyo",
   NGO: "Asia/Tokyo", FUK: "Asia/Tokyo", CTS: "Asia/Tokyo", OKA: "Asia/Tokyo",
   ULN: "Asia/Ulaanbaatar",
-  TAS: "Asia/Tashkent", ALA: "Asia/Almaty",
+  TAS: "Asia/Tashkent", ALA: "Asia/Almaty", NQZ: "Asia/Almaty",
 
   // ============ OCEANIA ============
   SYD: "Australia/Sydney", MEL: "Australia/Melbourne", BNE: "Australia/Brisbane",
