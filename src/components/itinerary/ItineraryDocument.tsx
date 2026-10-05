@@ -1,8 +1,8 @@
 import { forwardRef } from "react";
 import {
   Plane, Hotel, MapPin, Users, Clock, Shield, Car, Ticket, Star,
-  Phone, Mail, MessageCircle, Calendar, Briefcase, ArrowRight,
-  Sunrise, Sunset, CheckCircle2, AlertCircle, Globe, Compass,
+  Phone, Mail, MessageCircle, Calendar, ArrowRight,
+  Sunrise, Sunset, AlertCircle, Globe, Compass,
 } from "lucide-react";
 import AirlineLogo from "@/components/AirlineLogo";
 import { iataToLabel } from "@/lib/iataUtils";
@@ -43,7 +43,6 @@ const fmtWeekday = (d: string | null) => {
   return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long" });
 };
 const fmtTime = (t: string | null) => t?.slice(0, 5) || "—";
-const fmt = (v: number) => v?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "R$ 0,00";
 
 function tripDays(dep: string | null, ret: string | null): number {
   if (!dep || !ret) return 0;
@@ -92,9 +91,6 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
     const originLabel = sale?.origin_iata ? iataToLabel(sale.origin_iata) : "Origem";
     const destLabel = sale?.destination_iata ? iataToLabel(sale.destination_iata) : "Destino";
     const days = tripDays(sale?.departure_date, sale?.return_date);
-    const totalPaid = receivables.filter((r: any) => r.status === "pago").reduce((s: number, r: any) => s + (r.net_value || 0), 0);
-    const totalPending = receivables.filter((r: any) => r.status !== "pago").reduce((s: number, r: any) => s + (r.gross_value || 0), 0);
-    const totalValue = sale?.received_value || 0;
     const heroImage = coverImageUrl || getDestinationImage(sale?.destination_iata, null, sale?.id);
 
     return (
@@ -103,7 +99,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         {/* ═══════════════════════════════════════════════
             1 — COVER
             ═══════════════════════════════════════════════ */}
-        <div className="relative overflow-hidden" style={{ minHeight: 480 }}>
+        <div data-pdf-block className="relative overflow-hidden" style={{ minHeight: 480 }}>
           <img src={heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 60%, rgba(2,44,34,0.85) 100%)" }} />
 
@@ -153,7 +149,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         {/* ═══════════════════════════════════════════════
             2 — RESUMO DA EXPERIÊNCIA
             ═══════════════════════════════════════════════ */}
-        <div className="px-10 py-10">
+        <div data-pdf-block className="px-10 py-10">
           <SectionTitle icon={Compass}>Resumo da Experiência</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
@@ -220,7 +216,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
                   const iconBg = ev.icon === "plane" ? "#eff6ff" : ev.icon === "hotel" ? "#fffbeb" : "#f5f3ff";
 
                   return (
-                    <div key={i} className="relative flex items-start gap-4 pb-6">
+                    <div key={i} data-pdf-block className="relative flex items-start gap-4 pb-6">
                       {/* Date column */}
                       <div className="w-[54px] shrink-0 text-center">
                         <div
@@ -270,7 +266,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
             <SectionTitle icon={Plane}>Seus Voos</SectionTitle>
             <div className="space-y-4">
               {segments.map((seg, i) => (
-                <div key={i} className="relative overflow-hidden rounded-2xl border border-gray-100" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" }}>
+                <div key={i} data-pdf-block className="relative overflow-hidden rounded-2xl border border-gray-100" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" }}>
                   {/* Top bar */}
                   <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
                     <div className="flex items-center gap-3">
@@ -356,7 +352,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
             <SectionTitle icon={Hotel}>Hospedagem</SectionTitle>
             <div className="space-y-4">
               {hotels.map((h, i) => (
-                <div key={i} className="rounded-2xl border border-gray-100 bg-white p-5">
+                <div key={i} data-pdf-block className="rounded-2xl border border-gray-100 bg-white p-5">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #fef3c7, #fde68a)" }}>
                       <Hotel className="h-6 w-6 text-amber-700" />
@@ -408,7 +404,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
                 const iconMap: Record<string, any> = { transfer: Car, seguro: Shield, ingresso: Ticket };
                 const IconComp = iconMap[s.product_type] || Compass;
                 return (
-                  <div key={i} className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-white hover:shadow-sm transition-shadow">
+                  <div key={i} data-pdf-block className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-white hover:shadow-sm transition-shadow">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#f5f3ff" }}>
                       <IconComp className="h-4 w-4 text-violet-600" />
                     </div>
@@ -436,7 +432,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
                 const colors = ["#059669", "#2563eb", "#d97706", "#7c3aed"];
                 const color = colors[i % colors.length];
                 return (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-white border border-gray-100">
+                  <div key={i} data-pdf-block className="flex items-center gap-4 p-4 rounded-xl bg-white border border-gray-100">
                     <div
                       className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0"
                       style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)` }}
@@ -459,73 +455,10 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         )}
 
         {/* ═══════════════════════════════════════════════
-            8 — FINANCEIRO
-            ═══════════════════════════════════════════════ */}
-        {receivables.length > 0 && (
-          <div className="px-10 py-10">
-            <SectionTitle icon={Briefcase}>Painel Financeiro</SectionTitle>
-
-            {/* KPI cards */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <div className="rounded-xl p-4 text-center" style={{ background: "#f8fafc" }}>
-                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Valor Total</p>
-                <p className="text-xl font-black text-gray-900">{fmt(totalValue)}</p>
-              </div>
-              <div className="rounded-xl p-4 text-center" style={{ background: "#ecfdf5" }}>
-                <p className="text-[10px] uppercase tracking-wider text-emerald-600 font-bold mb-1">Pago</p>
-                <p className="text-xl font-black text-emerald-700">{fmt(totalPaid)}</p>
-              </div>
-              <div className="rounded-xl p-4 text-center" style={{ background: totalPending > 0 ? "#fffbeb" : "#ecfdf5" }}>
-                <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: totalPending > 0 ? "#d97706" : "#059669" }}>
-                  {totalPending > 0 ? "Pendente" : "Quitado"}
-                </p>
-                <p className="text-xl font-black" style={{ color: totalPending > 0 ? "#b45309" : "#047857" }}>
-                  {totalPending > 0 ? fmt(totalPending) : "✓"}
-                </p>
-              </div>
-            </div>
-
-            {/* Installments */}
-            <div className="rounded-xl border border-gray-100 overflow-hidden">
-              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-[10px] text-gray-400 uppercase tracking-wider font-bold">
-                <span>Parcela</span>
-                <div className="flex gap-16">
-                  <span>Vencimento</span>
-                  <span>Valor</span>
-                  <span>Status</span>
-                </div>
-              </div>
-              {receivables.map((r: any, i: number) => (
-                <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
-                  <span className="text-xs font-bold text-gray-700">
-                    {r.installment_number}/{r.installment_total}
-                  </span>
-                  <div className="flex items-center gap-8">
-                    <span className="text-xs text-gray-500 w-24 text-right">{fmtDateShort(r.due_date)}</span>
-                    <span className="text-xs font-bold text-gray-900 w-24 text-right">{fmt(r.gross_value)}</span>
-                    <span className="w-20 text-right">
-                      {r.status === "pago" ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-100">
-                          <CheckCircle2 className="h-2.5 w-2.5" /> Pago
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold border border-amber-100">
-                          <Clock className="h-2.5 w-2.5" /> Pendente
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════
             9 — NOTAS PERSONALIZADAS
             ═══════════════════════════════════════════════ */}
         {notesForClient && (
-          <div className="px-10 py-8">
+          <div data-pdf-block className="px-10 py-8">
             <div className="rounded-2xl p-6 border border-emerald-100" style={{ background: "linear-gradient(135deg, #ecfdf5, #d1fae5)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <MessageCircle className="h-4 w-4 text-emerald-700" />
@@ -539,7 +472,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         {/* ═══════════════════════════════════════════════
             10 — ORIENTAÇÕES AO VIAJANTE
             ═══════════════════════════════════════════════ */}
-        <div className="px-10 py-10" style={{ background: "#f8fafc" }}>
+        <div data-pdf-block className="px-10 py-10" style={{ background: "#f8fafc" }}>
           <SectionTitle icon={Shield}>Dicas Importantes para sua Viagem</SectionTitle>
           <div className="space-y-3">
             {[
@@ -549,7 +482,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
               { emoji: "🏨", text: "O horário de check-in nos hotéis é geralmente a partir das **15h** e check-out até **12h**." },
               { emoji: "📱", text: "Mantenha este itinerário acessível no seu celular para consulta rápida durante a viagem." },
             ].map((tip, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-gray-100">
+              <div key={i} data-pdf-block className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-gray-100">
                 <span className="text-lg shrink-0 mt-0.5">{tip.emoji}</span>
                 <p className="text-xs text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: tip.text.replace(/\*\*(.*?)\*\*/g, "<strong class='text-gray-900'>$1</strong>") }} />
               </div>
@@ -560,7 +493,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         {/* ═══════════════════════════════════════════════
             11 — RODAPÉ PREMIUM
             ═══════════════════════════════════════════════ */}
-        <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #022c22 0%, #064e3b 50%, #047857 100%)" }}>
+        <div data-pdf-block className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #022c22 0%, #064e3b 50%, #047857 100%)" }}>
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
           <div className="relative z-10 px-10 py-12 text-center">
             <img src={logoSrc} alt="NatLeva" className="h-10 mx-auto mb-6 brightness-0 invert opacity-90" />
