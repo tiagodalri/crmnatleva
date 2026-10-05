@@ -455,69 +455,6 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         )}
 
         {/* ═══════════════════════════════════════════════
-            8 — FINANCEIRO
-            ═══════════════════════════════════════════════ */}
-        {receivables.length > 0 && (
-          <div className="px-10 py-10">
-            <SectionTitle icon={Briefcase}>Painel Financeiro</SectionTitle>
-
-            {/* KPI cards */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <div className="rounded-xl p-4 text-center" style={{ background: "#f8fafc" }}>
-                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Valor Total</p>
-                <p className="text-xl font-black text-gray-900">{fmt(totalValue)}</p>
-              </div>
-              <div className="rounded-xl p-4 text-center" style={{ background: "#ecfdf5" }}>
-                <p className="text-[10px] uppercase tracking-wider text-emerald-600 font-bold mb-1">Pago</p>
-                <p className="text-xl font-black text-emerald-700">{fmt(totalPaid)}</p>
-              </div>
-              <div className="rounded-xl p-4 text-center" style={{ background: totalPending > 0 ? "#fffbeb" : "#ecfdf5" }}>
-                <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: totalPending > 0 ? "#d97706" : "#059669" }}>
-                  {totalPending > 0 ? "Pendente" : "Quitado"}
-                </p>
-                <p className="text-xl font-black" style={{ color: totalPending > 0 ? "#b45309" : "#047857" }}>
-                  {totalPending > 0 ? fmt(totalPending) : "✓"}
-                </p>
-              </div>
-            </div>
-
-            {/* Installments */}
-            <div className="rounded-xl border border-gray-100 overflow-hidden">
-              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-[10px] text-gray-400 uppercase tracking-wider font-bold">
-                <span>Parcela</span>
-                <div className="flex gap-16">
-                  <span>Vencimento</span>
-                  <span>Valor</span>
-                  <span>Status</span>
-                </div>
-              </div>
-              {receivables.map((r: any, i: number) => (
-                <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
-                  <span className="text-xs font-bold text-gray-700">
-                    {r.installment_number}/{r.installment_total}
-                  </span>
-                  <div className="flex items-center gap-8">
-                    <span className="text-xs text-gray-500 w-24 text-right">{fmtDateShort(r.due_date)}</span>
-                    <span className="text-xs font-bold text-gray-900 w-24 text-right">{fmt(r.gross_value)}</span>
-                    <span className="w-20 text-right">
-                      {r.status === "pago" ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-100">
-                          <CheckCircle2 className="h-2.5 w-2.5" /> Pago
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-bold border border-amber-100">
-                          <Clock className="h-2.5 w-2.5" /> Pendente
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════
             9 — NOTAS PERSONALIZADAS
             ═══════════════════════════════════════════════ */}
         {notesForClient && (
