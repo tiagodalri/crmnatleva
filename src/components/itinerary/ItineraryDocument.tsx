@@ -458,7 +458,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
             9 — NOTAS PERSONALIZADAS
             ═══════════════════════════════════════════════ */}
         {notesForClient && (
-          <div className="px-10 py-8">
+          <div data-pdf-block className="px-10 py-8">
             <div className="rounded-2xl p-6 border border-emerald-100" style={{ background: "linear-gradient(135deg, #ecfdf5, #d1fae5)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <MessageCircle className="h-4 w-4 text-emerald-700" />
@@ -472,7 +472,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         {/* ═══════════════════════════════════════════════
             10 — ORIENTAÇÕES AO VIAJANTE
             ═══════════════════════════════════════════════ */}
-        <div className="px-10 py-10" style={{ background: "#f8fafc" }}>
+        <div data-pdf-block className="px-10 py-10" style={{ background: "#f8fafc" }}>
           <SectionTitle icon={Shield}>Dicas Importantes para sua Viagem</SectionTitle>
           <div className="space-y-3">
             {[
@@ -482,7 +482,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
               { emoji: "🏨", text: "O horário de check-in nos hotéis é geralmente a partir das **15h** e check-out até **12h**." },
               { emoji: "📱", text: "Mantenha este itinerário acessível no seu celular para consulta rápida durante a viagem." },
             ].map((tip, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-gray-100">
+              <div key={i} data-pdf-block className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-gray-100">
                 <span className="text-lg shrink-0 mt-0.5">{tip.emoji}</span>
                 <p className="text-xs text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: tip.text.replace(/\*\*(.*?)\*\*/g, "<strong class='text-gray-900'>$1</strong>") }} />
               </div>
@@ -493,7 +493,7 @@ const ItineraryDocument = forwardRef<HTMLDivElement, ItineraryData>(
         {/* ═══════════════════════════════════════════════
             11 — RODAPÉ PREMIUM
             ═══════════════════════════════════════════════ */}
-        <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #022c22 0%, #064e3b 50%, #047857 100%)" }}>
+        <div data-pdf-block className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #022c22 0%, #064e3b 50%, #047857 100%)" }}>
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
           <div className="relative z-10 px-10 py-12 text-center">
             <img src={logoSrc} alt="NatLeva" className="h-10 mx-auto mb-6 brightness-0 invert opacity-90" />
