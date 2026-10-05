@@ -88,8 +88,11 @@ export default function Itinerary() {
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: el.scrollWidth,
       });
+
+      if (!canvas.width || !canvas.height) {
+        throw new Error("A imagem do documento veio vazia (canvas 0x0)");
+      }
 
       // 2) Descobre onde é PERMITIDO quebrar a página: só no fim de cada bloco
       const docTop = el.getBoundingClientRect().top;
@@ -155,9 +158,10 @@ export default function Itinerary() {
       const fileName = `Itinerario_${data?.sale?.name?.replace(/\s+/g, "_") || "viagem"}.pdf`;
       pdf.save(fileName);
       toast.success(`PDF gerado — ${total} página${total > 1 ? "s" : ""}`);
-    } catch (err) {
-      toast.error("Erro ao gerar PDF");
-      console.error(err);
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      toast.error(`Erro ao gerar PDF: ${msg}`, { duration: 12000 });
+      console.error("[exportPDF]", err);
     } finally {
       setExporting(false);
     }
