@@ -75,36 +75,86 @@ export default function Itinerary() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const exportPDF = async () => {
-    if (!docRef.current) return;
+    const el = docRef.current;
+    if (!el) return;
     setExporting(true);
     try {
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(docRef.current, {
+      const { default: jsPDF } = await import("jspdf");
+
+      // 1) Renderiza o documento inteiro uma única vez, em alta resolução
+      const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
+        windowWidth: el.scrollWidth,
       });
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const pdfWidth = 210; // A4
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      // 2) Descobre onde é PERMITIDO quebrar a página: só no fim de cada bloco
+      const docTop = el.getBoundingClientRect().top;
+      const ratio = canvas.width / el.offsetWidth;
+      const cutPoints = Array.from(el.querySelectorAll<HTMLElement>("[data-pdf-block]"))
+        .map((b) => Math.round((b.getBoundingClientRect().bottom - docTop) * ratio))
+        .filter((y) => y > 0 && y < canvas.height);
+      cutPoints.push(canvas.height);
+      const allowed = Array.from(new Set(cutPoints)).sort((a, b) => a - b);
 
-      const { default: jsPDF } = await import("jspdf");
+      // 3) Fatia o documento em páginas A4 sempre num ponto permitido
+      const PAGE_W = 210;
+      const PAGE_H = 297;
+      const pageHeightPx = Math.floor((PAGE_H * canvas.width) / PAGE_W);
       const pdf = new jsPDF("p", "mm", "a4");
-      let position = 0;
-      const pageHeight = 297;
+      const slice = document.createElement("canvas");
+      const ctx = slice.getContext("2d");
+      if (!ctx) throw new Error("Canvas indisponível");
 
-      // Multi-page
-      while (position < pdfHeight) {
-        if (position > 0) pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, -position, pdfWidth, pdfHeight);
-        position += pageHeight;
+      let cursor = 0;
+      let pageIndex = 0;
+      let guard = 0;
+
+      while (cursor < canvas.height - 2 && guard < 200) {
+        guard++;
+        const limit = cursor + pageHeightPx;
+        const candidates = allowed.filter((y) => y > cursor + 20 && y <= limit);
+        // último ponto permitido que cabe na página; se o bloco for maior que
+        // uma página inteira, corta no limite mesmo (não há alternativa)
+        const cut = candidates.length ? candidates[candidates.length - 1] : Math.min(limit, canvas.height);
+        const height = cut - cursor;
+        if (height <= 0) break;
+
+        slice.width = canvas.width;
+        slice.height = height;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, slice.width, slice.height);
+        ctx.drawImage(canvas, 0, cursor, canvas.width, height, 0, 0, canvas.width, height);
+
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(
+          slice.toDataURL("image/jpeg", 0.92),
+          "JPEG",
+          0,
+          0,
+          PAGE_W,
+          (height * PAGE_W) / canvas.width,
+        );
+
+        cursor = cut;
+        pageIndex++;
+      }
+
+      // 4) Numeração discreta no rodapé de cada página
+      const total = pdf.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`${i} / ${total}`, PAGE_W - 10, PAGE_H - 6, { align: "right" });
       }
 
       const fileName = `Itinerario_${data?.sale?.name?.replace(/\s+/g, "_") || "viagem"}.pdf`;
       pdf.save(fileName);
-      toast.success("PDF gerado com sucesso!");
+      toast.success(`PDF gerado — ${total} página${total > 1 ? "s" : ""}`);
     } catch (err) {
       toast.error("Erro ao gerar PDF");
       console.error(err);
