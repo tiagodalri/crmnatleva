@@ -103,7 +103,13 @@ export default function PassengerFormCard({ index, value, onChange, onRemove, ca
   const dobMonthRef = useRef<HTMLInputElement>(null);
   const dobYearRef = useRef<HTMLInputElement>(null);
 
-  const setForm = (updater: (f: PassengerFormState) => PassengerFormState) => onChange(updater(value));
+  // O formulário é controlado pelo componente pai. Guardamos o valor mais recente
+  // num ref porque atualizações assíncronas (busca de CEP, upload de foto) rodam
+  // depois e, usando a prop `value` capturada no render antigo, gravavam por cima
+  // do que o usuário acabou de digitar — era isso que apagava o último dígito do CEP.
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const setForm = (updater: (f: PassengerFormState) => PassengerFormState) => onChange(updater(valueRef.current));
 
   const cepDigits = value.address_cep.replace(/\D/g, "");
   const cepInvalid = cepDigits.length > 0 && cepDigits.length < 8;
@@ -116,6 +122,9 @@ export default function PassengerFormCard({ index, value, onChange, onRemove, ca
     try {
       const r = await fetch(`https://viacep.com.br/ws/${d}/json/`, { cache: "no-store" });
       const j = await r.json();
+      // Se o usuário já mudou o CEP enquanto a consulta ia e voltava,
+      // esta resposta está velha: descarta sem tocar no formulário.
+      if (valueRef.current.address_cep.replace(/\D/g, "") !== d) return;
       if (j.erro) { setCepError("CEP não encontrado"); return; }
       setForm((f) => ({
         ...f,
